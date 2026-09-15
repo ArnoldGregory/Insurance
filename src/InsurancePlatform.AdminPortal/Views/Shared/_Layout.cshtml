@@ -1,0 +1,200 @@
+@using System.Security.Claims
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var fullName = User.FindFirst("full_name")?.Value ?? "Staff";
+    var roleCode = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+    var avatarInitial = fullName.Length > 0 ? fullName.Substring(0, 1).ToUpper() : "S";
+    // Matches RoleCodes.QuoteBackoffice (SA/AA/SP) - the same three roles
+    // NotificationsController and QuoteRequestsController are gated to.
+    var isQuoteBackofficeRole = roleCode is "SA" or "AA" or "SP";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>@ViewData["Title"] - Insurance Admin Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="shortcut icon" type="image/png" href="~/images/amura-mark.png" />
+
+    <!-- ================== BEGIN BASE CSS STYLE ==================
+         Real "Color Admin" theme, vendored straight out of BIMA_D_LINE -
+         Copy's own wwwroot/assets (same relative paths that project uses) -
+         replaces the from-scratch site.css shell/table/modal system this
+         portal used before (site.css itself is retired - no longer linked
+         anywhere). amura-theme.css below is loaded LAST instead, as a
+         small override layer for Amura's gold/green/near-black brand
+         colors on top of this theme's default green skin - see that
+         file's own top comment for why a full custom stylesheet wasn't
+         viable (the theme's colors are hardcoded through a minified
+         stylesheet, no CSS variables to swap). -->
+    <link href="~/assets/static/plugins/jquery-ui/themes/base/minified/jquery-ui.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/fontawesome-5.15.3/css/all.min.css" rel="stylesheet" />
+    <link href="~/assets/static/css/animate.min.css" rel="stylesheet" />
+    <link href="~/assets/desiredfont.css" rel="stylesheet" />
+    <link href="~/assets/static/2/css/style.min.css" rel="stylesheet" />
+    <link href="~/assets/static/css/style-responsive.min.css" rel="stylesheet" />
+    <link href="~/assets/static/css/theme/default.css" rel="stylesheet" id="theme" />
+    <link href="~/css/amura-theme.css" rel="stylesheet" asp-append-version="true" />
+    <!-- legacy-shell.css - reverts ONLY the topbar/sidebar chrome around
+         the page body back to the custom design this portal used before the
+         Bootstrap theme conversion (black topbar, green sidebar, "MENU"
+         label, custom nav-link/nav-group tree). Loaded last so its
+         .topbar/.sidebar/.nav-link/etc. rules win over the vendored
+         theme's own same-named classes. Content screens below
+         (Quote Requests, Clients, Purchases, Payments, Menus, Purchase
+         Wizard) are untouched by this file and stay on the Bootstrap/
+         DataTables/SweetAlert2/Select2 conversion - see that file's own
+         top comment for the full reasoning. -->
+    <link href="~/css/legacy-shell.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" />
+    <!-- ================== END BASE CSS STYLE ================== -->
+    <!-- ================== BEGIN PAGE LEVEL STYLE ================== -->
+    @RenderSection("PageStyles", required: false)
+    <!-- ================== END PAGE LEVEL STYLE ================== -->
+</head>
+<body>
+    @if (isAuthenticated)
+    {
+        <!-- Custom shell (reverted) - black full-width topbar with the
+             logo on the left, green sidebar starting below it. Note:
+             Home/Dashboard breadcrumb intentionally NOT restored here, per
+             the earlier "remove home/Dashboard" request - this topbar only
+             has the brand + mobile menu toggle on the left. The page body
+             rendered further down still pulls in the Bootstrap/DataTables/
+             SweetAlert2/Select2 assets loaded above/below - only this
+             chrome reverted. -->
+        <header class="topbar">
+            <div style="display:flex;align-items:center;gap:16px;min-width:0;">
+                <a class="topbar-brand" asp-controller="Home" asp-action="Index">
+                    <img src="~/images/amura-mark.png" alt="" class="topbar-brand-icon" />
+                    <div>
+                        <div class="topbar-brand-text">Amura</div>
+                        <div class="topbar-brand-subtext">INSURANCE AGENCY</div>
+                    </div>
+                </a>
+                <button type="button" id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Menu" aria-label="Toggle navigation">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="topbar-user">
+                @if (isQuoteBackofficeRole)
+                {
+                    <!-- Notification bell - polling badge (not real-time push), see
+                         NotificationsController's doc comment for why. site.js polls
+                         GET /notifications/summary every ~45s and repaints this via
+                         the old manual #notif-bell-btn/#notif-dropdown toggle. -->
+                    <div class="notif-bell-wrap" id="notif-bell-wrap">
+                        <button id="notif-bell-btn" class="notif-bell-btn" title="Notifications">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+                        </button>
+                        <div class="notif-dropdown" id="notif-dropdown">
+                            <div class="notif-dropdown-header">Notifications</div>
+                            <div id="notif-dropdown-body">
+                                <div class="notif-dropdown-empty">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <span class="role-pill">@roleCode</span>
+                <div class="user-avatar">@avatarInitial</div>
+                <span class="topbar-username">@fullName</span>
+                <form asp-controller="Account" asp-action="Logout" method="post" style="margin:0;">
+                    <button type="submit" class="logout-btn" title="Log out">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </header>
+        <div class="shell">
+            <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+            <aside class="sidebar">
+                <div class="sidebar-profile">
+                    <div class="sidebar-profile-avatar">@avatarInitial</div>
+                    <div class="sidebar-profile-name">@fullName</div>
+                    <div class="sidebar-profile-role">@roleCode</div>
+                </div>
+                <nav class="sidebar-nav">
+                    @await Component.InvokeAsync("Menu")
+                </nav>
+            </aside>
+            <div class="main">
+                <div class="content @(ViewData["FullWidth"] as bool? == true ? "content-full" : "")">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+
+        <!-- Page-freeze loader overlay - shared by any view that needs to
+             show "something is happening" during an AJAX call. Toggled via
+             the showPageLoader()/hidePageLoader() helpers in site.js.
+             Unrelated to the shell revert above - kept as-is. -->
+        <div class="page-loader-overlay" id="page-loader-overlay">
+            <div class="page-loader-content">
+                <div class="page-loader-spinner"></div>
+                <div class="page-loader-text" id="page-loader-text">Please wait...</div>
+            </div>
+        </div>
+    }
+    else if (ViewData["SplitAuth"] as bool? == true)
+    {
+        @* Login's own full-bleed split-screen layout (photo left, form
+           right, copyright bar along the bottom) - built entirely inside
+           Login.cshtml itself, so this branch just renders the body with
+           no extra wrapper. VerifyOtp/AccessDenied fall through to the
+           plain centered-card branch below unchanged. *@
+        @RenderBody()
+    }
+    else
+    {
+        <div class="auth-page">
+            <a class="auth-brand" asp-controller="Account" asp-action="Login">
+                <img src="~/images/amura-lockup.png" alt="Amura Insurance Agency" />
+            </a>
+            @RenderBody()
+        </div>
+    }
+
+    <!-- ================== BEGIN BASE JS ================== -->
+    <script src="~/assets/static/plugins/jquery/jquery-1.9.1.min.js"></script>
+    <script src="~/assets/static/plugins/jquery/jquery-migrate-1.1.0.min.js"></script>
+    <script src="~/assets/static/plugins/jquery-ui/ui/minified/jquery-ui.min.js"></script>
+    <script src="~/assets/static/plugins/bootstrap/js/bootstrap.min.js"></script>
+    <!-- slimscroll + jquery-cookie - apps.min.js's App.init() calls
+         $(...).slimScroll(...) on the sidebar's [data-scrollbar="true"]
+         wrapper and uses $.cookie to remember sidebar-minify state. These
+         were missing from the original vendoring pass, which made
+         App.init() throw partway through and silently abort the REST of
+         its own setup too - including the has-sub sidebar menu's
+         expand/collapse click binding. That's why "Purchases" etc. looked
+         permanently stuck open/closed instead of toggling on click. -->
+    <script src="~/assets/static/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+    <script src="~/assets/static/plugins/jquery-cookie/jquery.cookie.js"></script>
+    <script src="~/assets/static/js/apps.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // App.init() wires up this theme's sidebar collapse/minify, dropdowns,
+        // scroll-to-top etc. (see apps.min.js) - every page needs this once
+        // the shell markup above is in the DOM, same as every page in
+        // BIMA_D_LINE - Copy calls it in its own PageScripts section.
+        if (window.App && typeof window.App.init === "function") { App.init(); }
+    </script>
+    <!-- ================== END BASE JS ================== -->
+    <!-- ================== BEGIN PAGE LEVEL JS ================== -->
+    @RenderSection("PageScripts", required: false)
+    @RenderSection("Scripts", required: false)
+    <!-- ================== END PAGE LEVEL JS ================== -->
+</body>
+</html>

@@ -1,0 +1,147 @@
+@model ProductsIndexViewModel
+@{
+    ViewData["Title"] = "Products";
+}
+@{
+    var activeTab = Context.Request.Query["tab"].FirstOrDefault() ?? "products";
+}
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-car"></i> Products
+    <small>Product hierarchy catalog</small>
+</h1>
+<!-- end page-header -->
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Index", "Products")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+        </div>
+        <h4 class="panel-title">Catalog</h4>
+    </div>
+    <div class="panel-body" style="padding:0;">
+        <div style="display:flex;border-bottom:1px solid #e5e7eb;padding:0 20px;">
+            <a href="?tab=products" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="products" ? "#b8960f" : "#6b7280");border-bottom:2px solid @(activeTab=="products" ? "#b8960f" : "transparent");">Products</a>
+            <a href="?tab=categories" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="categories" ? "#b8960f" : "#6b7280");border-bottom:2px solid @(activeTab=="categories" ? "#b8960f" : "transparent");">Motor Categories</a>
+            <a href="?tab=classes" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="classes" ? "#b8960f" : "#6b7280");border-bottom:2px solid @(activeTab=="classes" ? "#b8960f" : "transparent");">Vehicle Classes</a>
+            <a href="?tab=periods" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="periods" ? "#b8960f" : "#6b7280");border-bottom:2px solid @(activeTab=="periods" ? "#b8960f" : "transparent");">Periods</a>
+            <a href="?tab=levels" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="levels" ? "#b8960f" : "#6b7280");border-bottom:2px solid @(activeTab=="levels" ? "#b8960f" : "transparent");">Policy Levels</a>
+        </div>
+        <div style="padding:20px;">
+            @if (activeTab == "products")
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered table-condensed">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Code</th><th>Pricing Method</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.Products)
+                            {
+                                <tr>
+                                    <td>@p.ProductId</td>
+                                    <td><strong>@p.Name</strong></td>
+                                    <td><code>@p.Code</code></td>
+                                    <td>@p.PricingMethod</td>
+                                    <td>@if (p.IsActive) { <span class="label label-success">Active</span> } else { <span class="label label-danger">Inactive</span> }</td>
+                                </tr>
+                            }
+                            @if (Model.Products.Count == 0)
+                            {
+                                <tr><td colspan="5"><p class="text-muted" style="margin:0;">No products found.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else if (activeTab == "categories")
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered table-condensed">
+                        <thead>
+                            <tr><th>ID</th><th>Product ID</th><th>Name</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.MotorCategories)
+                            {
+                                <tr><td>@c.MotorCategoryId</td><td>@c.ProductId</td><td><strong>@c.Name</strong></td></tr>
+                            }
+                            @if (Model.MotorCategories.Count == 0)
+                            {
+                                <tr><td colspan="3"><p class="text-muted" style="margin:0;">No motor categories found.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else if (activeTab == "classes")
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered table-condensed">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Requires Tonnage</th><th>Policy Level</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.VehicleClasses)
+                            {
+                                <tr>
+                                    <td>@c.VehicleClassId</td>
+                                    <td><strong>@c.Name</strong></td>
+                                    <td>@if (c.RequiresTonnage) { <span class="label label-success">Yes</span> } else { <span class="label label-default">No</span> }</td>
+                                    <td>@(Model.PolicyLevels.FirstOrDefault(l => l.PolicyLevelId == c.PolicyLevelId)?.Name ?? "—")</td>
+                                </tr>
+                            }
+                            @if (Model.VehicleClasses.Count == 0)
+                            {
+                                <tr><td colspan="4"><p class="text-muted" style="margin:0;">No vehicle classes found.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else if (activeTab == "periods")
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered table-condensed">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>DMVIC Code</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.Periods)
+                            {
+                                <tr><td>@p.PeriodId</td><td><strong>@p.Name</strong></td><td>@(p.DmvicCode ?? "—")</td></tr>
+                            }
+                            @if (Model.Periods.Count == 0)
+                            {
+                                <tr><td colspan="3"><p class="text-muted" style="margin:0;">No periods found.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered table-condensed">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var l in Model.PolicyLevels)
+                            {
+                                <tr><td>@l.PolicyLevelId</td><td><strong>@l.Name</strong></td></tr>
+                            }
+                            @if (Model.PolicyLevels.Count == 0)
+                            {
+                                <tr><td colspan="2"><p class="text-muted" style="margin:0;">No policy levels found.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->

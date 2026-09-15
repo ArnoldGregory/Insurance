@@ -1,0 +1,63 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+    // Tells _Layout.cshtml's unauthenticated branch to skip its normal
+    // centered-card ".auth-page" wrapper and just render this view's own
+    // full-bleed split-screen markup below instead - see that file's own
+    // comment on the "SplitAuth" branch. VerifyOtp/AccessDenied don't set
+    // this, so they keep the old centered-card look untouched.
+    ViewData["SplitAuth"] = true;
+}
+<div class="auth-split">
+    <div class="auth-split-photo">
+        <img src="~/images/login-photo.jpg" alt="" />
+        <div class="auth-split-photo-overlay"></div>
+        <div class="auth-split-brand">
+            <img src="~/images/amura-mark.png" alt="" />
+            <div>
+                <div class="auth-split-brand-text">Amura</div>
+                <div class="auth-split-brand-subtext">INSURANCE AGENCY</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-split-form">
+        <div class="auth-split-form-inner">
+            <div class="auth-title">Welcome back</div>
+            <div class="auth-subtitle">Sign in with your staff ID number and password.</div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-error">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            @* asp-controller/asp-action on a <form> makes the tag helper inject the
+               anti-forgery hidden field automatically - no explicit @Html.AntiForgeryToken() needed. *@
+            <form asp-controller="Account" asp-action="Login" method="post">
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+                <div class="field">
+                    <label asp-for="IdNo">ID Number</label>
+                    <input asp-for="IdNo" type="text" placeholder="e.g. 12345678" autocomplete="username" autofocus />
+                    <span asp-validation-for="IdNo" class="field-error"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="Password">Password</label>
+                    <input asp-for="Password" type="password" placeholder="••••••••" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="field-error"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">Login</button>
+            </form>
+        </div>
+
+        <div class="auth-split-footer">
+            Copyright &copy; @DateTime.UtcNow.Year Amura Insurance Agency. All rights reserved.
+        </div>
+    </div>
+</div>

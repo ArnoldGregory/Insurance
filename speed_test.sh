@@ -1,0 +1,3 @@
+#!/bin/bash
+curl -s -o /dev/null -w 'login wrong pass: HTTP %{http_code} in %{time_total}s\n' -X POST https://insuranceapi.riziki.app/api/auth/login -H 'Content-Type: application/json' -H 'x-channel: BACKOFFICE' -d '{"idNo":"90000002","password":"wrongpass"}'
+curl -s -o /dev/null -w 'summary endpoint: HTTP %{http_code} in %{time_total}s\n' 'https://insuranceapi.riziki.app/api/quoterequests/summary'

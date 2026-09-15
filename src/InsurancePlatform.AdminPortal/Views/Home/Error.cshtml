@@ -1,0 +1,22 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+}
+<div class="auth-card">
+    <div class="status-page">
+        <div class="status-icon error">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        </div>
+        <div class="status-title">Something went wrong</div>
+        <div class="status-desc">
+            An unexpected error occurred. Please try again, and let a SuperAdmin know if it keeps happening.
+            @if (Model?.ShowRequestId == true)
+            {
+                <br /><span>Request ID: <code>@Model.RequestId</code></span>
+            }
+        </div>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline">Back to dashboard</a>
+    </div>
+</div>

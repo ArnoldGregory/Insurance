@@ -1,0 +1,143 @@
+@model WizardStep1ViewModel
+@{
+    ViewData["Title"] = "New Purchase - TPO";
+    ViewData["FullWidth"] = true;
+    ViewData["WizardStep"] = 1;
+    ViewData["WizardSubtitle"] = "Step 1 of 4 — Pick the vehicle class, period, and tonnage/carry capacity, then generate a quote to compare underwriters.";
+}
+@await Html.PartialAsync("_WizardHeader")
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="wz-alert wz-alert--error">
+        <i class="fa fa-exclamation-circle"></i>
+        <span>@Model.ErrorMessage</span>
+    </div>
+}
+
+<div class="wz-card">
+    <div class="wz-card-header">
+        <div class="wz-card-icon"><i class="fa fa-car"></i></div>
+        <div>
+            <h4 class="wz-card-title">Vehicle &amp; Cover</h4>
+            <p class="wz-card-desc">Select the vehicle class, policy period, and tonnage or carry capacity.</p>
+        </div>
+    </div>
+    <div class="wz-card-body">
+        <form asp-action="Step1Generate" method="post">
+            <div class="wz-form-grid wz-form-grid--4">
+                <div class="wz-field">
+                    <label class="wz-label">Vehicle Class <span class="wz-required">*</span></label>
+                    <select id="vehicleClassSelect" name="VehicleClassId" class="wz-select">
+                        <option value="">Select vehicle class</option>
+                        @foreach (var c in Model.VehicleClasses)
+                        {
+                            <option value="@c.VehicleClassId" data-tonnage="@(c.RequiresTonnage ? "1" : "0")" selected="@(Model.VehicleClassId == c.VehicleClassId)">@c.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="wz-field">
+                    <label class="wz-label">Period <span class="wz-required">*</span></label>
+                    <select name="PeriodId" class="wz-select">
+                        <option value="">Select period</option>
+                        @foreach (var p in Model.Periods)
+                        {
+                            <option value="@p.PeriodId" selected="@(Model.PeriodId == p.PeriodId)">@p.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="wz-field" id="tonnageField">
+                    <label class="wz-label">Tonnage</label>
+                    <input type="number" step="0.01" name="Tonnage" class="wz-input" value="@Model.Tonnage" placeholder="e.g. 3.5" />
+                </div>
+                <div class="wz-field" id="carryCapacityField">
+                    <label class="wz-label">Carry Capacity</label>
+                    <input type="text" name="CarryCapacity" class="wz-input" value="@Model.CarryCapacity" placeholder="e.g. 14 seater" />
+                </div>
+            </div>
+            <div class="wz-actions">
+                <button type="submit" class="wz-btn wz-btn--gold"><i class="fa fa-calculator"></i> Generate Quote</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.QuoteOptions is not null && Model.QuoteOptions.Count > 0)
+{
+    <div class="wz-card">
+        <div class="wz-card-header">
+            <div class="wz-card-icon wz-card-icon--green"><i class="fa fa-balance-scale"></i></div>
+            <div>
+                <h4 class="wz-card-title">Compare Underwriters</h4>
+                <p class="wz-card-desc">Cheapest first. Click an option to select it, then continue.</p>
+            </div>
+        </div>
+        <div class="wz-card-body">
+            <form asp-action="Step1Next" method="post" id="quoteSelectForm">
+                <input type="hidden" name="selectedTpoPriceId" id="selectedTpoPriceId" />
+                <input type="hidden" name="selectedUnderwriterId" id="selectedUnderwriterId" />
+                <input type="hidden" name="selectedUnderwriterName" id="selectedUnderwriterName" />
+                <input type="hidden" name="selectedPremium" id="selectedPremium" />
+
+                <div class="wz-quote-grid">
+                    @foreach (var option in Model.QuoteOptions)
+                    {
+                        var isPicked = Model.SelectedTpoPriceId == option.TpoPriceId;
+                        <label class="wz-quote-card @(isPicked ? "wz-quote-card--selected" : "")"
+                               data-tpo-price-id="@option.TpoPriceId"
+                               data-underwriter-id="@option.UnderwriterId"
+                               data-underwriter-name="@option.UnderwriterName"
+                               data-premium="@option.Price">
+                            <input type="radio" name="quoteChoice" class="wz-quote-radio" value="@option.TpoPriceId" checked="@isPicked" />
+                            <div class="wz-quote-check"><i class="fa fa-check"></i></div>
+                            <div class="wz-quote-uw">@option.UnderwriterName</div>
+                            <div class="wz-quote-price">KES @option.Price.ToString("N2")</div>
+                        </label>
+                    }
+                </div>
+
+                <div class="wz-actions">
+                    <button type="submit" class="wz-btn wz-btn--gold" id="quoteNextBtn" disabled="@(Model.SelectedTpoPriceId is null)">
+                        @(Model.SelectedTpoPriceId is null ? "Select an option to continue" : "Continue to Client Details")
+                        <i class="fa fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section PageScripts {
+<script>
+    function onVehicleClassChange() {
+        var select = document.getElementById('vehicleClassSelect');
+        var opt = select.options[select.selectedIndex];
+        var requiresTonnage = !!opt && opt.getAttribute('data-tonnage') === '1';
+        document.getElementById('tonnageField').style.display = requiresTonnage ? 'block' : 'none';
+        document.getElementById('carryCapacityField').style.display = requiresTonnage ? 'none' : 'block';
+    }
+    document.getElementById('vehicleClassSelect').addEventListener('change', onVehicleClassChange);
+    document.addEventListener('DOMContentLoaded', onVehicleClassChange);
+
+    var quoteCards = document.querySelectorAll('.wz-quote-card');
+    var nextBtn = document.getElementById('quoteNextBtn');
+
+    function selectCard(card) {
+        quoteCards.forEach(function (c) { c.classList.remove('wz-quote-card--selected'); });
+        card.classList.add('wz-quote-card--selected');
+        document.getElementById('selectedTpoPriceId').value = card.getAttribute('data-tpo-price-id');
+        document.getElementById('selectedUnderwriterId').value = card.getAttribute('data-underwriter-id');
+        document.getElementById('selectedUnderwriterName').value = card.getAttribute('data-underwriter-name');
+        document.getElementById('selectedPremium').value = card.getAttribute('data-premium');
+        if (nextBtn) {
+            nextBtn.disabled = false;
+        }
+    }
+
+    quoteCards.forEach(function (card) {
+        var radio = card.querySelector('.wz-quote-radio');
+        radio.addEventListener('change', function () { selectCard(card); });
+        if (radio.checked) { selectCard(card); }
+    });
+</script>
+}

@@ -1,0 +1,69 @@
+@model MenuFormViewModel
+@{
+    ViewData["Title"] = "Add menu item";
+}
+
+<!-- begin page-header -->
+<h1 class="page-header"><i class="fas fa-plus"></i> Add menu item <small>Leave URL blank to create a group header (e.g. "Pricing") that expands to show its children instead of navigating anywhere.</small></h1>
+<!-- end page-header -->
+
+<div class="panel panel-inverse" style="max-width:560px;">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a asp-action="Index" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        <h4 class="panel-title">Menu item details</h4>
+    </div>
+    <div class="panel-body">
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="ParentMenuId">Parent (optional)</label>
+                <select class="form-control" asp-for="ParentMenuId">
+                    <option value="">— Top-level item —</option>
+                    @foreach (var parent in Model.ParentOptions)
+                    {
+                        <option value="@parent.MenuId">@parent.Label</option>
+                    }
+                </select>
+                <span class="help-block">Only top-level items can be picked as a parent - the sidebar supports 2 levels.</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="Label">Label</label>
+                <input class="form-control" asp-for="Label" placeholder="e.g. Underwriters" autofocus />
+                <span asp-validation-for="Label" class="field-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="Icon"></label>
+                <input class="form-control" asp-for="Icon" placeholder="e.g. fa-building-shield" />
+                <span class="help-block">Any Font Awesome class name (see fontawesome.com/icons). Leave blank for no icon.</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="Url"></label>
+                <input class="form-control" asp-for="Url" placeholder="e.g. /Underwriters/Index" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="SortOrder">Sort order</label>
+                <input class="form-control" asp-for="SortOrder" type="number" />
+                <span class="help-block">Lower numbers appear first. Group headers and their children sort independently (10, 20, 30... leaves room to insert items later).</span>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:6px;">
+                <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Add menu item</button>
+                <a asp-action="Index" class="btn btn-default">Cancel</a>
+            </div>
+        </form>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->

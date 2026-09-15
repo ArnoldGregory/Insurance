@@ -1,0 +1,89 @@
+@*
+    Shared header for every TPO wizard screen (Step1-4, Comprehensive).
+
+    Rebuilt as a premium stepper wizard:
+    1. Gold gradient hero banner with title, subtitle, and close button
+    2. Modern connected-circle stepper showing all 4 steps with status
+    3. Each circle: checkmark (done), animated ring (active), dim outline (pending)
+    4. Connecting lines fill with gold as steps complete
+    5. Fully responsive - collapses on mobile
+
+    Each calling view sets two ViewData keys:
+      ViewData["WizardStep"]     - int, 1-4 (which step is active)
+      ViewData["WizardSubtitle"] - string shown under the heading
+      ViewData["WizardTitle"]    - string, defaults to "New Purchase - TPO"
+*@
+@{
+    int currentStep = ViewData["WizardStep"] as int? ?? 0;
+    string subtitle = ViewData["WizardSubtitle"] as string ?? string.Empty;
+    string title = ViewData["WizardTitle"] as string ?? "New Purchase - TPO";
+    bool isComprehensive = title.Contains("Comprehensive", StringComparison.OrdinalIgnoreCase);
+    var steps = new[] {
+        new { Num = 1, Label = "Quote", Icon = "fa-calculator" },
+        new { Num = 2, Label = "Client & Vehicle", Icon = "fa-user-plus" },
+        new { Num = 3, Label = "Payment", Icon = "fa-credit-card" },
+        new { Num = 4, Label = "Summary", Icon = "fa-check-circle" }
+    };
+}
+<script>
+    (function () {
+        var nav = window.performance && performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+        var isReload = nav
+            ? nav.type === "reload"
+            : (performance.navigation && performance.navigation.type === 1);
+        if (isReload) {
+            window.location.replace("@(isComprehensive ? Url.Action("Comprehensive", "PurchaseWizard") : Url.Action("Step1", "PurchaseWizard", new { reset = true }))");
+        }
+    })();
+</script>
+
+<div class="wz-hero">
+    <div class="wz-hero-left">
+        <div class="wz-hero-icon"><i class="fa fa-car"></i></div>
+        <div>
+            <h1 class="wz-hero-title">@title</h1>
+            @if (!string.IsNullOrEmpty(subtitle))
+            {
+                <p class="wz-hero-sub">@subtitle</p>
+            }
+        </div>
+    </div>
+    <a asp-controller="Purchases" asp-action="Index" class="wz-hero-close" title="Cancel and return to Purchases">
+        <i class="fa fa-times"></i> Cancel
+    </a>
+</div>
+
+@if (currentStep >= 1 && currentStep <= 4)
+{
+    <div class="wz-stepper">
+        @for (int i = 0; i < steps.Length; i++)
+        {
+            var s = steps[i];
+            var n = s.Num;
+            string state;
+            if (n < currentStep) state = "done";
+            else if (n == currentStep) state = "active";
+            else state = "pending";
+
+            <div class="wz-step wz-step--@state">
+                <div class="wz-step__circle">
+                    @if (state == "done")
+                    {
+                        <i class="fa fa-check"></i>
+                    }
+                    else
+                    {
+                        <span>@n</span>
+                    }
+                </div>
+                <div class="wz-step__info">
+                    <span class="wz-step__label">@s.Label</span>
+                </div>
+            </div>
+            if (i < steps.Length - 1)
+            {
+                <div class="wz-connector @(n < currentStep ? "wz-connector--done" : "")"></div>
+            }
+        }
+    </div>
+}

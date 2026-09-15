@@ -1,0 +1,539 @@
+@using System.Text.Json
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var isAgent = Model.RoleCode == RoleCodes.Agent;
+
+    // Local helper to safely drop a C# value into the inline <script>
+    // block below as a JSON literal (numbers/strings/arrays) - matters
+    // most for the *label* arrays (underwriter/product/agent/month names),
+    // since those are real free-text data that could contain a quote or
+    // other character that would otherwise break out of a JS string
+    // literal if just interpolated raw with @@(...).
+    string Json(object? value) => JsonSerializer.Serialize(value);
+}
+@section PageStyles {
+    <link href="~/assets/static/plugins/DataTables/media/css/dataTables.bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/DataTables/extensions/Responsive/css/responsive.bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/chartjs/css/Chart.css" rel="stylesheet" />
+    <style>
+        :root {
+            --c-navy    : #002D6A;
+            --c-blue    : #1B84C7;
+            --c-teal    : #00B194;
+            --c-orange  : #E2A856;
+            --c-red     : #F05133;
+            --c-purple  : #727cb6;
+            --c-aqua    : #49b6d6;
+            --c-bg      : #f0f3f7;
+            --c-white   : #ffffff;
+            --c-border  : rgba(0,0,0,0.08);
+            --radius    : 14px;
+            --shadow    : 0 4px 16px rgba(0,0,0,0.10);
+            --shadow-lg : 0 8px 28px rgba(0,0,0,0.14);
+        }
+        .content { background: var(--c-bg) !important; }
+        /* ── Header bar ── */
+        .db-header {
+            display         : flex;
+            align-items     : center;
+            background      : var(--c-white);
+            border-radius   : var(--radius);
+            box-shadow      : var(--shadow);
+            padding         : 14px 20px;
+            margin-bottom   : 22px;
+        }
+        .db-header-title {
+            display     : flex;
+            align-items : center;
+            gap         : 10px;
+        }
+        .db-header-title i  { font-size:1.5rem; color:var(--c-teal); }
+        .db-header-title h1 { font-size:1.4rem; font-weight:800; color:var(--c-navy); margin:0; line-height:1; }
+        /* ── Section labels ── */
+        .section-label {
+            font-size:0.68rem; letter-spacing:.14em; text-transform:uppercase;
+            color:#8a97a8; font-weight:800; margin:0 0 12px 2px;
+            display:flex; align-items:center; gap:8px;
+        }
+        .section-label::after { content:''; flex:1; height:1px; background:rgba(0,0,0,0.07); }
+        /* ── Stat widget cards ── */
+        .widget.widget-stats {
+            border-radius : var(--radius) !important;
+            box-shadow    : var(--shadow) !important;
+            transition    : transform .25s, box-shadow .25s;
+            overflow      : hidden;
+            position      : relative;
+            margin-bottom : 16px;
+            min-height    : 130px;
+        }
+        .widget.widget-stats:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg) !important; }
+        .widget.widget-stats::before {
+            content:''; position:absolute; right:-30px; bottom:-30px;
+            width:130px; height:130px; border-radius:50%;
+            background:rgba(255,255,255,0.10); pointer-events:none;
+        }
+        .widget.widget-stats .stats-icon {
+            font-size:2.6rem !important; opacity:0.22 !important;
+            position:absolute; right:18px; top:50%; transform:translateY(-50%);
+        }
+        .widget.widget-stats .stats-info { padding:22px 20px 8px 20px; position:relative; z-index:1; }
+        .widget.widget-stats .stats-info h4 {
+            font-size:.75rem !important; letter-spacing:.1em; text-transform:uppercase;
+            color:rgba(255,255,255,0.82) !important; font-weight:700 !important; margin-bottom:8px !important;
+        }
+        .widget.widget-stats .stats-info p {
+            font-size:1.6rem !important; font-weight:900 !important;
+            color:#ffffff !important; margin:0 !important; line-height:1.1 !important;
+            min-height:38px; text-shadow:0 1px 4px rgba(0,0,0,0.18);
+        }
+        .widget.widget-stats .stats-link { padding:6px 20px 12px; position:relative; z-index:1; }
+        /* `span` alongside `a` here: three of the five widgets below are
+           wrapped in an <a> that's an ANCESTOR of .stats-link (the whole
+           card is the clickable link to e.g. Purchases/Index), not a
+           descendant inside it - the original `.stats-link a` rule alone
+           only ever matches an <a> nested INSIDE .stats-link, which none
+           of these have, so every one of the five needed this added to
+           actually get readable light text on the colored background. */
+        .widget.widget-stats .stats-link a,
+        .widget.widget-stats .stats-link span { font-size:.75rem; color:rgba(255,255,255,0.75) !important; font-weight:600; text-decoration:none; }
+        .widget.widget-stats .stats-link a:hover { color:#fff !important; }
+        /* ── KPI mini-cards ── */
+        .kpi-strip {
+            display:grid; grid-template-columns:repeat(5,1fr);
+            gap:14px; margin-bottom:22px;
+        }
+        @@media (max-width:1100px){ .kpi-strip{ grid-template-columns:repeat(3,1fr); } }
+        @@media (max-width:767px) { .kpi-strip{ grid-template-columns:repeat(2,1fr); } }
+        .kpi-card {
+            background:var(--c-white); border-radius:var(--radius);
+            padding:18px 18px 14px; box-shadow:var(--shadow);
+            border-left:5px solid var(--c-blue);
+            transition:transform .2s, box-shadow .2s; position:relative; overflow:hidden;
+        }
+        .kpi-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+        .kpi-card.k-teal   { border-color:var(--c-teal);   }
+        .kpi-card.k-red    { border-color:var(--c-red);    }
+        .kpi-card.k-orange { border-color:var(--c-orange); }
+        .kpi-card.k-purple { border-color:var(--c-purple); }
+        .kpi-card .kpi-bg-icon { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:2.8rem; opacity:.06; color:var(--c-navy); }
+        .kpi-card .kpi-label { font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; color:#8a97a8; font-weight:700; margin-bottom:8px; display:block; }
+        .kpi-card .kpi-value { font-size:2rem; font-weight:900; color:var(--c-navy) !important; line-height:1; min-height:34px; }
+        /* ── Panels ── */
+        .panel { border-radius:var(--radius) !important; box-shadow:var(--shadow) !important; border:none !important; transition:transform .25s, box-shadow .25s; margin-bottom:20px !important; }
+        .panel:hover { box-shadow:var(--shadow-lg) !important; }
+        .panel-inverse > .panel-heading { background:var(--c-navy) !important; border-radius:var(--radius) var(--radius) 0 0 !important; padding:12px 16px !important; }
+        .panel-title { font-size:.9rem !important; font-weight:700 !important; color:#fff !important; display:flex; align-items:center; gap:8px; }
+        .panel-title small { color:rgba(255,255,255,.55) !important; font-size:.75rem !important; }
+        .panel-title .badge-pill { background:rgba(255,255,255,.18); padding:2px 8px; border-radius:30px; font-size:.7rem; font-weight:700; }
+        .panel-body { padding:18px !important; }
+        canvas.h-sm  { height:230px !important; }
+        canvas.h-md  { height:280px !important; }
+        /* ── Sales band ── */
+        .sales-band {
+            display:flex; justify-content:space-between; align-items:center;
+            background:linear-gradient(135deg, var(--c-navy) 0%, var(--c-blue) 100%);
+            border-radius:10px; padding:14px 20px; margin-bottom:16px;
+        }
+        .sales-band .sb-label { font-size:.68rem; color:rgba(255,255,255,.65); font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; }
+        .sales-band .sb-value { font-size:1.4rem; font-weight:900; color:#fff; line-height:1; }
+        /* ── Status badges ── */
+        .status-badge { display:inline-block; padding:4px 12px; border-radius:30px; font-size:.72rem; font-weight:700; color:#fff; }
+        .status-low    { background:var(--c-red);    }
+        .status-medium { background:var(--c-orange); }
+        .status-high   { background:var(--c-teal);   }
+        /* ── Sales legend ── */
+        .sales-legend { display:flex; gap:18px; margin-top:12px; flex-wrap:wrap; }
+        .legend-item  { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#666; font-weight:600; }
+        .legend-dot   { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .ld-high  { background:var(--c-teal);   }
+        .ld-med   { background:var(--c-orange); }
+        .ld-low   { background:var(--c-red);    }
+        /* ── DataTable tweaks ── */
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input { border-radius:8px !important; border:1px solid #dde3ec !important; padding:5px 10px !important; font-size:.82rem !important; }
+        .table > thead > tr > th { background:#f5f7fb !important; color:var(--c-navy) !important; font-size:.78rem !important; font-weight:800 !important; text-transform:uppercase; letter-spacing:.05em; }
+        .table > tbody > tr > td { font-size:.82rem !important; vertical-align:middle !important; }
+        @@keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+        .anim-fadeup { animation:fadeUp .45s ease both; }
+        /* ── Agent's own balance callout (trimmed dashboard only) ── */
+        .dash-balance-card {
+            background:linear-gradient(135deg, var(--c-navy) 0%, var(--c-blue) 100%);
+            border-radius:var(--radius); padding:24px 28px; color:#fff; margin-bottom:22px;
+            display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
+            box-shadow:var(--shadow);
+        }
+        .dash-balance-label { font-size:.68rem; color:rgba(255,255,255,.65); text-transform:uppercase; letter-spacing:.09em; font-weight:700; }
+        .dash-balance-value { font-size:2rem; font-weight:900; color:var(--c-teal); margin-top:4px; }
+    </style>
+}
+
+<!-- ══ Header ══════════════════════════════════════════════════════════ -->
+<div class="db-header">
+    <div class="db-header-title">
+        <i class="fas fa-home"></i>
+        <h1>@(isAgent ? "My Dashboard" : "Admin Dashboard") <small style="font-size:.6em;font-weight:400;color:#8a97a8;">Welcome back, @Model.FullName</small></h1>
+    </div>
+</div>
+
+@if (isAgent)
+{
+    <!-- ══ Agent's own commission balance ══════════════════════════════ -->
+    <div class="dash-balance-card">
+        <div>
+            <div class="dash-balance-label">Your available commission balance</div>
+            <div class="dash-balance-value">KES @((Model.MyCommissionBalance ?? 0).ToString("N2"))</div>
+        </div>
+        <span style="color:rgba(255,255,255,.55);font-size:12px;">
+            <i class="fa fa-info-circle"></i> Requesting a withdrawal isn't available in the portal yet
+        </span>
+    </div>
+
+    <!-- ══ My numbers ══════════════════════════════════════════════════ -->
+    <div class="section-label">My Numbers</div>
+    <div class="kpi-strip">
+        <div class="kpi-card anim-fadeup" style="animation-delay:.05s">
+            <i class="fa fa-file-alt kpi-bg-icon"></i>
+            <span class="kpi-label">Total Policies</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.TotalCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-teal anim-fadeup" style="animation-delay:.10s">
+            <i class="fa fa-check-circle kpi-bg-icon"></i>
+            <span class="kpi-label">Active Policies</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.ActiveCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-orange anim-fadeup" style="animation-delay:.15s">
+            <i class="fa fa-hourglass-half kpi-bg-icon"></i>
+            <span class="kpi-label">Awaiting Payment</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.PaymentPendingCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-purple anim-fadeup" style="animation-delay:.20s">
+            <i class="fa fa-users kpi-bg-icon"></i>
+            <span class="kpi-label">My Clients</span>
+            <div class="kpi-value">@(Model.ClientSummary?.TotalCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-red anim-fadeup" style="animation-delay:.25s">
+            <i class="fa fa-user-plus kpi-bg-icon"></i>
+            <span class="kpi-label">New Clients (Month)</span>
+            <div class="kpi-value">@(Model.ClientSummary?.NewThisMonthCount ?? 0)</div>
+        </div>
+    </div>
+
+    <div class="section-label">My Sales</div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-inverse">
+                <div class="panel-heading"><h4 class="panel-title"><i class="fa fa-chart-pie"></i> My Policy Status</h4></div>
+                <div class="panel-body"><canvas id="purchaseStatusChart" class="h-sm"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-inverse">
+                <div class="panel-heading"><h4 class="panel-title"><i class="fa fa-money-check-alt"></i> My Payment Status</h4></div>
+                <div class="panel-body"><canvas id="paymentStatusChart" class="h-sm"></canvas></div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- ══ Section 1 – Financial widgets ══════════════════════════════ -->
+    <div class="section-label">Financial Overview</div>
+    <div class="row">
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Purchases" asp-action="Index" style="text-decoration:none;">
+                <div class="widget widget-stats bg-blue anim-fadeup" style="animation-delay:.05s">
+                    <div class="stats-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div class="stats-info">
+                        <h4>Monthly Purchases</h4>
+                        <p>KES @((Model.PeriodTotals?.MonthPremiumTotal ?? 0).ToString("N2"))</p>
+                    </div>
+                    <div class="stats-link"><span>@(Model.PeriodTotals?.MonthCount ?? 0) policies this month <i class="fa fa-arrow-circle-right"></i></span></div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4 col-sm-6">
+            <a asp-controller="Purchases" asp-action="Index" style="text-decoration:none;">
+                <div class="widget widget-stats bg-green anim-fadeup" style="animation-delay:.10s">
+                    <div class="stats-icon"><i class="fas fa-receipt"></i></div>
+                    <div class="stats-info">
+                        <h4>Daily Purchases</h4>
+                        <p>KES @((Model.PeriodTotals?.TodayPremiumTotal ?? 0).ToString("N2"))</p>
+                    </div>
+                    <div class="stats-link"><span>@(Model.PeriodTotals?.TodayCount ?? 0) policies today <i class="fa fa-arrow-circle-right"></i></span></div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4 col-sm-6">
+            <div class="widget widget-stats bg-purple anim-fadeup" style="animation-delay:.15s">
+                <div class="stats-icon"><i class="fas fa-handshake"></i></div>
+                <div class="stats-info">
+                    <h4>Total Agents</h4>
+                    <p>@(Model.AgentCounts?.TotalAgentCount ?? 0)</p>
+                </div>
+                <div class="stats-link"><span>@(Model.AgentCounts?.ActiveAgentCount ?? 0) active in last 30 days</span></div>
+            </div>
+        </div>
+        <div class="col-md-6 col-sm-6">
+            <a asp-controller="Payments" asp-action="Index" style="text-decoration:none;">
+                <div class="widget widget-stats bg-black anim-fadeup" style="animation-delay:.20s">
+                    <div class="stats-icon"><i class="fas fa-wallet"></i></div>
+                    <div class="stats-info">
+                        <h4>Total Collected</h4>
+                        <p>KES @((Model.PaymentSummary?.TotalCollected ?? 0).ToString("N2"))</p>
+                    </div>
+                    <div class="stats-link"><span>@(Model.PaymentSummary?.SuccessCount ?? 0) successful payments <i class="fa fa-arrow-circle-right"></i></span></div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-6 col-sm-6">
+            <div class="widget widget-stats bg-aqua anim-fadeup" style="animation-delay:.25s">
+                <div class="stats-icon"><i class="fas fa-coins"></i></div>
+                <div class="stats-info">
+                    <h4>Available Commission Balance</h4>
+                    <p>KES @((Model.CommissionSummary?.AvailableBalance ?? 0).ToString("N2"))</p>
+                </div>
+                <div class="stats-link"><span>@(Model.CommissionSummary?.PendingWithdrawalCount ?? 0) pending withdrawal request(s)</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Section 2 – KPI mini-cards ═══════════════════════════════════ -->
+    <div class="section-label" style="margin-top:8px;">Policy Metrics</div>
+    <div class="kpi-strip">
+        <div class="kpi-card anim-fadeup" style="animation-delay:.10s">
+            <i class="fa fa-file-alt kpi-bg-icon"></i>
+            <span class="kpi-label">Total Policies</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.TotalCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-teal anim-fadeup" style="animation-delay:.16s">
+            <i class="fa fa-check-circle kpi-bg-icon"></i>
+            <span class="kpi-label">Active Policies</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.ActiveCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-red anim-fadeup" style="animation-delay:.22s">
+            <i class="fa fa-times-circle kpi-bg-icon"></i>
+            <span class="kpi-label">Expired Policies</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.ExpiredCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-orange anim-fadeup" style="animation-delay:.28s">
+            <i class="fa fa-hourglass-half kpi-bg-icon"></i>
+            <span class="kpi-label">Awaiting Payment</span>
+            <div class="kpi-value">@(Model.PurchaseSummary?.PaymentPendingCount ?? 0)</div>
+        </div>
+        <div class="kpi-card k-purple anim-fadeup" style="animation-delay:.34s">
+            <i class="fa fa-users kpi-bg-icon"></i>
+            <span class="kpi-label">Active Agents</span>
+            <div class="kpi-value">@(Model.AgentCounts?.ActiveAgentCount ?? 0)</div>
+        </div>
+    </div>
+
+    <!-- ══ Section 3 – Charts ══════════════════════════════════════════ -->
+    <div class="section-label">Sales Analytics</div>
+    <div class="row">
+        <!-- Left: Top Underwriters -->
+        <div class="col-md-6">
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title"><i class="fa fa-building"></i> Top Underwriters <small>by premium written</small></h4>
+                </div>
+                <div class="panel-body"><canvas id="topUnderwritersChart" class="h-sm"></canvas></div>
+            </div>
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title"><i class="fa fa-list"></i> Purchases by Underwriter</h4>
+                </div>
+                <div class="panel-body" style="padding:12px !important;">
+                    <div class="table-responsive">
+                        <table id="underwriter-table" class="table table-striped table-hover table-bordered table-condensed">
+                            <thead>
+                                <tr><th>Underwriter</th><th>Policies Sold</th><th>Premium Total (Kshs)</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var u in Model.TopUnderwriters ?? new())
+                                {
+                                    <tr>
+                                        <td>@u.UnderwriterName</td>
+                                        <td>@u.PurchaseCount</td>
+                                        <td>@u.PremiumTotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Right: Sales per Product -->
+        <div class="col-md-6">
+            @{
+                var productGrandTotal = (Model.ProductSales ?? new()).Sum(p => p.PremiumTotal);
+            }
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <i class="fa fa-chart-pie"></i> Sales per Product
+                        <span class="badge-pill">All time</span>
+                    </h4>
+                </div>
+                <div class="panel-body">
+                    <div class="sales-band">
+                        <div>
+                            <div class="sb-label">Total Sales</div>
+                            <div class="sb-value">KSh @productGrandTotal.ToString("N0")</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="sb-label">Products</div>
+                            <div class="sb-value" style="font-size:1rem;">@((Model.ProductSales ?? new()).Count)</div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="product-sales-table" class="table table-striped table-hover table-bordered table-condensed">
+                            <thead>
+                                <tr><th>Product</th><th>Amount (Kshs)</th><th>% of Total</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in Model.ProductSales ?? new())
+                                {
+                                    var pct = productGrandTotal > 0 ? (p.PremiumTotal / productGrandTotal) * 100 : 0;
+                                    // Thresholds are this dashboard's own call (no business rule
+                                    // handed down for this) - >=25% of total sales reads as a
+                                    // "high" performer, >=10% "medium", anything smaller "low".
+                                    var (statusClass, statusLabel) = pct >= 25 ? ("status-high", "High")
+                                        : pct >= 10 ? ("status-medium", "Medium")
+                                        : ("status-low", "Low");
+                                    <tr>
+                                        <td>@p.ProductName</td>
+                                        <td>@p.PremiumTotal.ToString("N2")</td>
+                                        <td>@pct.ToString("N1")%</td>
+                                        <td><span class="status-badge @statusClass">@statusLabel</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="sales-legend">
+                        <div class="legend-item"><span class="legend-dot ld-high"></span> High Performance (&ge;25%)</div>
+                        <div class="legend-item"><span class="legend-dot ld-med"></span> Medium (&ge;10%)</div>
+                        <div class="legend-item"><span class="legend-dot ld-low"></span> Low</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Section 4 – Sales Trend ═══════════════════════════════════════ -->
+    <div class="section-label">Trend Analysis</div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title"><i class="fa fa-chart-line"></i> Sales Trend <small>(Last 6 Months)</small></h4>
+                </div>
+                <div class="panel-body"><canvas id="salesTrendChart" class="h-md"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Section 5 – Top Agent Performance ══════════════════════════════ -->
+    <div class="section-label">Agent Overview</div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <i class="fa fa-user-tie"></i> Top Agent Performance
+                        <small class="badge-pill">Top 10 by policies sold</small>
+                    </h4>
+                </div>
+                <div class="panel-body"><canvas id="agentPerformanceChart" style="height:320px;"></canvas></div>
+            </div>
+        </div>
+    </div>
+}
+
+@section PageScripts {
+    <script src="~/assets/static/plugins/DataTables/media/js/jquery.dataTables.js"></script>
+    <script src="~/assets/static/plugins/DataTables/media/js/dataTables.bootstrap.min.js"></script>
+    <script src="~/assets/static/plugins/DataTables/extensions/Responsive/js/dataTables.responsive.min.js"></script>
+    <!-- Chart.js 2.9.4 - vendored from BIMA_D_LINE - Copy (wwwroot/assets/static/plugins/chartjs),
+         same as every other library on this page - NOT the newer Chart.js
+         4.x API (that was a CDN-only stopgap on an earlier pass, before
+         this library existed locally, and has been replaced). Every
+         options object below uses the 2.x shape: legend/tooltips at the
+         top level of `options` (not nested under `options.plugins`), and
+         `scales.xAxes`/`scales.yAxes` as arrays (not `scales.x`/`scales.y`
+         objects). -->
+    <script src="~/assets/static/plugins/chartjs/js/Chart.min.js"></script>
+    <script>
+        $(function () {
+            var palette = {
+                navy: '#002D6A', blue: '#1B84C7', teal: '#00B194',
+                orange: '#E2A856', red: '#F05133', purple: '#727cb6', aqua: '#49b6d6'
+            };
+
+            function bar(canvasId, labels, data, color, horizontal) {
+                var el = document.getElementById(canvasId);
+                if (!el) return;
+                new Chart(el, {
+                    type: horizontal ? 'horizontalBar' : 'bar',
+                    data: { labels: labels, datasets: [{ data: data, backgroundColor: color }] },
+                    options: {
+                        legend: { display: false },
+                        scales: {
+                            xAxes: [{ ticks: { beginAtZero: true } }],
+                            yAxes: [{ ticks: { beginAtZero: true } }]
+                        }
+                    }
+                });
+            }
+
+            function doughnut(canvasId, labels, data, colors) {
+                var el = document.getElementById(canvasId);
+                if (!el) return;
+                new Chart(el, {
+                    type: 'doughnut',
+                    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors }] },
+                    options: { legend: { position: 'bottom' } }
+                });
+            }
+
+            // ── Shared: policy status + payment status (both roles) ──
+            bar('purchaseStatusChart',
+                ['Active', 'Expired', 'Cancelled'],
+                [@(Model.PurchaseSummary?.ActiveCount ?? 0), @(Model.PurchaseSummary?.ExpiredCount ?? 0), @(Model.PurchaseSummary?.CancelledCount ?? 0)],
+                [palette.teal, '#c9c9c9', palette.red],
+                false);
+
+            doughnut('paymentStatusChart',
+                ['Pending', 'Success', 'Failed'],
+                [@(Model.PaymentSummary?.PendingCount ?? 0), @(Model.PaymentSummary?.SuccessCount ?? 0), @(Model.PaymentSummary?.FailedCount ?? 0)],
+                [palette.orange, palette.teal, palette.red]);
+
+            // ── Back-office only: underwriters, monthly trend, top agents.
+            // These three canvases/tables only exist in the DOM on the
+            // non-Agent branch above - bar()/doughnut() already no-op on a
+            // missing canvas (the `if (!el) return;` guard), and calling
+            // .DataTable() on a jQuery selection that matched nothing is a
+            // harmless no-op too, so this is safe to always run rather than
+            // needing a matching @@if(!isAgent) around it in here as well.
+            bar('topUnderwritersChart',
+                @Html.Raw(Json((Model.TopUnderwriters ?? new()).Select(u => u.UnderwriterName).ToList())),
+                @Html.Raw(Json((Model.TopUnderwriters ?? new()).Select(u => u.PremiumTotal).ToList())),
+                palette.blue, true);
+
+            bar('salesTrendChart',
+                @Html.Raw(Json((Model.MonthlyTrend ?? new()).Select(m => m.MonthLabel).ToList())),
+                @Html.Raw(Json((Model.MonthlyTrend ?? new()).Select(m => m.PremiumTotal).ToList())),
+                palette.navy, false);
+
+            bar('agentPerformanceChart',
+                @Html.Raw(Json((Model.TopAgents ?? new()).Select(a => a.AgentName).ToList())),
+                @Html.Raw(Json((Model.TopAgents ?? new()).Select(a => a.PurchaseCount).ToList())),
+                palette.purple, true);
+
+            $('#underwriter-table').DataTable({ responsive: true, order: [], pageLength: 10 });
+            $('#product-sales-table').DataTable({ responsive: true, order: [], pageLength: 10 });
+        });
+    </script>
+}

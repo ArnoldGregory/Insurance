@@ -1,0 +1,126 @@
+@model WizardStep3ViewModel
+@{
+    ViewData["WizardStep"] = 3;
+    ViewData["WizardTitle"] = "Comprehensive - Payment";
+    ViewData["WizardSubtitle"] = $"Purchase #{Model.PurchaseId} · Policy {Model.PolicyNumber ?? "pending"} · KES {Model.PremiumAmount:N2}";
+}
+@await Html.PartialAsync("_WizardHeader")
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="wz-alert @(Model.StatusIsError ? "wz-alert--error" : "wz-alert--success")">
+        <i class="fa @(Model.StatusIsError ? "fa-exclamation-circle" : "fa-check-circle")"></i>
+        <span>@Model.StatusMessage</span>
+    </div>
+}
+
+@if (Model.IsPaid)
+{
+    <div class="wz-alert wz-alert--success">
+        <i class="fa fa-check-circle"></i>
+        <span><strong>Payment confirmed</strong> — click Next to view the summary.</span>
+    </div>
+}
+
+<div class="wz-duo">
+    <!-- PAYBILL -->
+    <div class="wz-card">
+        <div class="wz-card-header">
+            <div class="wz-card-icon"><i class="fa fa-money-bill-wave"></i></div>
+            <div>
+                <h4 class="wz-card-title">Pay via Paybill</h4>
+                <p class="wz-card-desc">Give these details to the customer if they'd rather pay manually via M-Pesa Paybill.</p>
+            </div>
+        </div>
+        <div class="wz-card-body">
+            <div class="wz-paybill-grid">
+                <div class="wz-paybill-box">
+                    <span class="wz-paybill-label">Paybill Number</span>
+                    <span class="wz-paybill-value">@Model.PaybillNumber</span>
+                </div>
+                <div class="wz-paybill-box">
+                    <span class="wz-paybill-label">Account Number</span>
+                    <span class="wz-paybill-value">@Model.AccountNumber</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STK PUSH -->
+    <div class="wz-card">
+        <div class="wz-card-header">
+            <div class="wz-card-icon wz-card-icon--green"><i class="fa fa-mobile-alt"></i></div>
+            <div>
+                <h4 class="wz-card-title">STK Push</h4>
+                <p class="wz-card-desc">Send a prompt straight to the customer's M-Pesa number — they enter their PIN to pay.</p>
+            </div>
+        </div>
+        <div class="wz-card-body">
+            <form asp-action="ComprehensiveStep3InitiateStk" method="post">
+                @Html.AntiForgeryToken()
+                <div class="wz-field">
+                    <label class="wz-label">M-Pesa Phone Number</label>
+                    <input type="text" name="mpesaPhoneNumber" class="wz-input" placeholder="07XXXXXXXX" value="@Model.MpesaPhoneNumber" />
+                </div>
+                <button type="submit" class="wz-btn wz-btn--gold"><i class="fa fa-paper-plane"></i> Send STK Push</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (Model.PaymentAttempts.Count > 0)
+{
+    <div class="wz-card">
+        <div class="wz-card-header">
+            <div class="wz-card-icon wz-card-icon--amber"><i class="fa fa-history"></i></div>
+            <div>
+                <h4 class="wz-card-title">Payment Attempts</h4>
+                <p class="wz-card-desc">History of all payment attempts for this purchase.</p>
+            </div>
+        </div>
+        <div class="wz-card-body wz-card-body--flush">
+            <table class="wz-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Initiated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.PaymentAttempts)
+                    {
+                        var badge = p.Status switch
+                        {
+                            "SUCCESS" => "wz-badge--success",
+                            "FAILED" => "wz-badge--error",
+                            _ => "wz-badge--warning"
+                        };
+                        <tr>
+                            <td class="wz-t_mono">#@p.PaymentId</td>
+                            <td class="wz-t_bold">KES @p.Amount.ToString("N2")</td>
+                            <td>@p.Method</td>
+                            <td><span class="wz-badge @badge">@p.Status</span></td>
+                            <td class="wz-t_muted">@p.InitiatedOn.ToString("dd MMM yyyy, HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="wz-actions wz-actions--between">
+    <a asp-action="ComprehensiveStep2" class="wz-btn wz-btn--ghost"><i class="fa fa-arrow-left"></i> Back</a>
+    <div style="display:flex;gap:10px;">
+        <form asp-action="ComprehensiveStep3" method="get" style="margin:0;">
+            <button type="submit" class="wz-btn wz-btn--ghost"><i class="fa fa-sync"></i> Refresh Status</button>
+        </form>
+        <form asp-action="ComprehensiveStep3Next" method="post" style="margin:0;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="wz-btn wz-btn--gold">Next <i class="fa fa-arrow-right"></i></button>
+        </form>
+    </div>
+</div>

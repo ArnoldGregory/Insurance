@@ -1,0 +1,46 @@
+# --- .NET build output ---
+[Bb]in/
+[Oo]bj/
+
+# --- IDE / tooling ---
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# --- Local / user-specific config (may contain real credentials) ---
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+appsettings.*.local.json
+
+# --- Runtime output ---
+logs/
+*.log
+*.pid
+
+# --- Publish / deploy artifacts ---
+publish_api/
+publish_api_new/
+publish_portal/
+publish_adminportal_new/
+*.zip
+*.tar
+
+# --- Local scratch dirs ---
+backups/
+layoutissue/
+
+# --- OS junk ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Scratch / temp ---
+*.bak
+*.orig
+*_old/
+tmp/

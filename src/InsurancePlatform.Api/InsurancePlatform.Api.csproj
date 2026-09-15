@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Swashbuckle reads the compiler-generated XML doc file to pull in
+         every /// <summary> comment on controllers, actions and DTOs and
+         show it in Swagger UI. Without this, Swagger UI only shows bare
+         parameter names and types, no descriptions. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- GenerateDocumentationFile makes the compiler warn (CS1591) about
+         every single public member that doesn't have a /// comment. That's
+         too strict for now - we'll document endpoints as we build them, not
+         retrofit every DTO property today. Suppressing it so warnings don't
+         drown out real ones. -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Validates incoming JWTs on every request (AddAuthentication().AddJwtBearer()
+         in Program.cs) - this is the hosting/middleware side, so it stays here.
+         BCrypt.Net-Next moved to Infrastructure - Api no longer hashes
+         passwords directly, AuthService does via IPasswordHasher. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="6.0.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\InsurancePlatform.Application\InsurancePlatform.Application.csproj" />
+    <ProjectReference Include="..\InsurancePlatform.Data\InsurancePlatform.Data.csproj" />
+    <!-- New: LoggerManager and the SCAPI gateway client now live here
+         instead of directly in Api. -->
+    <ProjectReference Include="..\InsurancePlatform.Infrastructure\InsurancePlatform.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

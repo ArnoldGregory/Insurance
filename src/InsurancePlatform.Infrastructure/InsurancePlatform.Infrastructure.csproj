@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\InsurancePlatform.Application\InsurancePlatform.Application.csproj" />
+    <ProjectReference Include="..\InsurancePlatform.Domain\InsurancePlatform.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- LoggerManager needs this directly - it calls NLog.LogManager itself.
+         Note this is the base "NLog" package, not "NLog.Web.AspNetCore" -
+         the ASP.NET Core hosting integration (builder.Host.UseNLog()) is a
+         web-hosting concern and stays in Api's own package list. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NLog" Version="6.1.4" />
+    <!-- ScapiGatewayClient takes IOptions<ScapiSettings> - this is the
+         package that type lives in. Same reasoning as the
+         Microsoft.Extensions.Configuration.Abstractions package we added to
+         Data and Application: a plain class library gets none of ASP.NET
+         Core's bundled framework references for free, so anything from
+         Microsoft.Extensions.* has to be listed here explicitly. -->
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.10" />
+    <!-- BCryptPasswordHasher's package - moved here from Api since password
+         hashing is business logic (called from AuthService), not a hosting
+         concern. -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <!-- JwtTokenService uses this to build/sign a JwtSecurityToken. Distinct
+         from Api's Microsoft.AspNetCore.Authentication.JwtBearer package,
+         which VALIDATES incoming tokens as ASP.NET Core middleware - this
+         package only knows how to construct and sign a token string, no
+         ASP.NET Core/hosting dependency at all. -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,196 @@
+@model ComprehensiveStep1ViewModel
+@{
+    ViewData["WizardStep"] = 1;
+    ViewData["WizardTitle"] = "New Purchase - Comprehensive";
+    ViewData["WizardSubtitle"] = "Vehicle-value based pricing with optional benefits";
+}
+
+@await Html.PartialAsync("_WizardHeader")
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="wz-alert wz-alert--error"><i class="fas fa-exclamation-circle"></i> @Model.ErrorMessage</div>
+}
+
+@if (Model.CompareOptions == null)
+{
+    <div class="wz-card">
+        <div class="wz-card-header">
+            <div class="wz-card-icon"><i class="fas fa-calculator"></i></div>
+            <div>
+                <h3 class="wz-card-title">Get Comprehensive Quote</h3>
+                <p class="wz-card-desc">Enter the vehicle value to see underwriter pricing and optional benefits</p>
+            </div>
+        </div>
+        <div class="wz-card-body">
+            <form asp-action="ComprehensiveStep1Generate" method="post">
+                @Html.AntiForgeryToken()
+                <div class="wz-form-grid">
+                    <div class="wz-field">
+                        <label class="wz-label">Vehicle Value (KES) <span class="wz-required">*</span></label>
+                        <input type="number" name="VehicleValue" value="@Model.VehicleValue" class="wz-input" placeholder="e.g. 3200000" min="1" step="1000" required />
+                    </div>
+                </div>
+                <div class="wz-actions">
+                    <button type="submit" class="wz-btn wz-btn--gold"><i class="fas fa-search"></i> Compare Underwriters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    <div class="wz-recap">
+        <div class="wz-recap-item"><span class="wz-recap-label">Vehicle Value</span><strong>@string.Format("{0:N0}", Model.VehicleValue)</strong></div>
+        <div class="wz-recap-sep"></div>
+        <div class="wz-recap-item"><span class="wz-recap-label">Options</span><strong>@Model.CompareOptions.Count</strong></div>
+    </div>
+
+    @if (Model.CompareOptions.Any())
+    {
+        <div class="wz-card">
+            <div class="wz-card-header">
+                <div class="wz-card-icon wz-card-icon--amber"><i class="fas fa-scale-balanced"></i></div>
+                <div>
+                    <h3 class="wz-card-title">Choose an Underwriter</h3>
+                    <p class="wz-card-desc">Compare rates, premiums, and optional benefits - cheapest shown first</p>
+                </div>
+            </div>
+            <div class="wz-card-body">
+                <div class="wz-quote-grid">
+                    @foreach (var opt in Model.CompareOptions.OrderBy(o => o.TotalPremium))
+                    {
+                        var isSelected = Model.SelectedUnderwriterId == opt.UnderwriterId;
+                        var uwKey = opt.UnderwriterId.ToString();
+                        var benefits = Model.BenefitsByUnderwriter != null && Model.BenefitsByUnderwriter.ContainsKey(uwKey)
+                            ? Model.BenefitsByUnderwriter[uwKey]
+                            : new List<ComprehensiveBenefitOption>();
+                        var limits = Model.LiabilityLimitsByUnderwriter != null && Model.LiabilityLimitsByUnderwriter.ContainsKey(uwKey)
+                            ? Model.LiabilityLimitsByUnderwriter[uwKey]
+                            : new List<LiabilityLimitItem>();
+                        var includedBenefits = benefits.Where(b => b.IsIncludedInBase).ToList();
+                        var optionalBenefits = benefits.Where(b => !b.IsIncludedInBase).ToList();
+
+                        <div class="wz-quote-card @(isSelected ? "wz-quote-card--selected" : "")">
+                            <input type="radio" name="selectedUwRadio" class="wz-quote-radio" @(isSelected ? "checked" : "") />
+                            <div class="wz-quote-check"><i class="fas fa-check"></i></div>
+                            <div class="wz-quote-uw">@opt.UnderwriterName</div>
+                            <div class="wz-quote-price" id="price-@opt.UnderwriterId">@string.Format("{0:N0}", opt.TotalPremium) <span style="font-size:12px;font-weight:600;color:var(--text-3)">KES</span></div>
+                            <div id="addon-@opt.UnderwriterId" style="font-size:11px;color:var(--gold-2);margin-top:2px;display:none;"></div>
+                            <div style="font-size:12px;color:var(--text-3);margin-top:4px;">
+                                Rate: @opt.RatePercent% &middot; Base: @string.Format("{0:N0}", opt.BasePremium) + PVT: @string.Format("{0:N0}", opt.PvtAmount)<br/>
+                                @includedBenefits.Count included &middot; @optionalBenefits.Count optional add-ons &middot; @limits.Count limits
+                            </div>
+
+                            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+                                <span class="wz-t_muted" style="cursor:pointer;font-weight:600;font-size:12px;" onclick="togglePanel(@opt.UnderwriterId, 'benefits')"><i class="fas fa-chevron-down" id="ben-icon-@opt.UnderwriterId"></i> Benefits</span>
+                                <span class="wz-t_muted" style="cursor:pointer;font-weight:600;font-size:12px;" onclick="togglePanel(@opt.UnderwriterId, 'limits')"><i class="fas fa-chevron-down" id="lim-icon-@opt.UnderwriterId"></i> Limits of Liability</span>
+                            </div>
+
+                            @* Benefits panel *@
+                            <div id="panel-benefits-@opt.UnderwriterId" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+                                @if (includedBenefits.Any())
+                                {
+                                    <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:4px;">Included in Base Premium</div>
+                                    @foreach (var b in includedBenefits)
+                                    {
+                                        <div style="font-size:12px;padding:3px 0;color:var(--text-3);display:flex;align-items:center;gap:4px;">
+                                            <i class="fas fa-check-circle" style="color:var(--green);font-size:10px;"></i> @b.BenefitName
+                                            @if (!string.IsNullOrEmpty(b.Description))
+                                            {
+                                                <span style="color:var(--text-3);opacity:0.7;font-size:11px;">- @b.Description</span>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                @if (optionalBenefits.Any())
+                                {
+                                    <div style="font-size:11px;font-weight:700;color:var(--gold-2);text-transform:uppercase;margin-top:6px;margin-bottom:4px;">Optional Add-ons</div>
+                                    @foreach (var b in optionalBenefits)
+                                    {
+                                        <label style="font-size:12px;padding:3px 0;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                                            <input type="checkbox" class="wz-benefit-check" data-uw="@opt.UnderwriterId" data-code="@b.BenefitCode" data-price="@b.DefaultPrice" onchange="recalcTotal(@opt.UnderwriterId, @opt.BasePremium, @opt.PvtAmount)" />
+                                            @b.BenefitName
+                                            @if (!string.IsNullOrEmpty(b.Description))
+                                            {
+                                                <span style="color:var(--text-3);opacity:0.7;font-size:11px;">- @b.Description</span>
+                                            }
+                                            <span style="margin-left:auto;font-weight:600;color:var(--gold-2);font-size:11px;">+@string.Format("{0:N0}", b.DefaultPrice)</span>
+                                        </label>
+                                    }
+                                }
+                                @if (!includedBenefits.Any() && !optionalBenefits.Any())
+                                {
+                                    <div style="font-size:12px;color:var(--text-3);font-style:italic;">No benefits configured for this underwriter.</div>
+                                }
+                            </div>
+
+                            @* Limits of Liability panel *@
+                            <div id="panel-limits-@opt.UnderwriterId" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+                                @if (limits.Any())
+                                {
+                                    <div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:4px;">Limits of Liability</div>
+                                    @foreach (var l in limits)
+                                    {
+                                        <div style="font-size:12px;padding:3px 0;display:flex;justify-content:space-between;color:var(--text-3);">
+                                            <span>@l.LimitName</span>
+                                            <span style="font-weight:600;">@l.LimitValue</span>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div style="font-size:12px;color:var(--text-3);font-style:italic;">No limits configured for this underwriter.</div>
+                                }
+                            </div>
+
+                            <form asp-action="ComprehensiveStep1Next" method="post" style="margin-top:12px;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="selectedUnderwriterId" value="@opt.UnderwriterId" />
+                                <input type="hidden" name="selectedUnderwriterName" value="@opt.UnderwriterName" />
+                                <input type="hidden" name="totalPremium" id="total-@opt.UnderwriterId" value="@opt.TotalPremium" />
+                                <input type="hidden" name="basePremium" value="@opt.BasePremium" />
+                                <input type="hidden" name="benefitCodes" id="codes-@opt.UnderwriterId" value="" />
+                                <button type="submit" class="wz-btn @(isSelected ? "wz-btn--green" : "wz-btn--ghost") wz-btn--sm">@(isSelected ? "Selected" : "Select")</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="wz-actions" style="margin-top:12px;">
+        <a asp-action="Comprehensive" class="wz-btn wz-btn--ghost"><i class="fas fa-arrow-left"></i> New Quote</a>
+    </div>
+}
+
+<script>
+function togglePanel(uwId, panel) {
+    var el = document.getElementById('panel-' + panel + '-' + uwId);
+    var icon = document.getElementById((panel === 'benefits' ? 'ben-' : 'lim-') + 'icon-' + uwId);
+    if (el.style.display === 'none') { el.style.display = 'block'; icon.className = 'fas fa-chevron-up'; }
+    else { el.style.display = 'none'; icon.className = 'fas fa-chevron-down'; }
+}
+
+function recalcTotal(uwId, basePremium, pvtAmount) {
+    var checks = document.querySelectorAll('.wz-benefit-check[data-uw="' + uwId + '"]');
+    var addOn = 0;
+    var codes = [];
+    checks.forEach(function(cb) {
+        if (cb.checked) { addOn += parseFloat(cb.dataset.price); codes.push(cb.dataset.code); }
+    });
+    var newTotal = basePremium + pvtAmount + addOn;
+    document.getElementById('total-' + uwId).value = newTotal.toFixed(2);
+    document.getElementById('codes-' + uwId).value = codes.join(',');
+    var priceEl = document.getElementById('price-' + uwId);
+    if (priceEl) {
+        priceEl.innerHTML = Math.round(newTotal).toLocaleString() + ' <span style="font-size:12px;font-weight:600;color:var(--text-3)">KES</span>';
+    }
+    var addOnEl = document.getElementById('addon-' + uwId);
+    if (addOnEl) {
+        if (addOn > 0) { addOnEl.textContent = '+' + Math.round(addOn).toLocaleString() + ' add-ons'; addOnEl.style.display = ''; }
+        else { addOnEl.style.display = 'none'; }
+    }
+}
+</script>

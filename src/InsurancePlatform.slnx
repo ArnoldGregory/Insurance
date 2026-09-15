@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="InsurancePlatform.Api/InsurancePlatform.Api.csproj" />
+  <Project Path="InsurancePlatform.AdminPortal/InsurancePlatform.AdminPortal.csproj" />
+  <Project Path="InsurancePlatform.Application/InsurancePlatform.Application.csproj" />
+  <Project Path="InsurancePlatform.Data/InsurancePlatform.Data.csproj" />
+  <Project Path="InsurancePlatform.Domain/InsurancePlatform.Domain.csproj" />
+  <Project Path="InsurancePlatform.Infrastructure/InsurancePlatform.Infrastructure.csproj" />
+</Solution>

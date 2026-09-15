@@ -1,0 +1,214 @@
+@model TpoPriceMappingViewModel
+@{
+    ViewData["Title"] = "TPO Price Mapping";
+}
+@{
+    var uwJson = System.Text.Json.JsonSerializer.Serialize(Model.Underwriters);
+    var clsJson = System.Text.Json.JsonSerializer.Serialize(Model.VehicleClasses);
+    var perJson = System.Text.Json.JsonSerializer.Serialize(Model.Periods);
+}
+
+<style>
+    .tp-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;}
+    .tp-overlay.open{display:flex;}
+    .tp-dialog{background:#fff;border-radius:10px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;}
+    .tp-dialog-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb;background:#fafbfc;border-radius:10px 10px 0 0;}
+    .tp-dialog-hdr h5{margin:0;font-size:16px;font-weight:700;}
+    .tp-dialog-close{background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:0 4px;line-height:1;}
+    .tp-dialog-close:hover{color:#111;}
+    .tp-dialog-body{padding:20px;}
+    .tp-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;}
+    .tp-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .tp-form-full{grid-column:1/-1;}
+    .tp-field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;}
+    .tp-field input,.tp-field select{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;}
+    .tp-field input:focus,.tp-field select:focus{border-color:#b8960f;outline:none;box-shadow:0 0 0 2px rgba(184,150,15,.15);}
+    .tp-required{color:#dc2626;}
+    .tp-btn{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .tp-btn-primary{background:#b8960f;color:#fff;border-color:#b8960f;}
+    .tp-btn-primary:hover{background:#9a7d0d;}
+    .tp-btn-cancel{background:#fff;color:#374151;border-color:#d1d5db;}
+    .tp-btn-cancel:hover{background:#f3f4f6;}
+</style>
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-percentage"></i> TPO Price Mapping
+    <small>Set the premium an underwriter charges per vehicle class / period</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Tpo", "Pricing")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+            <button type="button" class="btn btn-xs btn-icon btn-circle btn-default" onclick="openPriceModal(null)"><i class="fa fa-plus"></i></button>
+        </div>
+        <h4 class="panel-title">TPO prices (@Model.Mappings.TotalCount total)</h4>
+    </div>
+    <div class="panel-body">
+        <form asp-action="Tpo" method="get" class="form-inline m-b-15">
+            <div class="form-group m-r-10">
+                <label class="m-r-5">Underwriter</label>
+                <select name="underwriterId" class="form-control" style="width:220px;">
+                    <option value="">All underwriters</option>
+                    @foreach (var uw in Model.Underwriters)
+                    {
+                        <option value="@uw.UnderwriterId" selected="@(Model.FilterUnderwriterId == uw.UnderwriterId)">@uw.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group m-r-10">
+                <label class="m-r-5">Vehicle Class</label>
+                <select name="vehicleClassId" class="form-control" style="width:220px;">
+                    <option value="">All classes</option>
+                    @foreach (var c in Model.VehicleClasses)
+                    {
+                        <option value="@c.VehicleClassId" selected="@(Model.FilterVehicleClassId == c.VehicleClassId)">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter</button>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Underwriter</th>
+                        <th>Class</th>
+                        <th>Period</th>
+                        <th>Capacity</th>
+                        <th>Tonnage</th>
+                        <th>Price</th>
+                        <th>Effective</th>
+                        <th>Status</th>
+                        <th style="width:90px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model.Mappings.Items)
+                    {
+                        <tr>
+                            <td><strong>@m.UnderwriterName</strong></td>
+                            <td>@m.VehicleClassName</td>
+                            <td>@m.PeriodName</td>
+                            <td>@(m.CarryCapacity ?? "—")</td>
+                            <td>@(m.Tonnage?.ToString("N1") ?? "—")</td>
+                            <td><strong>@m.Price.ToString("N2")</strong></td>
+                            <td>@(m.EffectiveFrom?.ToString("dd MMM yyyy") ?? "—")</td>
+                            <td>@if (m.IsActive) { <span class="label label-success">Active</span> } else { <span class="label label-warning">Closed</span> }</td>
+                            <td style="white-space:nowrap;">
+                                <button type="button" class="btn btn-default btn-xs" onclick='openPriceModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { m.UnderwriterId, m.VehicleClassId, m.PeriodId, m.CarryCapacity, m.Tonnage, m.Price, m.EffectiveFrom })))'><i class="fa fa-pencil-alt"></i> Edit</button>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Mappings.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9"><p class="text-muted" style="margin:0;">No TPO prices match these filters. Click the + button to add one.</p></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+<div class="tp-overlay" id="priceOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="tp-dialog">
+        <div class="tp-dialog-hdr">
+            <h5><i class="fas fa-percentage" style="color:var(--gold);margin-right:8px;"></i><span id="priceModalTitle">Add TPO Price</span></h5>
+            <button class="tp-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="SaveTpoPrice" method="post">
+            @Html.AntiForgeryToken()
+            <div class="tp-dialog-body">
+                <div class="tp-form">
+                    <div class="tp-field tp-form-full">
+                        <label>Underwriter <span class="tp-required">*</span></label>
+                        <select name="UnderwriterId" id="tpUwId" required></select>
+                    </div>
+                    <div class="tp-field">
+                        <label>Vehicle Class <span class="tp-required">*</span></label>
+                        <select name="VehicleClassId" id="tpClassId" required></select>
+                    </div>
+                    <div class="tp-field">
+                        <label>Period <span class="tp-required">*</span></label>
+                        <select name="PeriodId" id="tpPeriodId" required></select>
+                    </div>
+                    <div class="tp-field">
+                        <label>Carry capacity</label>
+                        <input type="text" name="CarryCapacity" id="tpCapacity" />
+                    </div>
+                    <div class="tp-field">
+                        <label>Tonnage</label>
+                        <input type="number" name="Tonnage" id="tpTonnage" step="0.1" />
+                    </div>
+                    <div class="tp-field">
+                        <label>Price <span class="tp-required">*</span></label>
+                        <input type="number" name="Price" id="tpPrice" step="0.01" required />
+                    </div>
+                    <div class="tp-field">
+                        <label>Effective from</label>
+                        <input type="date" name="EffectiveFrom" id="tpEffective" />
+                    </div>
+                </div>
+            </div>
+            <div class="tp-dialog-foot">
+                <button type="button" class="tp-btn tp-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="tp-btn tp-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    var UW = @Html.Raw(uwJson);
+    var CLS = @Html.Raw(clsJson);
+    var PER = @Html.Raw(perJson);
+
+    function fillSelect(selId, list, valFn, labelFn) {
+        var sel = document.getElementById(selId);
+        sel.innerHTML = '';
+        list.forEach(function (item) {
+            var opt = document.createElement('option');
+            opt.value = valFn(item);
+            opt.textContent = labelFn(item);
+            sel.appendChild(opt);
+        });
+    }
+
+    function closeModals() {
+        document.getElementById('priceOverlay').classList.remove('open');
+    }
+
+    function openPriceModal(data) {
+        fillSelect('tpUwId', UW, function (u) { return u.UnderwriterId; }, function (u) { return u.Name; });
+        fillSelect('tpClassId', CLS, function (c) { return c.VehicleClassId; }, function (c) { return c.Name; });
+        fillSelect('tpPeriodId', PER, function (p) { return p.PeriodId; }, function (p) { return p.Name; });
+        document.getElementById('priceModalTitle').textContent = data ? 'Edit TPO Price' : 'Add TPO Price';
+        if (data) {
+            document.getElementById('tpUwId').value = data.UnderwriterId;
+            document.getElementById('tpClassId').value = data.VehicleClassId;
+            document.getElementById('tpPeriodId').value = data.PeriodId;
+            document.getElementById('tpCapacity').value = data.CarryCapacity || '';
+            document.getElementById('tpTonnage').value = data.Tonnage || '';
+            document.getElementById('tpPrice').value = data.Price;
+            document.getElementById('tpEffective').value = data.EffectiveFrom ? data.EffectiveFrom.substring(0, 10) : '';
+        } else {
+            document.getElementById('tpCapacity').value = '';
+            document.getElementById('tpTonnage').value = '';
+            document.getElementById('tpPrice').value = '';
+            document.getElementById('tpEffective').value = '';
+        }
+        document.getElementById('priceOverlay').classList.add('open');
+    }
+</script>

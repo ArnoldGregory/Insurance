@@ -1,0 +1,238 @@
+@model ComprehensiveStep2ViewModel
+@{
+    ViewData["WizardStep"] = 2;
+    ViewData["WizardTitle"] = "Comprehensive - Details";
+    ViewData["WizardSubtitle"] = "Class, period, client and vehicle details";
+}
+@await Html.PartialAsync("_WizardHeader")
+
+<div class="wz-recap">
+    <div class="wz-recap-item"><span class="wz-recap-label">Vehicle Value</span><strong>KES @Model.VehicleValue?.ToString("N0")</strong></div>
+    <div class="wz-recap-sep"></div>
+    <div class="wz-recap-item"><span class="wz-recap-label">Underwriter</span><strong>@Model.SelectedUnderwriterName</strong></div>
+    <div class="wz-recap-sep"></div>
+    <div class="wz-recap-item"><span class="wz-recap-label">Premium</span><strong class="wz-recap-price">KES @Model.SelectedTotalPremium?.ToString("N2")</strong></div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="wz-alert wz-alert--error">
+        <i class="fa fa-exclamation-circle"></i>
+        <span>@Model.ErrorMessage</span>
+    </div>
+}
+
+<form asp-action="ComprehensiveStep2Next" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="wz-alert wz-alert--error"></div>
+
+    <!-- CLASS + PERIOD -->
+    <div class="wz-card">
+        <div class="wz-card-header">
+            <div class="wz-card-icon"><i class="fa fa-layer-group"></i></div>
+            <div>
+                <h4 class="wz-card-title">Classification</h4>
+                <p class="wz-card-desc">Select vehicle class and cover period</p>
+            </div>
+        </div>
+        <div class="wz-card-body">
+            <div class="wz-form-grid wz-form-grid--2">
+                <div class="wz-field">
+                    <label class="wz-label" asp-for="VehicleClassId"></label>
+                    <select class="wz-input" asp-for="VehicleClassId" asp-items="@(new SelectList(Model.VehicleClasses, "VehicleClassId", "Name"))">
+                        <option value="">-- Select class --</option>
+                    </select>
+                    <span asp-validation-for="VehicleClassId" class="wz-field-error"></span>
+                </div>
+                <div class="wz-field">
+                    <label class="wz-label" asp-for="PeriodId"></label>
+                    <select class="wz-input" asp-for="PeriodId" asp-items="@(new SelectList(Model.Periods, "PeriodId", "Name"))">
+                        <option value="">-- Select period --</option>
+                    </select>
+                    <span asp-validation-for="PeriodId" class="wz-field-error"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wz-duo">
+        <!-- CLIENT -->
+        <div class="wz-card">
+            <div class="wz-card-header">
+                <div class="wz-card-icon wz-card-icon--blue"><i class="fa fa-user"></i></div>
+                <div>
+                    <h4 class="wz-card-title">Client Details</h4>
+                    <p class="wz-card-desc">If this ID is already on file, the existing record is reused.</p>
+                </div>
+            </div>
+            <div class="wz-card-body">
+                <div class="wz-field">
+                    <label class="wz-label" asp-for="ClientIdNo"></label>
+                    <div class="wz-search-row">
+                        <input class="wz-input" asp-for="ClientIdNo" placeholder="Enter ID or passport number" autocomplete="off" />
+                        <button type="button" id="clientSearchBtn" class="wz-btn wz-btn--green wz-btn--sm"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                    <span asp-validation-for="ClientIdNo" class="wz-field-error"></span>
+                    <div class="wz-hint" id="clientSearchHint">We'll auto-fill the fields below if this ID is already on file.</div>
+                </div>
+                <div class="wz-field">
+                    <label class="wz-label" asp-for="ClientFullName"></label>
+                    <input class="wz-input" asp-for="ClientFullName" />
+                    <span asp-validation-for="ClientFullName" class="wz-field-error"></span>
+                </div>
+                <div class="wz-form-grid wz-form-grid--2">
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="ClientPhone"></label>
+                        <input class="wz-input" asp-for="ClientPhone" />
+                        <span asp-validation-for="ClientPhone" class="wz-field-error"></span>
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="ClientEmail"></label>
+                        <input class="wz-input" asp-for="ClientEmail" type="email" />
+                        <span asp-validation-for="ClientEmail" class="wz-field-error"></span>
+                    </div>
+                </div>
+                <div class="wz-form-grid wz-form-grid--3">
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="ClientDob"></label>
+                        <input class="wz-input" asp-for="ClientDob" type="date" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="ClientKraPin"></label>
+                        <input class="wz-input" asp-for="ClientKraPin" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="ClientAddress"></label>
+                        <input class="wz-input" asp-for="ClientAddress" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VEHICLE -->
+        <div class="wz-card">
+            <div class="wz-card-header">
+                <div class="wz-card-icon wz-card-icon--amber"><i class="fa fa-truck"></i></div>
+                <div>
+                    <h4 class="wz-card-title">Vehicle Details</h4>
+                    <p class="wz-card-desc">If this registration is already on file, the existing record is reused.</p>
+                </div>
+            </div>
+            <div class="wz-card-body">
+                <div class="wz-field">
+                    <label class="wz-label" asp-for="VehicleRegNo"></label>
+                    <input class="wz-input" asp-for="VehicleRegNo" />
+                    <span asp-validation-for="VehicleRegNo" class="wz-field-error"></span>
+                </div>
+                <div class="wz-form-grid wz-form-grid--3">
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleMake"></label>
+                        <input class="wz-input" asp-for="VehicleMake" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleModel"></label>
+                        <input class="wz-input" asp-for="VehicleModel" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleYearOfManufacture"></label>
+                        <input class="wz-input" asp-for="VehicleYearOfManufacture" type="number" />
+                    </div>
+                </div>
+                <div class="wz-form-grid wz-form-grid--2">
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleChassisNo"></label>
+                        <input class="wz-input" asp-for="VehicleChassisNo" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleEngineNo"></label>
+                        <input class="wz-input" asp-for="VehicleEngineNo" />
+                    </div>
+                </div>
+                <div class="wz-form-grid wz-form-grid--3">
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleBodyType"></label>
+                        <input class="wz-input" asp-for="VehicleBodyType" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="VehicleFuelType"></label>
+                        <input class="wz-input" asp-for="VehicleFuelType" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="LicensedToCarry"></label>
+                        <input class="wz-input" asp-for="LicensedToCarry" type="number" />
+                    </div>
+                </div>
+                <div class="wz-form-grid wz-form-grid--2">
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="AntiTheft"></label>
+                        <input class="wz-input" asp-for="AntiTheft" />
+                    </div>
+                    <div class="wz-field">
+                        <label class="wz-label" asp-for="Risk"></label>
+                        <input class="wz-input" asp-for="Risk" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COVER START DATE -->
+    <div class="wz-card wz-card--compact">
+        <div class="wz-card-body wz-card-body--row">
+            <div class="wz-card-icon wz-card-icon--green"><i class="fa fa-calendar-alt"></i></div>
+            <div class="wz-field" style="margin-bottom:0;flex:1;">
+                <label class="wz-label" asp-for="StartDate"></label>
+                <input class="wz-input" asp-for="StartDate" type="date" style="max-width:240px;" />
+                <span asp-validation-for="StartDate" class="wz-field-error"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="wz-actions wz-actions--between">
+        <a asp-action="Comprehensive" class="wz-btn wz-btn--ghost"><i class="fa fa-arrow-left"></i> Back to Quote</a>
+        <button type="submit" class="wz-btn wz-btn--gold"><i class="fa fa-save"></i> Save &amp; Continue</button>
+    </div>
+</form>
+
+@section PageScripts {
+<script>
+    document.getElementById('clientSearchBtn').addEventListener('click', function () {
+        var idNo = document.getElementById('ClientIdNo').value.trim();
+        var hint = document.getElementById('clientSearchHint');
+        var btn = this;
+
+        if (!idNo) {
+            hint.textContent = 'Enter an ID number first.';
+            hint.className = 'wz-hint wz-hint--error';
+            return;
+        }
+
+        btn.disabled = true;
+        showPageLoader('Searching for client...');
+
+        fetch('@Url.Action("LookupClient", "PurchaseWizard")?idNo=' + encodeURIComponent(idNo))
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.found) {
+                    document.getElementById('ClientFullName').value = data.fullName || '';
+                    document.getElementById('ClientPhone').value = data.phone || '';
+                    document.getElementById('ClientEmail').value = data.email || '';
+                    document.getElementById('ClientKraPin').value = data.kraPin || '';
+                    hint.textContent = 'Existing client found (ID #' + data.clientId + ') — details filled in below.';
+                    hint.className = 'wz-hint wz-hint--success';
+                } else {
+                    hint.textContent = 'No existing client found — fill in the details below to create one.';
+                    hint.className = 'wz-hint';
+                }
+            })
+            .catch(function () {
+                hint.textContent = 'Could not search right now — fill in the details below manually.';
+                hint.className = 'wz-hint wz-hint--error';
+            })
+            .finally(function () {
+                hidePageLoader();
+                btn.disabled = false;
+            });
+    });
+</script>
+}

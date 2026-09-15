@@ -1,0 +1,213 @@
+@model ManageCommissionsViewModel
+@{
+    ViewData["Title"] = "Manage Commissions";
+}
+
+<style>
+    .cm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;}
+    .cm-overlay.open{display:flex;}
+    .cm-dialog{background:#fff;border-radius:10px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;}
+    .cm-dialog-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb;background:#fafbfc;border-radius:10px 10px 0 0;}
+    .cm-dialog-hdr h5{margin:0;font-size:16px;font-weight:700;}
+    .cm-dialog-close{background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:0 4px;line-height:1;}
+    .cm-dialog-close:hover{color:#111;}
+    .cm-dialog-body{padding:20px;}
+    .cm-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;}
+    .cm-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .cm-form-full{grid-column:1/-1;}
+    .cm-field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;}
+    .cm-field input,.cm-field select{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;}
+    .cm-field input:focus,.cm-field select:focus{border-color:#b8960f;outline:none;box-shadow:0 0 0 2px rgba(184,150,15,.15);}
+    .cm-required{color:#dc2626;}
+    .cm-btn{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .cm-btn-primary{background:#b8960f;color:#fff;border-color:#b8960f;}
+    .cm-btn-primary:hover{background:#9a7d0d;}
+    .cm-btn-cancel{background:#fff;color:#374151;border-color:#d1d5db;}
+    .cm-btn-cancel:hover{background:#f3f4f6;}
+    .cm-stat{background:#fafbfc;border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;}
+    .cm-stat-num{font-size:22px;font-weight:700;color:#b8960f;}
+    .cm-stat-lbl{font-size:12px;color:#6b7280;}
+</style>
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-hand-holding-usd"></i> Manage Commissions
+    <small>Agent commission rates and withdrawal requests</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="row m-b-15">
+    <div class="col-md-3">
+        <div class="cm-stat">
+            <div class="cm-stat-num">@Model.Summary.TotalAccrued.ToString("N2")</div>
+            <div class="cm-stat-lbl">Total accrued</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="cm-stat">
+            <div class="cm-stat-num">@Model.Summary.TotalWithdrawn.ToString("N2")</div>
+            <div class="cm-stat-lbl">Total withdrawn</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="cm-stat">
+            <div class="cm-stat-num">@Model.Summary.AvailableBalance.ToString("N2")</div>
+            <div class="cm-stat-lbl">Available balance</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="cm-stat">
+            <div class="cm-stat-num">@Model.Summary.PendingWithdrawalCount</div>
+            <div class="cm-stat-lbl">Pending withdrawals (@Model.Summary.PendingWithdrawalAmount.ToString("N2"))</div>
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <h4 class="panel-title">Agent commission rates</h4>
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>ID No.</th>
+                        <th>Phone</th>
+                        <th>Current Rate %</th>
+                        <th style="width:120px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var agent in Model.Agents.OrderBy(a => a.FullName))
+                    {
+                        var current = Model.RatesByAgent.TryGetValue(agent.UserId, out var rates)
+                            ? rates.OrderByDescending(r => r.EffectiveFrom).FirstOrDefault()
+                            : null;
+                        <tr>
+                            <td><strong>@agent.FullName</strong></td>
+                            <td>@agent.IdNo</td>
+                            <td>@agent.Phone</td>
+                            <td>@if (current != null) { <span class="label label-success">@current.RatePercent.ToString("N2")%</span> } else { <span class="label label-default">No rate yet</span> }</td>
+                            <td style="white-space:nowrap;">
+                                <button type="button" class="btn btn-warning btn-xs" onclick='openRateModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { AgentUserId = agent.UserId, AgentName = agent.FullName, Current = current?.RatePercent })))'><i class="fa fa-percent"></i> Set rate</button>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Agents.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5"><p class="text-muted" style="margin:0;">No active agents found.</p></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <h4 class="panel-title">Pending withdrawal requests</h4>
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Agent</th>
+                        <th>Amount</th>
+                        <th>Requested</th>
+                        <th style="width:220px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var w in Model.PendingWithdrawals)
+                    {
+                        <tr>
+                            <td>#@w.WithdrawalId</td>
+                            <td><strong>@w.AgentName</strong></td>
+                            <td>@w.Amount.ToString("N2")</td>
+                            <td>@w.RequestedOn.ToString("dd MMM yyyy HH:mm")</td>
+                            <td style="white-space:nowrap;">
+                                @foreach (var status in ManageCommissionsViewModel.WithdrawalStatusOptions)
+                                {
+                                    <form asp-action="UpdateWithdrawalStatus" method="post" style="display:inline;margin:0;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="WithdrawalId" value="@w.WithdrawalId" />
+                                        <input type="hidden" name="Status" value="@status" />
+                                        <button type="submit" class="btn btn-xs @(status == "REJECTED" ? "btn-danger" : "btn-success")">@status</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.PendingWithdrawals.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5"><p class="text-muted" style="margin:0;">No pending withdrawal requests.</p></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+<div class="cm-overlay" id="rateOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="cm-dialog">
+        <div class="cm-dialog-hdr">
+            <h5><i class="fas fa-percent" style="color:var(--gold);margin-right:8px;"></i>Set Commission Rate</h5>
+            <button class="cm-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="SetRate" method="post">
+            @Html.AntiForgeryToken()
+            <div class="cm-dialog-body">
+                <input type="hidden" name="AgentUserId" id="rateAgentId" value="" />
+                <div class="cm-form">
+                    <div class="cm-field cm-form-full">
+                        <label>Agent</label>
+                        <input type="text" id="rateAgentName" disabled style="background:#f3f4f6;" />
+                    </div>
+                    <div class="cm-field">
+                        <label>Rate % <span class="cm-required">*</span></label>
+                        <input type="number" name="RatePercent" id="ratePercent" step="0.01" required />
+                    </div>
+                    <div class="cm-field">
+                        <label>Effective from</label>
+                        <input type="date" name="EffectiveFrom" id="rateEffective" />
+                    </div>
+                </div>
+            </div>
+            <div class="cm-dialog-foot">
+                <button type="button" class="cm-btn cm-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="cm-btn cm-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function closeModals() {
+        document.getElementById('rateOverlay').classList.remove('open');
+    }
+
+    function openRateModal(data) {
+        document.getElementById('rateAgentId').value = data.AgentUserId;
+        document.getElementById('rateAgentName').value = data.AgentName;
+        document.getElementById('ratePercent').value = data.Current != null ? data.Current : '';
+        document.getElementById('rateEffective').value = '';
+        document.getElementById('rateOverlay').classList.add('open');
+    }
+</script>

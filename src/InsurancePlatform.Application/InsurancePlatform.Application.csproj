@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\InsurancePlatform.Domain\InsurancePlatform.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Same package we added to Data for MySqlStoredProcedureExecutor's
+         IConfiguration dependency - Application is a plain class library too,
+         so it needs this referenced explicitly to know what IConfiguration is.
+         OtpNotificationSender uses it to read the email logo URL. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

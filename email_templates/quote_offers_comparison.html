@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  NOTE for whoever wires this into the Scapi renderer: {{ref_no}}, {{customer_name}},
+  {{subject}}, {{recipient_email}}, {{body_text}}, {{logo}} are plain flat tokens,
+  exactly like every other template in this table. {{offers}} is different - it's the
+  JSON array QuoteNotificationSender.cs already sends (each item has underwriter_name,
+  premium_amount, document_file_name). The table body below uses a Handlebars-style
+  {{#each offers}} ... {{/each}} loop to render one row per offer. If Scapi's renderer
+  only does flat token substitution and can't loop over an array param, this block will
+  render literally instead of as a table - in that case the fix is on the Scapi side
+  (or QuoteNotificationSender.cs would need to pre-build a single offers_html string
+  param instead), not in this file.
+-->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>{{subject}}</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f0f4f8;
+  color: #1a202c;
+}
+
+.wrapper {
+  max-width: 640px;
+  margin: 40px auto;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.header {
+  background: #115636;
+  padding: 28px 32px;
+  text-align: center;
+}
+
+.header img {
+  max-height: 46px;
+}
+
+.banner {
+  background: #0d3f28;
+  color: #ffffff;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.content {
+  padding: 32px;
+}
+
+.content p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #33424f;
+  margin-bottom: 16px;
+}
+
+.ref-line {
+  font-size: 13px;
+  color: #5a6b78;
+  margin-bottom: 20px;
+}
+
+.ref-line b {
+  color: #115636;
+}
+
+.offers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.offers-table th {
+  background: #f4f9f6;
+  color: #115636;
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 10px 14px;
+  border-bottom: 2px solid #d9ece2;
+}
+
+.offers-table td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #eef1f4;
+  color: #33424f;
+}
+
+.offers-table td.premium {
+  font-weight: 600;
+  color: #115636;
+}
+
+.footer {
+  padding: 22px 32px 30px;
+  font-size: 12px;
+  color: #8a97a3;
+  text-align: center;
+  border-top: 1px solid #eef1f4;
+}
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <img src="{{logo}}" alt="Insurance Platform" />
+    </div>
+    <div class="banner">Your quote offers are ready</div>
+    <div class="content">
+      <p>{{body_text}}</p>
+      <div class="ref-line">Reference No. <b>{{ref_no}}</b></div>
+      <table class="offers-table">
+        <thead>
+          <tr>
+            <th>Underwriter</th>
+            <th>Premium</th>
+            <th>Document</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each offers}}
+          <tr>
+            <td>{{underwriter_name}}</td>
+            <td class="premium">KES {{premium_amount}}</td>
+            <td>{{document_file_name}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <p>Supporting documents, where available, are attached to this email. Reply to let us know which offer you'd like to go with.</p>
+    </div>
+    <div class="footer">
+      This is an automated message from Insurance Platform. Please do not reply directly to this email.
+    </div>
+  </div>
+</body>
+</html>

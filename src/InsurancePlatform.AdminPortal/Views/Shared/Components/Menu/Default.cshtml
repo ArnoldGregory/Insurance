@@ -1,0 +1,71 @@
+@model List<MenuTreeItem>
+@*
+    Renders exactly 2 levels (top-level items, each optionally with direct
+    children) - matching what usp_RoleMenu_GetForRole actually guarantees
+    today (see that proc's doc comment in Insurance_API_StoredProcs_Menus.sql
+    for the caveat about a hypothetical 3rd level not being safe yet).
+
+    Markup reverted back to the original from-scratch .nav-link/.nav-group
+    structure (undoing the "Color Admin" theme's <li class="has-sub">/
+    <ul class="sub-menu"> markup used during the shell's brief Bootstrap
+    conversion) - see _Layout.cshtml's <nav class="sidebar-nav"> which wraps
+    this component's output directly, no <ul class="nav"> anymore.
+
+    Collapse/expand for grouped items is handled by the OLD custom toggle
+    handler in site.js (targets .nav-group-toggle / .nav-group / .nav-submenu
+    - that block was left in place as dead code during the Bootstrap
+    conversion and is live again now that this markup emits those classes).
+*@
+@{
+    var currentPath = Context.Request.Path.Value ?? "";
+}
+<div class="sidebar-label">Menu</div>
+<div>
+    @foreach (var item in Model)
+    {
+        if (item.Children.Count > 0)
+        {
+            var isChildActive = item.Children.Any(c => string.Equals(c.Url, currentPath, StringComparison.OrdinalIgnoreCase));
+            <div class="nav-group @(isChildActive ? "open" : "")">
+                <button type="button" class="nav-link nav-group-toggle">
+                    <span class="nav-link-label">
+                        @if (!string.IsNullOrEmpty(item.Icon))
+                        {
+                            <i class="fa @item.Icon"></i>
+                        }
+                        <span>@item.Label</span>
+                    </span>
+                    <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+                <ul class="nav-submenu">
+                    @foreach (var child in item.Children)
+                    {
+                        var childActive = string.Equals(child.Url, currentPath, StringComparison.OrdinalIgnoreCase);
+                        <li>
+                            <a class="nav-link @(childActive ? "active" : "")" href="@child.Url">
+                                @if (!string.IsNullOrEmpty(child.Icon))
+                                {
+                                    <i class="fa @child.Icon"></i>
+                                }
+                                <span>@child.Label</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        else
+        {
+            var active = string.Equals(item.Url, currentPath, StringComparison.OrdinalIgnoreCase);
+            <a class="nav-link @(active ? "active" : "")" href="@item.Url">
+                @if (!string.IsNullOrEmpty(item.Icon))
+                {
+                    <i class="fa @item.Icon"></i>
+                }
+                <span>@item.Label</span>
+            </a>
+        }
+    }
+</div>

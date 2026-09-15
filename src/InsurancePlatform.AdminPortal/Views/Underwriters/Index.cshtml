@@ -1,0 +1,238 @@
+@model UnderwritersIndexViewModel
+@{
+    ViewData["Title"] = "Underwriters";
+}
+@{
+    var policyLevels = (List<PolicyLevelOption>)(ViewBag.PolicyLevels ?? new List<PolicyLevelOption>());
+}
+
+<style>
+    .ow-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;}
+    .ow-overlay.open{display:flex;}
+    .ow-dialog{background:#fff;border-radius:10px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;}
+    .ow-dialog-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb;background:#fafbfc;border-radius:10px 10px 0 0;}
+    .ow-dialog-hdr h5{margin:0;font-size:16px;font-weight:700;}
+    .ow-dialog-close{background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:0 4px;line-height:1;}
+    .ow-dialog-close:hover{color:#111;}
+    .ow-dialog-body{padding:20px;}
+    .ow-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;}
+    .ow-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .ow-form-full{grid-column:1/-1;}
+    .ow-field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;}
+    .ow-field input,.ow-field select{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;}
+    .ow-field input:focus,.ow-field select:focus{border-color:#b8960f;outline:none;box-shadow:0 0 0 2px rgba(184,150,15,.15);}
+    .ow-required{color:#dc2626;}
+    .ow-btn{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .ow-btn-primary{background:#b8960f;color:#fff;border-color:#b8960f;}
+    .ow-btn-primary:hover{background:#9a7d0d;}
+    .ow-btn-cancel{background:#fff;color:#374151;border-color:#d1d5db;}
+    .ow-btn-cancel:hover{background:#f3f4f6;}
+</style>
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-shield-alt"></i> Underwriters
+    <small>Catalog of insurance underwriters and their policy-number allocations</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Index", "Underwriters")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+            <button type="button" class="btn btn-xs btn-icon btn-circle btn-default" onclick="openUnderwriterModal(null)"><i class="fa fa-plus"></i></button>
+        </div>
+        <h4 class="panel-title">Underwriter list</h4>
+    </div>
+    <div class="panel-body">
+        <div class="m-b-15">
+            <form asp-action="Index" method="get" class="form-inline">
+                <label class="m-r-5"><input type="checkbox" name="showInactive" value="true" checked="@Model.ShowInactive" onchange="this.form.submit()" /> Show inactive</label>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>DMVIC</th>
+                        <th>Contact</th>
+                        <th>Policy#</th>
+                        <th>Status</th>
+                        <th style="width:240px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var uw in Model.Items.OrderBy(i => i.Name))
+                    {
+                        var nums = Model.PolicyLevelNumbers.Where(n => n.UnderwriterId == uw.UnderwriterId).ToList();
+                        <tr>
+                            <td><strong>@uw.Name</strong></td>
+                            <td><code>@uw.Code</code></td>
+                            <td>@(uw.DmvicCode ?? "—")</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(uw.ContactPhone)) { <div><i class="fa fa-phone"></i> @uw.ContactPhone</div> }
+                                @if (!string.IsNullOrEmpty(uw.ContactEmail)) { <div><i class="fa fa-envelope"></i> @uw.ContactEmail</div> }
+                            </td>
+                            <td>
+                                @if (nums.Any())
+                                {
+                                    @foreach (var n in nums)
+                                    {
+                                        <span class="label label-info">@(n.PolicyNumber)</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (uw.IsActive)
+                                {
+                                    <span class="label label-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="label label-danger">Inactive</span>
+                                }
+                            </td>
+                            <td style="white-space:nowrap;">
+                                <button type="button" class="btn btn-default btn-xs" onclick='openUnderwriterModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { uw.UnderwriterId, uw.Name, uw.Code, uw.ContactEmail, uw.ContactPhone, uw.PolicyType })))'><i class="fa fa-pencil-alt"></i> Edit</button>
+                                <button type="button" class="btn btn-info btn-xs" onclick='openPolicyNumberModal(@uw.UnderwriterId, "@uw.Name")'><i class="fa fa-hashtag"></i> Number</button>
+                                <form asp-action="ToggleStatus" method="post" style="display:inline;margin:0;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@uw.UnderwriterId" />
+                                    <input type="hidden" name="isActive" value="@(!uw.IsActive)" />
+                                    <button type="submit" class="btn btn-default btn-xs">@(uw.IsActive ? "Deactivate" : "Activate")</button>
+                                </form>
+                                <form asp-action="SetPolicyType" method="post" style="display:inline;margin:0;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@uw.UnderwriterId" />
+                                    <input type="hidden" name="policyType" value="@(uw.PolicyType == "FIXED" ? "CHANGE" : "FIXED")" />
+                                    <button type="submit" class="btn btn-warning btn-xs" title="Toggle FIXED/CHANGE policy numbering">@(uw.PolicyType == "FIXED" ? "FIXED" : "CHANGE")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7"><p class="text-muted" style="margin:0;">No underwriters found.</p></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+<div class="ow-overlay" id="uwOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="ow-dialog">
+        <div class="ow-dialog-hdr">
+            <h5><i class="fas fa-shield-alt" style="color:var(--gold);margin-right:8px;"></i><span id="uwModalTitle">Add Underwriter</span></h5>
+            <button class="ow-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="Save" method="post">
+            @Html.AntiForgeryToken()
+            <div class="ow-dialog-body">
+                <input type="hidden" name="UnderwriterId" id="uwId" value="" />
+                <div class="ow-form">
+                    <div class="ow-field ow-form-full">
+                        <label>Name <span class="ow-required">*</span></label>
+                        <input type="text" name="Name" id="uwName" required />
+                    </div>
+                    <div class="ow-field ow-form-full">
+                        <label>Code <span class="ow-required">*</span></label>
+                        <input type="text" name="Code" id="uwCode" required />
+                        <small class="text-muted">Code can't be changed after creation.</small>
+                    </div>
+                    <div class="ow-field">
+                        <label>Contact phone</label>
+                        <input type="text" name="ContactPhone" id="uwPhone" />
+                    </div>
+                    <div class="ow-field">
+                        <label>Contact email</label>
+                        <input type="email" name="ContactEmail" id="uwEmail" />
+                    </div>
+                </div>
+            </div>
+            <div class="ow-dialog-foot">
+                <button type="button" class="ow-btn ow-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="ow-btn ow-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="ow-overlay" id="plnOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="ow-dialog">
+        <div class="ow-dialog-hdr">
+            <h5><i class="fas fa-hashtag" style="color:var(--gold);margin-right:8px;"></i>Allocate Policy Number</h5>
+            <button class="ow-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="SavePolicyLevelNumber" method="post">
+            @Html.AntiForgeryToken()
+            <div class="ow-dialog-body">
+                <input type="hidden" name="UnderwriterId" id="plnUwId" value="" />
+                <div class="ow-form">
+                    <div class="ow-field ow-form-full">
+                        <label>Underwriter</label>
+                        <input type="text" id="plnUwName" disabled style="background:#f3f4f6;" />
+                    </div>
+                    <div class="ow-field">
+                        <label>Policy Level <span class="ow-required">*</span></label>
+                        <select name="PolicyLevelId" id="plnLevel" required>
+                            @foreach (var lvl in policyLevels)
+                            {
+                                <option value="@lvl.PolicyLevelId">@lvl.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="ow-field">
+                        <label>Number <span class="ow-required">*</span></label>
+                        <input type="text" name="PolicyNumber" id="plnNumber" required />
+                    </div>
+                </div>
+            </div>
+            <div class="ow-dialog-foot">
+                <button type="button" class="ow-btn ow-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="ow-btn ow-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function closeModals() {
+        document.getElementById('uwOverlay').classList.remove('open');
+        document.getElementById('plnOverlay').classList.remove('open');
+    }
+
+    function openUnderwriterModal(data) {
+        document.getElementById('uwModalTitle').textContent = data ? 'Edit Underwriter' : 'Add Underwriter';
+        document.getElementById('uwId').value = data ? data.UnderwriterId : '';
+        document.getElementById('uwName').value = data ? data.Name : '';
+        document.getElementById('uwCode').value = data ? data.Code : '';
+        document.getElementById('uwPhone').value = data ? (data.ContactPhone || '') : '';
+        document.getElementById('uwEmail').value = data ? (data.ContactEmail || '') : '';
+        // Code is immutable after creation - only editable when adding.
+        document.getElementById('uwCode').readOnly = !!data;
+        document.getElementById('uwOverlay').classList.add('open');
+    }
+
+    function openPolicyNumberModal(uwId, uwName) {
+        document.getElementById('plnUwId').value = uwId;
+        document.getElementById('plnUwName').value = uwName;
+        document.getElementById('plnNumber').value = '';
+        document.getElementById('plnOverlay').classList.add('open');
+    }
+</script>

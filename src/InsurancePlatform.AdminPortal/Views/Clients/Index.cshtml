@@ -1,0 +1,119 @@
+@model ClientIndexViewModel
+@{
+    ViewData["Title"] = "Clients";
+}
+@section PageStyles {
+    <link href="~/assets/static/plugins/DataTables/media/css/dataTables.bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/DataTables/extensions/Responsive/css/responsive.bootstrap.min.css" rel="stylesheet" />
+}
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-users"></i> Clients
+    <small>@(User.IsInRole("AG") ? "Showing clients you personally registered." : "Showing all clients across every agent.")</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse" id="main_panel">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Index", "Clients")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+            @if (Model.CanCreate)
+            {
+                <a asp-action="Create" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-plus"></i></a>
+            }
+        </div>
+        <h4 class="panel-title">Clients</h4>
+    </div>
+    <div class="panel-body">
+        <form asp-action="Index" method="get" class="form-inline m-b-15">
+            <div class="form-group">
+                <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name, ID number or phone..." style="min-width:280px;" />
+            </div>
+            <button type="submit" class="btn btn-success"><i class="fa fa-search"></i> Search</button>
+            @if (Model.CanCreate)
+            {
+                <a asp-action="Create" class="btn btn-default pull-right"><i class="fa fa-plus"></i> Register client</a>
+            }
+        </form>
+
+        <table id="clientsTable" class="table table-striped table-hover table-bordered table-condensed table-responsive">
+            <thead>
+                <tr role="row">
+                    <th>ID Number</th>
+                    <th>Full name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Registered via</th>
+                    <th>Created</th>
+                    <th style="width:130px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var client in Model.Items)
+                {
+                    <tr>
+                        <td>@client.IdNo</td>
+                        <td>@client.FullName</td>
+                        <td>@client.Phone</td>
+                        <td>@(client.Email ?? "—")</td>
+                        <td><span class="label label-info">@client.RegistrationChannel</span></td>
+                        <td>@client.CreatedOn.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@client.ClientId" class="btn btn-info btn-xs"><i class="fa fa-eye"></i> View</a>
+                            @if (Model.CanEdit)
+                            {
+                                <a asp-action="Edit" asp-route-id="@client.ClientId" class="btn btn-default btn-xs"><i class="fa fa-pencil-alt"></i> Edit</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+@if (Model.TotalPages > 1)
+{
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-muted">Page @Model.PageNumber of @Model.TotalPages &middot; @Model.TotalCount total</span>
+        <div>
+            @if (Model.PageNumber > 1)
+            {
+                <a class="btn btn-default btn-sm" asp-action="Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-pageSize="@Model.PageSize"><i class="fa fa-arrow-left"></i> Previous</a>
+            }
+            @if (Model.PageNumber < Model.TotalPages)
+            {
+                <a class="btn btn-default btn-sm" asp-action="Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-pageSize="@Model.PageSize">Next <i class="fa fa-arrow-right"></i></a>
+            }
+        </div>
+    </div>
+}
+
+@section PageScripts {
+    <script src="~/assets/static/plugins/DataTables/media/js/jquery.dataTables.js"></script>
+    <script src="~/assets/static/plugins/DataTables/media/js/dataTables.bootstrap.min.js"></script>
+    <script src="~/assets/static/plugins/DataTables/extensions/Responsive/js/dataTables.responsive.min.js"></script>
+    <script>
+        $(function () {
+            // Real jQuery DataTables layered on top of the one page of rows
+            // the server already sent down (search/pageNumber/pageSize stay
+            // server-side via the form above - DataTables only adds
+            // client-side sort/instant-search chrome on top of that one
+            // page, same treatment as QuoteRequests/Index).
+            $('#clientsTable').DataTable({
+                responsive: true,
+                order: [],
+                pageLength: @Model.PageSize,
+                language: { search: "Search:", emptyTable: "No clients found." }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,136 @@
+@model PurchaseDetail
+@{
+    ViewData["Title"] = $"Purchase #{Model.PurchaseId}";
+    var canChangeStatus = ViewData["CanChangeStatus"] is true;
+    var statusMessage = ViewData["StatusMessage"] as string;
+    var statusIsError = ViewData["StatusIsError"] is true;
+
+    var statusBadge = Model.Status switch
+    {
+        "ACTIVE" => "label-success",
+        "CANCELLED" => "label-danger",
+        _ => "label-warning"
+    };
+}
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-file-contract"></i> Purchase #@Model.PurchaseId
+    <span class="label @statusBadge">@Model.Status</span>
+    <span class="label @(Model.PaymentStatus == "PAID" ? "label-success" : "label-warning")">@Model.PaymentStatus</span>
+    <small>@Model.ProductCode &middot; Policy @(Model.PolicyNumber ?? "not yet assigned")</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert @(statusIsError ? "alert-danger" : "alert-success")">@statusMessage</div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="panel panel-inverse">
+            <div class="panel-heading">
+                <div class="panel-heading-btn">
+                    <a asp-action="Index" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+                </div>
+                <h4 class="panel-title">Policy</h4>
+            </div>
+            <div class="panel-body">
+                <table class="table table-condensed">
+                    <tbody>
+                        <tr><td class="text-muted" style="width:150px;">Client ID</td><td><a asp-controller="Clients" asp-action="Details" asp-route-id="@Model.ClientId">#@Model.ClientId</a></td></tr>
+                        <tr><td class="text-muted">Underwriter</td><td>@Model.UnderwriterName</td></tr>
+                        <tr><td class="text-muted">Premium</td><td>@Model.PremiumAmount.ToString("N2")</td></tr>
+                        <tr><td class="text-muted">Period</td><td>@Model.PeriodName</td></tr>
+                        <tr><td class="text-muted">Start date</td><td>@Model.StartDate.ToString("dd MMM yyyy")</td></tr>
+                        <tr><td class="text-muted">End date</td><td>@Model.EndDate.ToString("dd MMM yyyy")</td></tr>
+                        <tr><td class="text-muted">Policy number</td><td>@(Model.PolicyNumber ?? "—")</td></tr>
+                        <tr><td class="text-muted">Purchased by</td><td>@(Model.PurchasedByUserId?.ToString() ?? (Model.ChannelServiceAccountId is not null ? "Channel service" : "—"))</td></tr>
+                        <tr><td class="text-muted">Created</td><td>@Model.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.VehicleSnapshot is not null)
+    {
+        <div class="col-md-6">
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title">Vehicle (frozen at purchase)</h4>
+                </div>
+                <div class="panel-body">
+                    <table class="table table-condensed">
+                        <tbody>
+                            <tr><td class="text-muted" style="width:150px;">Vehicle ID</td><td>#@Model.VehicleSnapshot.VehicleId</td></tr>
+                            <tr><td class="text-muted">Value</td><td>@(Model.VehicleSnapshot.VehicleValue?.ToString("N2") ?? "—")</td></tr>
+                            <tr><td class="text-muted">Tonnage</td><td>@(Model.VehicleSnapshot.Tonnage?.ToString("N2") ?? "—")</td></tr>
+                            <tr><td class="text-muted">Licensed to carry</td><td>@(Model.VehicleSnapshot.LicensedToCarry?.ToString() ?? "—")</td></tr>
+                            <tr><td class="text-muted">Anti-theft</td><td>@(Model.VehicleSnapshot.AntiTheft ?? "—")</td></tr>
+                            <tr><td class="text-muted">Risk</td><td>@(Model.VehicleSnapshot.Risk ?? "—")</td></tr>
+                            <tr><td class="text-muted">Amount</td><td>@(Model.VehicleSnapshot.Amount?.ToString("N2") ?? "—")</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else if (canChangeStatus)
+    {
+        <div class="col-md-6">
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title">Change status</h4>
+                </div>
+                <div class="panel-body">
+                    <form asp-action="UpdateStatus" method="post" class="form-inline">
+                        <input type="hidden" name="PurchaseId" value="@Model.PurchaseId" />
+                        <div class="form-group m-r-10">
+                            <label class="m-r-5">New status</label>
+                            <select name="Status" class="form-control">
+                                <option value="ACTIVE" selected="@(Model.Status == "ACTIVE")">ACTIVE</option>
+                                <option value="EXPIRED" selected="@(Model.Status == "EXPIRED")">EXPIRED</option>
+                                <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">CANCELLED</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success">Update status</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.VehicleSnapshot is not null && canChangeStatus)
+{
+    <div class="panel panel-inverse" style="max-width:420px;">
+        <div class="panel-heading">
+            <h4 class="panel-title">Change status</h4>
+        </div>
+        <div class="panel-body">
+            <form asp-action="UpdateStatus" method="post" class="form-inline">
+                <input type="hidden" name="PurchaseId" value="@Model.PurchaseId" />
+                <div class="form-group m-r-10">
+                    <label class="m-r-5">New status</label>
+                    <select name="Status" class="form-control">
+                        <option value="ACTIVE" selected="@(Model.Status == "ACTIVE")">ACTIVE</option>
+                        <option value="EXPIRED" selected="@(Model.Status == "EXPIRED")">EXPIRED</option>
+                        <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">CANCELLED</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Update status</button>
+            </form>
+        </div>
+    </div>
+}
+
+<div style="display:flex;gap:10px;">
+    @if (canChangeStatus)
+    {
+        @* Payments screen is gated to the same SA/AA/SP roles as canChangeStatus (RoleCodes.QuoteBackoffice) - hidden here for Agent so this link never leads to an AccessDenied page. *@
+        <a asp-controller="Payments" asp-action="ForPurchase" asp-route-purchaseId="@Model.PurchaseId" class="btn btn-default"><i class="fa fa-money-bill-wave"></i> View payments</a>
+    }
+    <a asp-action="Index" class="btn btn-default">Back to list</a>
+</div>

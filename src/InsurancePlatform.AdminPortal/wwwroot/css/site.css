@@ -1,0 +1,1365 @@
+/* ================================================================
+   Insurance Admin Portal — Design System
+   ----------------------------------------------------------------
+   Palette + logo now come from AMURA's own brand, not the earlier
+   BIMA_D_LINE - Copy reference (that project only ever informed the
+   *layout arrangement* - sidebar+topbar shell, breadcrumb, DataTable-lite,
+   mobile sidebar toggle - which is unchanged and stays as already built).
+
+   Colours were sampled directly out of the real logo file
+   (uploads/AMURA LOGO.png) with a Python/Pillow pixel scan rather than
+   eyeballed: the gold gradient was given as #D4AF37 -> #C5A028, and the
+   leaf green (#115636) was found by counting the most common non-gold,
+   non-transparent pixel in the image. The logo's own background is
+   transparent, not literally black - the black seen in previews is just
+   presentation/contrast, which is why --chrome-bg (sidebar/topbar) is a
+   near-black rather than pure #000.
+
+   --gold is now this app's PRIMARY interactive colour (buttons, focus
+   rings, selected/active states, links on the auth page) - it took over
+   that ROLE from --green, which used to hold BIMA_D_LINE's teal
+   (#00b194) for the same purpose. --green is now the real leaf colour
+   and is reserved for genuine "success/positive" moments (e.g. "client
+   found") so it keeps its own distinct meaning instead of colliding with
+   the brand gold used everywhere else.
+   ================================================================ */
+:root {
+  /* Main content */
+  --bg-page:      #f4f6f8;
+  --bg-card:      #ffffff;
+  --bg-card-alt:  #f0f3f5;
+  --border:       #dde5e0;
+  --border-focus: var(--gold);
+  --text-1:       #111827;
+  --text-2:       #4b5563;
+  --text-3:       #9ca3af;
+  /* Brand colours - sampled directly from the real AMURA logo file
+     (uploads/AMURA LOGO.png) with a Python/Pillow pixel scan, not guessed:
+     the gold gradient came pre-labelled (#D4AF37 -> #C5A028) and the leaf
+     green was picked out as the single most common non-gold, non-transparent
+     pixel colour (#115636). This is the app's PRIMARY brand colour now -
+     buttons, focus rings, selected states, active tabs/pager, links - taken
+     over from the old BIMA_D_LINE-derived teal (--green used to be #00b194;
+     it's now the true leaf green and reserved for actual "success/positive"
+     moments instead of being the primary interactive colour). */
+  --gold:         #d4af37;
+  --gold-2:       #c5a028;
+  --gold-hover:   #b28f22;
+  --gold-dim:     rgba(212,175,55,.14);
+  --gold-ring:    rgba(212,175,55,.30);
+  --green:        #115636;
+  --green-hover:  #0d3f28;
+  --green-dim:    rgba(17,86,54,.10);
+  --green-ring:   rgba(17,86,54,.20);
+  /* Sidebar + topbar chrome - the logo's own presentation is built for a
+     near-black backdrop (see the "Color Adaptation" notes that came with
+     it: the gold gradient is designed to "pop" against dark), so both the
+     sidebar and topbar now share one near-black tone instead of the two
+     separate BIMA_D_LINE navy/slate tones used previously. */
+  --chrome-bg:    #121212;
+  --amber:        #f7ab22;
+  --amber-hover:  #d6900f;
+  --amber-dim:    rgba(247,171,34,.14);
+  --amber-ring:   rgba(247,171,34,.30);
+  --red:          #f05133;
+  --red-dim:      rgba(240,81,51,.10);
+  --purple:       #7c3aed;
+  --purple-dim:   rgba(124,58,237,.10);
+  --blue:         #49b6d6;
+  --blue-dim:     rgba(73,182,214,.10);
+  --sidebar-w:    220px;
+  --radius:       8px;
+  --radius-sm:    5px;
+  /* Hero surfaces only (wizard banner, active wizard tab, auth-page mark) -
+     the metallic gold sheen the logo's own write-up describes. NOT used for
+     the sidebar/topbar - see --chrome-bg above - a gold sidebar would be
+     both too loud and hard to read white nav text on. */
+  --gradient-hero: linear-gradient(135deg, #d4af37 0%, #c5a028 100%);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-page);
+  color: var(--text-1);
+  /* Matches BIMA_D_LINE - Copy's own font-family declaration
+     ('Montserrat', 'Lato' !important, throughout style.min.css) - loaded
+     via Google Fonts in _Layout.cshtml's <head>. */
+  font-family: 'Montserrat', 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--amber); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Auth layout (Login / VerifyOtp / AccessDenied / Error) ─── */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  /* Near-black, matching the logo's own high-contrast presentation - the
+     transparent-background AMURA lockup below is designed to "pop" against
+     dark, not light. */
+  background: var(--chrome-bg);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32px;
+  text-decoration: none;
+}
+/* The real AMURA lockup (icon + wordmark + "INSURANCE AGENCY", one PNG,
+   transparent background) replaces the old generic "IA" tile - see
+   wwwroot/images/amura-lockup.png, cropped/resized from the source logo
+   file via Pillow so it isn't a multi-megabyte image on the login page. */
+.auth-brand img { height: 84px; width: auto; display: block; }
+
+.auth-card {
+  background: #ffffff;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 4px 32px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
+  padding: 36px 40px;
+  width: 100%; max-width: 440px;
+}
+
+.auth-title    { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+.auth-subtitle { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+
+.auth-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+.auth-footer a { color: var(--gold); }
+
+/* ── Forms ───────────────────────────────────────────────── */
+.field       { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+
+.field input[type=text],
+.field input[type=email],
+.field input[type=password],
+.field textarea {
+  width: 100%;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: #111827;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field input:focus, .field textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-ring);
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--text-3); }
+.field textarea { resize: vertical; min-height: 70px; }
+
+.field-hint  { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.4; }
+.field-error { font-size: 12px; color: var(--red);    margin-top: 4px; }
+
+/* validation tag helpers */
+.text-danger,
+span[data-valmsg-for],
+.field-validation-error { font-size: 12px; color: var(--red); display: block; margin-top: 4px; }
+
+.validation-summary-errors,
+div[data-valmsg-summary] {
+  background: var(--red-dim);
+  border: 1px solid rgba(240,81,51,.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--red);
+}
+.validation-summary-errors ul,
+div[data-valmsg-summary] ul { padding-left: 16px; margin: 4px 0 0; }
+.validation-summary-valid { display: none; }
+
+.field-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-1);
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.form-control:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--gold-ring);
+}
+.form-control::placeholder { color: var(--text-3); }
+select.form-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 34px;
+  cursor: pointer;
+}
+textarea.form-control { resize: vertical; min-height: 100px; }
+.form-hint { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1px solid transparent;
+  padding: 9px 18px;
+  transition: background .15s, border-color .15s, color .15s;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.btn-block { width: 100%; display: flex; }
+
+.btn-primary  { background: var(--gold);  color: #fff; }
+.btn-primary:hover { background: var(--gold-hover); color: #fff; }
+
+.btn-amber    { background: var(--amber); color: #fff; }
+.btn-amber:hover { background: var(--amber-hover); color: #fff; }
+
+.btn-danger   { background: transparent; color: var(--red); border-color: rgba(240,81,51,.4); }
+.btn-danger:hover { background: var(--red-dim); }
+
+.btn-ghost    { background: transparent; color: var(--text-2); border-color: var(--border); }
+.btn-ghost:hover { color: var(--text-1); border-color: var(--border-focus); }
+
+.btn-outline  { background: transparent; color: var(--gold); border-color: var(--gold); }
+.btn-outline:hover { background: var(--gold-dim); }
+
+.btn-link     { background: none; border: none; color: var(--amber); padding: 0; font-weight: 400; cursor: pointer; }
+.btn-link:hover { text-decoration: underline; }
+
+.btn-sm       { padding: 5px 12px; font-size: 13px; }
+.btn-xs       { padding: 4px 10px; font-size: 12px; }
+
+/* ── Portal shell ────────────────────────────────────────── */
+/* .topbar now sits ABOVE this (a normal-flow full-width sibling, not
+   inside .main) - .shell only holds the sidebar+content row below it, so
+   its own height is the viewport minus the topbar's fixed 54px. */
+.shell { display: flex; min-height: calc(100vh - 54px); }
+
+.sidebar {
+  width: var(--sidebar-w);
+  /* The logo's leaf green, not the near-black chrome - the topbar above
+     keeps the near-black (see .topbar below); this is the one thing in the
+     shell that now carries --green instead. */
+  background: var(--green);
+  border-right: 1px solid rgba(255,255,255,.08);
+  display: flex; flex-direction: column;
+  /* top: 54px (not 0) - starts below the full-width topbar instead of
+     running the whole viewport height, since the brand mark (previously
+     here) moved up into that topbar. */
+  position: fixed; top: 54px; bottom: 0; left: 0;
+  z-index: 100;
+}
+
+/* Sidebar profile card - centred avatar/name/role above the nav, matching
+   BIMA_D_LINE - Copy's own "nav-profile" sidebar block. */
+.sidebar-profile {
+  text-align: center;
+  padding: 18px 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.sidebar-profile-avatar {
+  width: 56px; height: 56px; margin: 0 auto 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: #fff;
+}
+.sidebar-profile-name { font-size: 14px; font-weight: 600; color: #fff; }
+.sidebar-profile-role { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; letter-spacing: .3px; }
+
+.sidebar-nav   { flex: 1; padding: 10px 8px; overflow-y: auto; }
+.sidebar-label {
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.55);
+  text-transform: uppercase; letter-spacing: .8px;
+  padding: 12px 12px 4px;
+}
+
+.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  color: rgba(255,255,255,.75); text-decoration: none !important;
+  font-size: 14px; border-radius: 6px;
+  transition: background .12s, color .12s;
+  margin-bottom: 2px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-link:hover  { background: rgba(255,255,255,.1); color: #fff; }
+.nav-link.active { background: rgba(255,255,255,.15); color: #ffffff; font-weight: 600; }
+.nav-link i, .nav-link svg { width: 16px; flex-shrink: 0; text-align: center; }
+
+/* Collapsible menu group (2-level sidebar tree from GET /api/menus/mine) */
+.nav-group-toggle { justify-content: space-between; }
+.nav-group-toggle .nav-link-label { display: flex; align-items: center; gap: 10px; flex: 1; }
+.nav-group-toggle .nav-chevron {
+  width: 12px; height: 12px; flex-shrink: 0;
+  transition: transform .15s;
+}
+.nav-group.open .nav-chevron { transform: rotate(90deg); }
+
+.nav-submenu {
+  list-style: none;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .18s ease;
+}
+.nav-group.open .nav-submenu { max-height: 480px; }
+.nav-submenu .nav-link { padding-left: 34px; font-size: 13px; }
+
+/* User avatar/logout - now rendered in the topbar (see .topbar-user
+   below), not the sidebar - kept as their own classes since both the
+   topbar's dark gradient and the sidebar's dark gradient are the same
+   colour, so no restyling was needed when they moved. (The name/role
+   labels moved with them too, but under new names - .topbar-username/
+   .role-pill - since their old .user-name/.user-role rules assumed the
+   sidebar-footer's layout; see those rules further up this file.) */
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+
+.logout-btn {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.45); padding: 4px;
+  border-radius: 4px; display: flex; transition: color .12s;
+}
+.logout-btn:hover { color: #ff6b6b; }
+
+/* ── Main content ────────────────────────────────────────── */
+.main { flex: 1; margin-left: var(--sidebar-w); display: flex; flex-direction: column; }
+
+.topbar {
+  height: 54px; border-bottom: 1px solid rgba(255,255,255,.08);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  /* The logo's own black backdrop - the sidebar below carries the green
+     instead now (see .sidebar above), so the two are visually distinct
+     rather than sharing one dark tone like before. */
+  background: var(--chrome-bg);
+  /* Full width, normal document flow (NOT inside .main any more) - sits
+     above .shell so the sidebar can start below it instead of running the
+     whole viewport height. Sticky (not fixed) so it still occupies its
+     54px of flow space, which is what lets .shell "start below it" with no
+     extra margin math. */
+  width: 100%;
+  position: sticky; top: 0; z-index: 110;
+}
+/* Brand mark, left edge of the topbar - moved here from the top of the
+   sidebar (see _Layout.cshtml) so it appears once, full-width, instead of
+   being scoped to the sidebar's own 220px column. */
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; flex-shrink: 0;
+  padding-right: 16px; margin-right: 2px;
+  border-right: 1px solid rgba(255,255,255,.12);
+  height: 34px;
+}
+.topbar-brand-icon { width: 28px; height: auto; flex-shrink: 0; display: block; }
+.topbar-brand-text    { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.2; }
+.topbar-brand-subtext { font-size: 9px; color: rgba(255,255,255,.5); letter-spacing: .4px; }
+
+/* Home > Current page breadcrumb, left side of the topbar - mirrors the
+   "Home / [page]" trail BIMA_D_LINE - Copy's own layout shows above its
+   content area, just relocated into our sticky topbar instead of floating
+   pull-right over the page body. */
+.topbar-crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.topbar-crumb a { color: rgba(255,255,255,.65); font-weight: 500; }
+.topbar-crumb a:hover { color: #fff; }
+.crumb-sep { color: rgba(255,255,255,.35); }
+.crumb-current {
+  color: #fff; font-weight: 600; font-size: 15px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* User identity + sign-out, right side of the topbar (moved out of the
+   sidebar footer - BIMA_D_LINE - Copy keeps the user menu in its top
+   navbar-right, with the sidebar reserved for navigation only). */
+.topbar-user  { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-username {
+  font-size: 13px; font-weight: 500; color: #fff;
+  max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.role-pill {
+  font-size: 11px; font-weight: 700; color: #fff;
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px; padding: 3px 10px; letter-spacing: .3px;
+  white-space: nowrap;
+}
+
+/* Notification bell - topbar polling badge (site.js polls GET
+   /notifications/summary every ~45s and repaints #notif-badge/
+   #notif-dropdown-body from the JSON it gets back). */
+.notif-bell-wrap { position: relative; }
+.notif-bell-btn {
+  background: none; border: none; cursor: pointer; position: relative;
+  color: rgba(255,255,255,.75); padding: 6px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .12s, background .12s;
+}
+.notif-bell-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+.notif-badge {
+  position: absolute; top: 0; right: 0; min-width: 16px; height: 16px;
+  padding: 0 4px; border-radius: 8px; background: var(--red, #f05133);
+  color: #fff; font-size: 10px; font-weight: 700; line-height: 16px;
+  text-align: center; border: 1.5px solid var(--chrome-bg);
+}
+.notif-dropdown {
+  display: none; position: absolute; top: calc(100% + 10px); right: 0;
+  width: 300px; background: #fff; border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.22); border: 1px solid var(--border);
+  overflow: hidden; z-index: 60;
+}
+.notif-dropdown.show { display: block; }
+.notif-dropdown-header {
+  padding: 12px 16px; font-size: 13px; font-weight: 700; color: var(--text-1);
+  border-bottom: 1px solid var(--border); background: var(--panel-2, #f8f8f8);
+}
+.notif-dropdown-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; text-decoration: none; border-bottom: 1px solid var(--border);
+  color: var(--text-1); font-size: 13px; transition: background .12s;
+}
+.notif-dropdown-item:last-child { border-bottom: none; }
+.notif-dropdown-item:hover { background: var(--panel-2, #f8f8f8); }
+.notif-dropdown-item-count {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  background: var(--gold-dim); color: var(--gold-2); font-weight: 700;
+  font-size: 12px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.notif-dropdown-empty { padding: 18px 16px; font-size: 13px; color: var(--text-3); text-align: center; }
+
+.content { padding: 28px; flex: 1; }
+/* Opt-in per view (ViewData["FullWidth"] = true in _Layout.cshtml) - used by
+   the purchase wizard so its cards/grids can use the full window width
+   instead of the 1080px cap most list/detail screens are comfortable at. */
+.content-full { max-width: none; }
+
+/* ── Page header ─────────────────────────────────────────── */
+.page-head { margin-bottom: 24px; }
+.page-title { font-size: 20px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+.page-desc  { font-size: 14px; color: var(--text-2); }
+
+/* ── Alerts ──────────────────────────────────────────────── */
+.alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; border-radius: var(--radius-sm);
+  margin-bottom: 20px; font-size: 14px; line-height: 1.5;
+}
+.alert svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; }
+.alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+.alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+/* ── Data tables ─────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-size: 11px; font-weight: 700; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .5px;
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px; color: var(--text-1);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+/* Zebra striping - matches BIMA_D_LINE - Copy's own .table-striped rows
+   (odd-row background #f0f3f5, i.e. var(--bg-card-alt)). Hover still wins
+   over the stripe since it's declared after. */
+.data-table tbody tr:nth-child(odd) td { background: var(--bg-card-alt); }
+.data-table tbody tr:hover td { background: rgba(0,0,0,.045); }
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: .2px;
+  white-space: nowrap;
+}
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.badge-new      { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(124,58,237,.3); }
+.badge-new::before { background: var(--purple); }
+.badge-pending  { background: var(--amber-dim);  color: var(--amber);  border: 1px solid rgba(247,171,34,.3); }
+.badge-pending::before { background: var(--amber); }
+.badge-approved { background: #f0fdf4;  color: #15803d;  border: 1px solid #86efac; }
+.badge-approved::before { background: #16a34a; }
+.badge-rejected { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(240,81,51,.3); }
+.badge-rejected::before { background: var(--red); }
+
+/* ── OTP input ───────────────────────────────────────────── */
+.otp-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 8px; }
+.otp-box {
+    width: 50px; height: 56px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    text-align: center; font-size: 22px; font-weight: 700;
+    color: #111827; background: #f9fafb; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+.otp-box:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-ring); background: #fff; }
+.otp-error { font-size: 12px; color: var(--red); margin-bottom: 16px; min-height: 18px; }
+
+/* ── Stats bar ───────────────────────────────────────────── */
+.stats-bar {
+  display: flex; align-items: center; gap: 20px;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 13px; color: var(--text-2); flex-wrap: wrap;
+}
+.stat-item { display: flex; align-items: center; gap: 6px; }
+.stat-num  { font-size: 16px; font-weight: 700; color: var(--amber); }
+
+/* ── Summary cards (Quote Requests list header) ─────────────
+   One card per product with pending/in-progress/total counts - each card
+   doubles as the product filter (it's an <a>, not a static div), so
+   there's no separate dropdown duplicating the same job. */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.summary-card {
+  display: block;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-decoration: none !important;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.summary-card:hover { border-color: var(--border-focus); }
+.summary-card.active {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+  box-shadow: 0 0 0 3px var(--gold-ring);
+}
+.summary-card-product {
+  font-size: 13px; font-weight: 700; color: var(--text-1);
+  margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.summary-card-stats { display: flex; gap: 16px; }
+.summary-stat { display: flex; flex-direction: column; }
+.summary-stat-num { font-size: 20px; font-weight: 800; line-height: 1.1; }
+.summary-stat-num.pending    { color: var(--amber); }
+.summary-stat-num.inprogress { color: var(--gold-2); }
+.summary-stat-num.total      { color: var(--text-1); }
+.summary-stat-label {
+  font-size: 10px; color: var(--text-3); text-transform: uppercase;
+  letter-spacing: .3px; margin-top: 2px;
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.empty { text-align: center; padding: 64px 20px; }
+.empty-icon  { font-size: 36px; margin-bottom: 14px; opacity: .35; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--text-1); margin-bottom: 6px; }
+.empty-desc  { font-size: 14px; color: var(--text-2); }
+
+/* ── Status / confirmation pages (AccessDenied, Error) ────── */
+.status-page { text-align: center; padding: 8px 0 4px; }
+.status-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; margin: 0 auto 20px;
+}
+.status-icon.success { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+.status-icon.warning { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+.status-icon.error   { background: #fef2f2; color: var(--red); border: 1px solid #fca5a5; }
+.status-icon.info    { background: #f0fdf4; color: var(--green); border: 1px solid #6ee7b7; }
+
+.status-title { font-size: 20px; font-weight: 700; color: var(--text-1); margin-bottom: 8px; }
+.status-desc  { font-size: 14px; color: var(--text-2); margin-bottom: 24px; line-height: 1.6;
+  max-width: 340px; margin-left: auto; margin-right: auto; }
+
+/* ── Menu Management: role-access toggle dots ─────────────── */
+.access-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .12s, border-color .12s;
+  padding: 0;
+}
+.access-dot.on {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.access-dot.on::after {
+  content: '\2713';
+  color: #fff; font-size: 12px; font-weight: 700;
+}
+.access-dot:hover { border-color: var(--border-focus); }
+.access-form { margin: 0; display: inline-flex; }
+.menu-row-child .menu-label { padding-left: 24px; color: var(--text-2); }
+.menu-row-child .menu-label::before { content: '\21B3'; margin-right: 6px; color: var(--text-3); }
+
+/* ── Purchase wizard: gradient hero banner ───────────────────
+   Gold gradient banner with icon badge, title/subtitle, and close button.
+   Tighter, cleaner than the old wizard-hero - less padding, no heavy
+   shadow, just the brand gradient doing the visual work. */
+.wz-hero {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+  background: var(--gradient-hero);
+  color: #fff;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px -8px rgba(212,175,55,.35);
+}
+.wz-hero-left { display: flex; align-items: center; gap: 14px; }
+.wz-hero-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.22);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.wz-hero-title { margin: 0; font-size: 18px; font-weight: 700; }
+.wz-hero-sub   { margin: 3px 0 0; font-size: 13px; opacity: .82; line-height: 1.4; }
+.wz-hero-close {
+  color: #fff; background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.25); border-radius: 8px;
+  padding: 7px 14px; font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  text-decoration: none !important; transition: background .15s;
+}
+.wz-hero-close:hover { background: rgba(255,255,255,.26); color: #fff; text-decoration: none; }
+
+/* ── Purchase wizard: connected-circle stepper ──────────────
+   A row of numbered circles connected by lines. Each circle transitions
+   between three states:
+     pending  - grey outline, grey text, dim
+     active   - gold outline, gold background glow, animated pulse ring
+     done     - gold filled, white checkmark, connecting line fills gold
+
+   Fully responsive: labels hide on mobile, circles shrink. */
+.wz-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+  padding: 0 16px;
+}
+.wz-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+  position: relative;
+  z-index: 2;
+}
+.wz-step__circle {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  transition: all .3s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+.wz-step--pending .wz-step__circle {
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  color: var(--text-3);
+}
+.wz-step--active .wz-step__circle {
+  background: #fff;
+  border: 2.5px solid var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 4px var(--gold-dim);
+  animation: wz-pulse 2s ease-in-out infinite;
+}
+.wz-step--done .wz-step__circle {
+  background: var(--gradient-hero);
+  border: 2px solid var(--gold);
+  color: #fff;
+}
+.wz-step__info {
+  text-align: center;
+}
+.wz-step__label {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color .3s;
+}
+.wz-step--pending .wz-step__label { color: var(--text-3); }
+.wz-step--active .wz-step__label  { color: var(--gold); font-weight: 700; }
+.wz-step--done .wz-step__label    { color: var(--green); }
+/* Connector line between steps */
+.wz-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin-top: 20px;
+  min-width: 40px;
+  max-width: 120px;
+  transition: background .4s ease;
+  z-index: 1;
+}
+.wz-connector--done {
+  background: var(--gradient-hero);
+}
+@keyframes wz-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px var(--gold-dim); }
+  50%      { box-shadow: 0 0 0 8px rgba(212,175,55,.08); }
+}
+@media (max-width: 700px) {
+  .wz-step__label { display: none; }
+  .wz-step { min-width: 50px; }
+  .wz-step__circle { width: 36px; height: 36px; font-size: 13px; }
+  .wz-connector { min-width: 24px; margin-top: 17px; }
+}
+@media (max-width: 480px) {
+  .wz-stepper { padding: 0 4px; }
+  .wz-hero { padding: 16px 18px; }
+  .wz-hero-title { font-size: 16px; }
+}
+
+/* ================================================================
+   WIZARD COMPONENTS — wz-* prefixed design system
+   ================================================================ */
+
+/* ── Alert banners ────────────────────────────────────────── */
+.wz-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; border-radius: var(--radius);
+  margin-bottom: 20px; font-size: 14px; line-height: 1.5;
+  border: 1px solid transparent;
+}
+.wz-alert i { flex-shrink: 0; margin-top: 2px; font-size: 15px; }
+.wz-alert--error   { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.wz-alert--success { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.wz-alert--warning { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+.wz-alert--info    { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+
+/* ── Recap bar (quote summary strip on Step2) ─────────────── */
+.wz-recap {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 0;
+  background: #f8fafb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.wz-recap-item { display: flex; flex-direction: column; align-items: center; padding: 0 16px; }
+.wz-recap-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); margin-bottom: 2px; }
+.wz-recap-item strong { color: var(--text-1); font-size: 14px; }
+.wz-recap-price { color: var(--gold-2) !important; font-size: 16px !important; }
+.wz-recap-sep { width: 1px; height: 28px; background: var(--border); }
+
+/* ── Card (wizard variant) ────────────────────────────────── */
+.wz-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.wz-card--compact { margin-bottom: 16px; }
+.wz-card-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfc;
+}
+.wz-card-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  background: var(--gold-dim); color: var(--gold);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.wz-card-icon--green { background: var(--green-dim); color: var(--green); }
+.wz-card-icon--blue  { background: var(--blue-dim);  color: #1e40af; }
+.wz-card-icon--amber { background: var(--amber-dim); color: var(--amber); }
+.wz-card-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--text-1); }
+.wz-card-desc  { margin: 2px 0 0; font-size: 12px; color: var(--text-3); }
+.wz-card-body  { padding: 20px; }
+.wz-card-body--row { display: flex; align-items: center; gap: 16px; padding: 14px 20px; }
+.wz-card-body--flush { padding: 0; }
+
+/* ── Two-column layout ────────────────────────────────────── */
+.wz-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+  .wz-duo { grid-template-columns: 1fr; }
+}
+
+/* ── Form elements ────────────────────────────────────────── */
+.wz-form-grid {
+  display: grid; gap: 16px;
+  margin-bottom: 16px;
+}
+.wz-form-grid--2 { grid-template-columns: repeat(2, 1fr); }
+.wz-form-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.wz-form-grid--4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 768px) {
+  .wz-form-grid--3 { grid-template-columns: repeat(2, 1fr); }
+  .wz-form-grid--4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .wz-form-grid--2,
+  .wz-form-grid--3,
+  .wz-form-grid--4 { grid-template-columns: 1fr; }
+}
+
+.wz-field { margin-bottom: 16px; }
+.wz-field:last-child { margin-bottom: 0; }
+.wz-label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--text-2); margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.wz-required { color: var(--red); }
+.wz-input, .wz-select {
+  display: block; width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-1);
+  font-size: 14px; line-height: 1.5;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+.wz-input:focus, .wz-select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-ring);
+}
+.wz-input::placeholder { color: var(--text-3); }
+.wz-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 34px;
+  -webkit-appearance: none; appearance: none;
+}
+.wz-field-error { font-size: 12px; color: var(--red); margin-top: 4px; display: block; }
+.wz-hint { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.4; }
+.wz-hint--success { color: #15803d; font-weight: 600; }
+.wz-hint--error   { color: var(--red); }
+.wz-search-row { display: flex; gap: 8px; }
+.wz-search-row .wz-input { flex: 1; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.wz-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: var(--radius);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid transparent;
+  padding: 10px 20px;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.wz-btn--gold {
+  background: var(--gradient-hero); color: #fff;
+  border-color: var(--gold);
+  box-shadow: 0 2px 8px -2px rgba(212,175,55,.35);
+}
+.wz-btn--gold:hover { background: var(--gold-hover); color: #fff; box-shadow: 0 4px 12px -2px rgba(212,175,55,.45); }
+.wz-btn--gold:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.wz-btn--green { background: var(--green); color: #fff; border-color: var(--green); }
+.wz-btn--green:hover { background: var(--green-hover); color: #fff; }
+.wz-btn--ghost {
+  background: transparent; color: var(--text-2);
+  border-color: var(--border);
+}
+.wz-btn--ghost:hover { color: var(--text-1); border-color: var(--gold); background: var(--gold-dim); }
+.wz-btn--sm { padding: 7px 14px; font-size: 13px; }
+
+/* ── Actions row ──────────────────────────────────────────── */
+.wz-actions {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 24px;
+}
+.wz-actions--between { justify-content: space-between; }
+
+/* ── Quote cards grid ─────────────────────────────────────── */
+.wz-quote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.wz-quote-card {
+  position: relative;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 48px 18px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-card);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.wz-quote-card:hover { border-color: var(--gold); }
+.wz-quote-card--selected {
+  border-color: var(--gold) !important;
+  background: var(--gold-dim);
+  box-shadow: 0 0 0 3px var(--gold-ring);
+}
+.wz-quote-radio { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.wz-quote-check {
+  position: absolute; top: 16px; right: 16px;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, border-color .12s;
+  font-size: 0;
+}
+.wz-quote-card--selected .wz-quote-check {
+  background: var(--gold); border-color: var(--gold);
+  font-size: 11px; color: #fff;
+}
+.wz-quote-uw { font-weight: 700; color: var(--text-1); font-size: 15px; }
+.wz-quote-price { font-size: 22px; font-weight: 800; color: var(--gold-2); }
+
+/* ── Payment: paybill boxes ───────────────────────────────── */
+.wz-paybill-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.wz-paybill-box {
+  background: #f8fafb; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; text-align: center;
+}
+.wz-paybill-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); margin-bottom: 6px; }
+.wz-paybill-value { display: block; font-size: 22px; font-weight: 800; color: var(--text-1); letter-spacing: .5px; }
+
+/* ── Table ────────────────────────────────────────────────── */
+.wz-table {
+  width: 100%; border-collapse: collapse;
+}
+.wz-table th {
+  text-align: left; padding: 11px 16px;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--text-3); background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+}
+.wz-table td {
+  padding: 11px 16px; font-size: 14px; color: var(--text-1);
+  border-bottom: 1px solid #f0f2f4;
+  vertical-align: middle;
+}
+.wz-table tbody tr:last-child td { border-bottom: none; }
+.wz-table tbody tr:nth-child(odd) td { background: #fafbfc; }
+.wz-table tbody tr:hover td { background: rgba(0,0,0,.03); }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.wz-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: .2px;
+  white-space: nowrap;
+}
+.wz-badge--success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.wz-badge--error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.wz-badge--warning { background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+
+/* ── Typography helpers ───────────────────────────────────── */
+.wz-t_bold   { font-weight: 700; }
+.wz-t_mono   { font-family: 'SF Mono', SFMono-Regular, Consolas, monospace; font-size: 13px; }
+.wz-t_muted  { color: var(--text-3); font-size: 13px; }
+
+/* ── Success page ─────────────────────────────────────────── */
+.wz-success {
+  text-align: center; padding: 10px 0 28px;
+}
+.wz-success-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: #f0fdf4; color: #16a34a;
+  border: 2px solid #86efac;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin: 0 auto 16px;
+  animation: wz-pop .4s ease;
+}
+@keyframes wz-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.wz-success-title { font-size: 22px; font-weight: 700; color: var(--text-1); margin: 0 0 6px; }
+.wz-success-sub   { font-size: 14px; color: var(--text-2); margin: 0; }
+
+/* ── Detail grid (Step4 summary) ──────────────────────────── */
+.wz-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+}
+.wz-detail {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f2f4;
+}
+.wz-detail:nth-child(odd) { background: #fafbfc; }
+.wz-detail-label {
+  display: block; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .4px;
+  color: var(--text-3); margin-bottom: 3px;
+}
+.wz-detail-value { font-size: 14px; font-weight: 500; color: var(--text-1); }
+.wz-detail-value--gold { color: var(--gold-2); font-weight: 700; font-size: 16px; }
+
+/* ── "DataTable-lite" layer on top of .data-table ────────────────────
+   A search box + page-length selector + sortable headers + numbered pager
+   + "Showing X to Y of Z entries" footer, all client-side, echoing the
+   real jQuery DataTables plugin's default chrome (see site.js's
+   DataTable-lite comment for the BIMA_D_LINE - Copy reference this was
+   modeled on) without the plugin itself. The real filtering/paging
+   (status/paymentStatus dropdowns, true Previous/Next against the API)
+   still happens server-side - this is a fast, no-reload layer on top of
+   whatever one page of rows the server already sent, wired up generically
+   in site.js so any list screen can opt in. */
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.table-search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 0 12px; height: 38px; background: var(--bg-card);
+  max-width: 300px; flex: 1; transition: border-color .15s, box-shadow .15s;
+}
+.table-search:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--gold-ring); }
+.table-search svg { color: var(--text-3); flex-shrink: 0; }
+.table-search input {
+  border: none; outline: none; background: transparent; flex: 1;
+  font-size: 14px; color: var(--text-1); min-width: 0;
+}
+.table-search input::placeholder { color: var(--text-3); }
+
+.table-pagesize {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-2); flex-shrink: 0;
+}
+.table-pagesize select {
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; font-size: 13px; color: var(--text-1);
+  background: var(--bg-card); height: 34px; cursor: pointer;
+}
+
+.data-table th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+.data-table th[data-sort]:hover { color: var(--text-1); }
+.data-table th[data-sort]::after { content: '\2195'; margin-left: 5px; opacity: .3; font-size: 10px; }
+.data-table th[data-sort][data-sort-dir="asc"]::after  { content: '\2191'; opacity: 1; color: var(--gold-2); }
+.data-table th[data-sort][data-sort-dir="desc"]::after { content: '\2193'; opacity: 1; color: var(--gold-2); }
+
+.table-wrap.sticky-head { max-height: 640px; overflow-y: auto; }
+.table-wrap.sticky-head .data-table thead th {
+  position: sticky; top: 0; background: var(--bg-card); z-index: 2;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* "Showing X to Y of Z entries" + numbered pager, below the table - the
+   other half of DataTables' default chrome. */
+.table-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 14px; flex-wrap: wrap;
+}
+.table-info { font-size: 13px; color: var(--text-3); }
+.table-pager { display: flex; align-items: center; gap: 4px; }
+.table-pager-btn {
+  min-width: 30px; height: 30px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-card); color: var(--text-2);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.table-pager-btn:hover:not(:disabled) { border-color: var(--border-focus); color: var(--text-1); }
+.table-pager-btn.active { background: var(--gold); border-color: var(--gold); color: #fff; }
+.table-pager-btn:disabled { opacity: .4; cursor: default; }
+
+/* Selectable quote grid - one card per underwriter option. The card itself
+   is a <label> wrapping a visually-hidden radio input, so clicking anywhere
+   on the card (not just a tiny checkbox) selects it - same "click the whole
+   card" affordance as the reference's quote-card + switch-input pattern,
+   just single-select (radio) instead of a checkbox since only one
+   underwriter can be chosen. */
+.quote-grid {
+  display: grid;
+  /* auto-fit (not auto-fill) so a handful of cards stretch to actually fill
+     the row's full width instead of leaving empty trailing grid tracks when
+     there are fewer options than would fit at the minimum card width. */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.quote-card {
+  position: relative;
+  cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 18px 44px 18px 18px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg-card);
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.quote-card:hover { border-color: var(--border-focus); }
+.quote-card.selected {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+  box-shadow: 0 0 0 3px var(--gold-ring);
+}
+.quote-card .quote-underwriter { font-weight: 700; color: var(--text-1); font-size: 15px; }
+.quote-card .quote-price { font-size: 20px; font-weight: 800; color: var(--gold-2); }
+.quote-card-radio { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.quote-card-check {
+  position: absolute; top: 16px; right: 16px;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, border-color .12s;
+}
+.quote-card.selected .quote-card-check { background: var(--gold); border-color: var(--gold); }
+.quote-card.selected .quote-card-check::after {
+  content: '\2713'; color: #fff; font-size: 12px; font-weight: 700;
+}
+
+/* ── Page-freeze loader overlay (AJAX "something is happening" cue) ──── */
+.page-loader-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(2px);
+  z-index: 9999;
+  display: none;
+  align-items: center; justify-content: center;
+}
+.page-loader-overlay.show { display: flex; }
+.page-loader-content { text-align: center; }
+.page-loader-spinner {
+  width: 50px; height: 50px; margin: 0 auto 16px;
+  border: 4px solid rgba(255,255,255,.25);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: page-loader-spin .8s linear infinite;
+}
+@keyframes page-loader-spin { to { transform: rotate(360deg); } }
+.page-loader-text { color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .2px; }
+
+/* ── Fused search bar (input + button as one control) ───────────────── */
+.id-search-bar {
+  display: flex; align-items: stretch;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  overflow: hidden; background: var(--bg-card);
+  transition: border-color .15s, box-shadow .15s;
+}
+.id-search-bar:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--gold-ring); }
+.id-search-icon-prefix { padding: 0 4px 0 12px; color: var(--text-3); font-size: 14px; flex-shrink: 0; display: flex; align-items: center; }
+.id-search-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  padding: 0 12px; font-size: 14px; color: var(--text-1); min-width: 0;
+  height: 40px;
+}
+.id-search-btn {
+  flex-shrink: 0; border: none; cursor: pointer;
+  background: var(--gold); color: #fff;
+  padding: 0 18px; font-size: 13px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background .15s;
+}
+.id-search-btn:hover { background: var(--gold-hover); }
+.id-search-btn:disabled { opacity: .6; cursor: default; }
+/* "Client found" is a genuine positive/success moment (green convention),
+   kept as the real leaf green rather than the brand gold used for buttons
+   and selection above - the two colours read as distinctly different
+   meanings (success vs. "this is clickable/selected"). */
+.form-hint-success { color: var(--green); font-weight: 600; }
+
+/* ── Modal (generic, no plugin - see site.js's data-modal-* handlers) ──
+   Used right now by the Quote Requests "Add an offer" form, but written
+   generically (open/close purely by element id) so any future screen can
+   reuse it the same way DataTable-lite gets reused across list screens. */
+.modal-backdrop[data-modal-backdrop] {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,.55);
+  z-index: 300;
+  display: none;
+}
+.modal-backdrop[data-modal-backdrop].show { display: block; }
+.modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px -12px rgba(0,0,0,.35);
+  width: calc(100% - 32px);
+  max-width: 520px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  z-index: 301;
+  display: none;
+}
+.modal.show { display: block; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-weight: 700; font-size: 16px; color: var(--text-1); }
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; line-height: 1; color: var(--text-3); padding: 0 4px;
+}
+.modal-close:hover { color: var(--text-1); }
+.modal-body { padding: 20px 22px; }
+/* Stops the page behind the modal from scrolling while it's open. */
+body.modal-open { overflow: hidden; }
+
+/* ── Card (generic content container, e.g. dashboard) ─────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+/* Sidebar toggle button (topbar, mobile only) - BIMA_D_LINE - Copy's own
+   header has a "navbar-toggle" hamburger button for exactly this; see
+   site.js's toggle handler + backdrop-click-to-close. */
+.sidebar-toggle-btn {
+  display: none; background: none; border: none; cursor: pointer;
+  color: #fff; padding: 6px; border-radius: 6px; flex-shrink: 0;
+}
+.sidebar-toggle-btn:hover { background: rgba(255,255,255,.12); }
+.sidebar-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,.45); z-index: 150;
+}
+.sidebar-backdrop.show { display: block; }
+
+@media (max-width: 768px) {
+  .sidebar-toggle-btn { display: flex; }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .2s ease;
+    z-index: 200;
+    box-shadow: 4px 0 24px rgba(0,0,0,.2);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .auth-card { padding: 28px 24px; }
+  .content { padding: 20px 16px; }
+  .otp-boxes { gap: 6px; }
+  .otp-box { width: 40px; height: 48px; font-size: 18px; }
+  .topbar { padding: 0 16px; gap: 10px; }
+  .topbar-username, .role-pill { display: none; }
+  /* Keep just the icon on narrow screens - "Amura / INSURANCE AGENCY" plus
+     the hamburger plus the breadcrumb is too much for one 54px-tall row
+     under 768px. */
+  .topbar-brand { padding-right: 10px; }
+  .topbar-brand-text, .topbar-brand-subtext { display: none; }
+}
+
+/* ================================================================
+   WZ-COMPARE — Underwriter comparison grid (Comprehensive Step 1)
+   ================================================================ */
+.wz-compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.wz-compare-card {
+  background: var(--card-bg, #fff);
+  border: 2px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-lg, 16px);
+  padding: 1.25rem;
+  transition: border-color .2s, box-shadow .2s;
+  display: flex; flex-direction: column; gap: .75rem;
+}
+.wz-compare-card:hover { border-color: var(--primary, #d4a843); box-shadow: 0 4px 16px rgba(212,168,67,.12); }
+.wz-compare-card-selected { border-color: var(--success, #16a34a); background: rgba(22,163,74,.04); }
+.wz-compare-header { display: flex; justify-content: space-between; align-items: center; }
+.wz-compare-uw-name { font-weight: 700; font-size: 1rem; color: var(--text, #1e293b); }
+.wz-compare-premium { display: flex; align-items: baseline; gap: .35rem; }
+.wz-compare-amount { font-size: 1.5rem; font-weight: 800; color: var(--primary, #d4a843); }
+.wz-compare-currency { font-size: .8rem; color: var(--muted, #64748b); font-weight: 600; }
+.wz-compare-details { font-size: .8rem; color: var(--muted, #64748b); line-height: 1.5; }
+.wz-compare-select-form { margin-top: auto; }
+.wz-compare-benefits { margin-top: .5rem; }
+.wz-compare-benefits-toggle {
+  font-size: .8rem; color: var(--primary, #d4a843); cursor: pointer; font-weight: 600;
+  display: flex; align-items: center; gap: .35rem;
+}
+.wz-compare-benefits-toggle:hover { color: var(--primary-dark, #b8922e); }
+.wz-compare-benefits-list { margin-top: .5rem; border-top: 1px solid var(--border, #e2e8f0); padding-top: .5rem; }
+.wz-compare-benefit-item {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .78rem; color: var(--text, #1e293b); padding: .2rem 0;
+}
+.wz-compare-benefit-item i { color: var(--success, #16a34a); font-size: .7rem; }
+.wz-compare-benefit-included i { color: var(--muted, #64748b); }
+.wz-compare-benefit-tag {
+  margin-left: auto; font-size: .65rem; padding: .1rem .4rem;
+  background: rgba(22,163,74,.08); color: var(--success, #16a34a);
+  border-radius: 4px; font-weight: 600;
+}
+.wz-compare-benefit-label {
+  display: flex; align-items: center; gap: .35rem; cursor: pointer; width: 100%;
+}
+.wz-compare-benefit-price {
+  margin-left: auto; font-weight: 600; color: var(--primary, #d4a843); font-size: .75rem;
+}
+.wz-compare-benefit-label input[type="checkbox"] { width: auto; accent-color: var(--primary, #d4a843); }

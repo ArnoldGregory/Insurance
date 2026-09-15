@@ -1,0 +1,590 @@
+@using System.Text.Json
+@model QuoteRequestDetailViewModel
+@{
+    ViewData["Title"] = $"Quote Request {Model.Request.RefNo ?? $"#{Model.Request.QuoteRequestId}"}";
+
+    var badgeClass = Model.Request.Status switch
+    {
+        "QUOTED" => "label-success",
+        "EXPIRED" => "label-danger",
+        "CONVERTED" => "label-success",
+        "IN_PROGRESS" => "label-info",
+        _ => "label-warning"
+    };
+
+    // Detail keys come back camelCase from the API (e.g. "clientName") -
+    // this just spaces/capitalizes them for display ("Client Name")
+    // without needing 5 separate hand-typed label sets for the 5 possible
+    // product shapes.
+    string Prettify(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return key;
+        var withSpaces = System.Text.RegularExpressions.Regex.Replace(key, "([a-z])([A-Z])", "$1 $2");
+        return char.ToUpper(withSpaces[0]) + withSpaces.Substring(1);
+    }
+
+    string RenderValue(JsonElement el) => el.ValueKind switch
+    {
+        JsonValueKind.Null or JsonValueKind.Undefined => "—",
+        JsonValueKind.String => el.GetString() ?? "—",
+        JsonValueKind.True => "Yes",
+        JsonValueKind.False => "No",
+        _ => el.ToString()
+    };
+
+    // familyMembers (Medical Individual only) is a JSON ARRAY, not a scalar
+    // - rendered separately below as a real grid instead of falling through
+    // RenderValue's default arm.
+    var familyMembersKey = Model.TypeDetail.Keys.FirstOrDefault(k => string.Equals(k, "familyMembers", StringComparison.OrdinalIgnoreCase));
+    var hasFamilyMembers = familyMembersKey is not null && Model.TypeDetail[familyMembersKey].ValueKind == JsonValueKind.Array;
+    var scalarDetailEntries = Model.TypeDetail.Where(kvp => kvp.Key != familyMembersKey);
+
+    string FamilyMemberField(JsonElement member, string prop)
+    {
+        if (!member.TryGetProperty(prop, out var val) || val.ValueKind != JsonValueKind.String) return "—";
+        var s = val.GetString();
+        return string.IsNullOrEmpty(s) ? "—" : s;
+    }
+
+    string FamilyMemberDob(JsonElement member)
+    {
+        var raw = member.TryGetProperty("dateOfBirth", out var val) && val.ValueKind == JsonValueKind.String ? val.GetString() : null;
+        if (string.IsNullOrEmpty(raw)) return "—";
+        return DateTime.TryParse(raw, out var parsed) ? parsed.ToString("dd MMM yyyy") : raw;
+    }
+
+    // usp_QuoteOffer_Create only accepts offers while the request is
+    // IN_PROGRESS or QUOTED - a still-PENDING (unassigned) request isn't in
+    // a state that accepts offers yet.
+    var canAddOffer = Model.Request.Status is "IN_PROGRESS" or "QUOTED";
+
+    // Whether the "Edit selected" batch-edit button/checkboxes/modal should
+    // render at all - there's nothing to select if no offer is ACTIVE.
+    var hasActiveOffers = Model.Offers.Any(o => o.Status == "ACTIVE");
+}
+@section PageStyles {
+    <link href="~/assets/static/plugins/select2/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/bootstrap-sweetalert2/sweetalert2.min.css" rel="stylesheet" />
+}
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-file-invoice"></i> Quote Request @(Model.Request.RefNo ?? $"#{Model.Request.QuoteRequestId}")
+    <span class="label @badgeClass">@Model.Request.Status</span>
+    <small>@Model.Request.ProductCode via @Model.Request.Channel</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a asp-action="Index" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        <h4 class="panel-title">Request</h4>
+    </div>
+    <div class="panel-body">
+        <div class="m-b-15" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <form asp-action="AssignToMe" asp-route-id="@Model.Request.QuoteRequestId" method="post" style="margin:0;">
+                <button type="submit" class="btn btn-success"><i class="fa fa-user-check"></i> Assign to me</button>
+            </form>
+
+            @if (Model.AssignableStaff.Count > 0)
+            {
+                <form asp-action="AssignToStaff" asp-route-id="@Model.Request.QuoteRequestId" method="post" style="display:flex;gap:8px;margin:0;">
+                    <select name="staffUserId" class="form-control select2" style="min-width:220px;" required>
+                        <option value="">Assign to Support person...</option>
+                        @foreach (var staff in Model.AssignableStaff)
+                        {
+                            <option value="@staff.UserId" selected="@(Model.Request.AssignedBackofficeUserId == staff.UserId)">@staff.FullName</option>
+                        }
+                    </select>
+                    <button type="submit" class="btn btn-default">Assign</button>
+                </form>
+            }
+
+            @if (Model.Request.Status != "EXPIRED")
+            {
+                <form asp-action="Expire" asp-route-id="@Model.Request.QuoteRequestId" method="post" data-confirm="Mark this quote request EXPIRED? This can't be undone." style="margin:0;">
+                    <button type="submit" class="btn btn-danger"><i class="fa fa-ban"></i> Mark expired</button>
+                </form>
+            }
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h5><b>Request details</b></h5>
+                <table class="table table-condensed">
+                    <tbody>
+                        <tr><td class="text-muted" style="width:140px;">Client ID</td><td>@(Model.Request.ClientId?.ToString() ?? "—")</td></tr>
+                        <tr><td class="text-muted">Requested by</td><td>@(Model.Request.RequestedByUserId?.ToString() ?? "Self-service")</td></tr>
+                        <tr><td class="text-muted">Assigned to</td><td>@(Model.Request.AssignedToName ?? "Unassigned")</td></tr>
+                        <tr><td class="text-muted">Created</td><td>@Model.Request.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-md-6">
+                <h5><b>@Model.Request.ProductCode details</b></h5>
+                @if (!scalarDetailEntries.Any())
+                {
+                    <p class="text-muted">No additional detail on file for this request.</p>
+                }
+                else
+                {
+                    <table class="table table-condensed">
+                        <tbody>
+                            @foreach (var kvp in scalarDetailEntries)
+                            {
+                                <tr><td class="text-muted" style="width:160px;">@Prettify(kvp.Key)</td><td>@RenderValue(kvp.Value)</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                @if (hasFamilyMembers)
+                {
+                    var members = Model.TypeDetail[familyMembersKey!];
+                    <h5><b>Family members</b></h5>
+                    @if (members.GetArrayLength() == 0)
+                    {
+                        <p class="text-muted">None on file.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-condensed table-bordered">
+                            <thead><tr><th>Relationship</th><th>Full name</th><th>Date of birth</th></tr></thead>
+                            <tbody>
+                                @foreach (var member in members.EnumerateArray())
+                                {
+                                    <tr>
+                                        <td>@FamilyMemberField(member, "relationship")</td>
+                                        <td>@FamilyMemberField(member, "fullName")</td>
+                                        <td>@FamilyMemberDob(member)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+<div class="panel panel-inverse" id="offers_panel">
+    <div class="panel-heading">
+        @if ((Model.UnderwriterOptions.Count > 0 && canAddOffer) || hasActiveOffers)
+        {
+            <div class="panel-heading-btn">
+                @if (Model.UnderwriterOptions.Count > 0 && canAddOffer)
+                {
+                    <a href="#" class="btn btn-xs btn-icon btn-circle btn-success" data-toggle="modal" data-target="#addOfferModal" title="Add offer(s)"><i class="fa fa-plus"></i></a>
+                }
+                @if (hasActiveOffers && Model.UnderwriterOptions.Count > 0)
+                {
+                    <button type="button" class="btn btn-xs btn-icon btn-circle btn-warning" id="editSelectedOffersBtn" disabled title="Edit selected offer(s)"><i class="fa fa-pencil-alt"></i></button>
+                }
+            </div>
+        }
+        <h4 class="panel-title">Offers</h4>
+    </div>
+    <div class="panel-body">
+        @if (Model.Offers.Count == 0)
+        {
+            <p class="text-muted">No offers uploaded yet.</p>
+        }
+        else
+        {
+            <table class="table table-striped table-hover table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        @if (hasActiveOffers && Model.UnderwriterOptions.Count > 0)
+                        {
+                            <th style="width:30px;"><input type="checkbox" id="offerSelectAllCheckbox" title="Select all editable offers" /></th>
+                        }
+                        <th>Underwriter</th><th>Premium</th><th>Status</th><th>Document</th><th>Uploaded</th><th style="width:150px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var offer in Model.Offers)
+                    {
+                        var offerBadge = offer.Status switch
+                        {
+                            "SELECTED" => "label-success",
+                            "REJECTED" => "label-danger",
+                            "EXPIRED" => "label-danger",
+                            _ => "label-info"
+                        };
+                        <tr>
+                            @if (hasActiveOffers && Model.UnderwriterOptions.Count > 0)
+                            {
+                                <td>
+                                    @if (offer.Status == "ACTIVE")
+                                    {
+                                        <input type="checkbox" class="offer-edit-checkbox"
+                                               value="@offer.QuoteOfferId"
+                                               data-underwriter-id="@offer.UnderwriterId"
+                                               data-underwriter-name="@offer.UnderwriterName"
+                                               data-premium="@offer.PremiumAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                                    }
+                                </td>
+                            }
+                            <td>@offer.UnderwriterName</td>
+                            <td>@offer.PremiumAmount.ToString("N2")</td>
+                            <td><span class="label @offerBadge">@offer.Status</span></td>
+                            <td>
+                                @if (offer.DocumentUrl is not null)
+                                {
+                        <button type="button" class="btn btn-info btn-xs"
+                                data-doc-preview="@offer.DocumentUrl"
+                                data-doc-ext="@(System.IO.Path.GetExtension(offer.DocumentPath ?? "")?.TrimStart('.').ToLower())"><i class="fa fa-eye"></i> View</button>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>@offer.UploadedOn.ToString("dd MMM yyyy, HH:mm")</td>
+                            <td>
+                                @if (offer.Status == "ACTIVE")
+                                {
+                                    <div style="display:flex;gap:6px;">
+                                        @* premiumAmount formatted invariant on purpose - travels as a plain
+                                           query-string value, and asp-route-* otherwise formats numbers with
+                                           the SERVER's current culture, which would fail to bind back to the
+                                           decimal parameter on EditOffer's GET action. *@
+                                        <a asp-action="EditOffer"
+                                           asp-route-quoteOfferId="@offer.QuoteOfferId"
+                                           asp-route-quoteRequestId="@offer.QuoteRequestId"
+                                           asp-route-underwriterId="@offer.UnderwriterId"
+                                           asp-route-premiumAmount="@offer.PremiumAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           class="btn btn-default btn-xs"><i class="fa fa-pencil-alt"></i> Edit</a>
+                                        <form asp-action="DeleteOffer" method="post" data-confirm="Delete this offer? This can't be undone." style="margin:0;">
+                                            <input type="hidden" name="quoteOfferId" value="@offer.QuoteOfferId" />
+                                            <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />
+                                            <button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i> Delete</button>
+                                        </form>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (!canAddOffer)
+        {
+            <div class="alert alert-warning" style="margin-bottom:0;">
+                @(Model.Request.Status == "PENDING"
+                    ? "Assign this request to someone first - offers can only be added once it's IN_PROGRESS."
+                    : $"This request is {Model.Request.Status} - offers can no longer be added.")
+            </div>
+        }
+        else if (Model.UnderwriterOptions.Count == 0)
+        {
+            <div class="alert alert-warning" style="margin-bottom:0;">No active underwriters found - add one under Underwriters first.</div>
+        }
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+@if (Model.UnderwriterOptions.Count > 0 && canAddOffer)
+{
+    <!-- Add-offer(s) modal - real Bootstrap modal (data-toggle="modal" above
+         opens it). Rows are built dynamically from #offerRowTemplate (see
+         PageScripts below) - "add multiple offers, submit once" per the
+         feature request, instead of one modal round-trip per offer. Form
+         still submits/redirects the normal full-page way - a fresh Details
+         load after a successful add shows the new rows in the Offers grid
+         above and leaves the modal closed. -->
+    <div class="modal fade" id="addOfferModal" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times-circle"></i></button>
+                    <h4 class="modal-title">Add offer(s)</h4>
+                </div>
+                <div class="modal-body">
+                    <form asp-action="AddOffersBatch" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="QuoteRequestId" value="@Model.Request.QuoteRequestId" />
+                        <p class="text-muted" style="margin-top:-6px;">Add one or several priced options - they're all saved together, and the client gets a single "compare and decide" email once you submit.</p>
+                        <div id="offerRowsContainer"></div>
+                        <button type="button" class="btn btn-default btn-sm" id="addOfferRowBtn"><i class="fa fa-plus"></i> Add another offer</button>
+                        <div class="modal-footer" style="padding:15px 0 0;">
+                            <a href="#" class="btn btn-white btn-sm" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Cancel</a>
+                            <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-save"></i>&nbsp;Add offer(s)</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row template for the Add-offer(s) modal - cloned by JS, with every
+         occurrence of __INDEX__ replaced by the row's position (0, 1, 2...)
+         so the posted field names line up with what the default MVC model
+         binder expects for a List&lt;T&gt; (Offers[0].UnderwriterId,
+         Offers[1].UnderwriterId, ...). Never rendered directly - a
+         &lt;template&gt; element's contents aren't part of the live DOM
+         until JS clones them. -->
+    <template id="offerRowTemplate">
+        <div class="offer-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
+            <div class="form-group" style="flex:2;min-width:180px;margin-bottom:0;">
+                <label class="form-control-label">Underwriter</label>
+                <select name="Offers[__INDEX__].UnderwriterId" class="form-control select2-offer-row" style="width:100%;">
+                    @foreach (var u in Model.UnderwriterOptions)
+                    {
+                        <option value="@u.UnderwriterId">@u.Name (@u.Code)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:110px;margin-bottom:0;">
+                <label class="form-control-label">Premium</label>
+                <input type="number" step="0.01" min="0.01" name="Offers[__INDEX__].PremiumAmount" class="form-control" required />
+            </div>
+            <div class="form-group" style="flex:2;min-width:160px;margin-bottom:0;">
+                <label class="form-control-label">Document (optional)</label>
+                <input type="file" name="Offers[__INDEX__].Document" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+            </div>
+            <button type="button" class="btn btn-danger btn-xs remove-offer-row" title="Remove this offer"><i class="fa fa-trash"></i></button>
+        </div>
+    </template>
+}
+
+@if (hasActiveOffers && Model.UnderwriterOptions.Count > 0)
+{
+    <!-- Edit-selected-offers modal - the batch equivalent of the single
+         EditOffer page, for correcting several ACTIVE offers in one
+         submission ("even on edit" per the feature request). Rows are built
+         by JS from whichever offer-edit-checkboxes are ticked in the Offers
+         grid above, right before this modal opens - see PageScripts below. -->
+    <div class="modal fade" id="editOffersModal" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times-circle"></i></button>
+                    <h4 class="modal-title">Edit selected offer(s)</h4>
+                </div>
+                <div class="modal-body">
+                    <form asp-action="EditOffersBatch" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="QuoteRequestId" value="@Model.Request.QuoteRequestId" />
+                        <p class="text-muted" style="margin-top:-6px;">Leave "Replace document" blank on a row to keep its existing file.</p>
+                        <div id="editOfferRowsContainer"></div>
+                        <div class="modal-footer" style="padding:15px 0 0;">
+                            <a href="#" class="btn btn-white btn-sm" data-dismiss="modal"><i class="fa fa-times"></i>&nbsp;Cancel</a>
+                            <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-save"></i>&nbsp;Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row template for the Edit-selected modal - same __INDEX__ convention
+         as offerRowTemplate above, plus __OFFER_ID__/__UNDERWRITER_NAME__/
+         __PREMIUM__ filled in from the checked checkbox's own data-*
+         attributes (set from Model.Offers when the grid above was
+         rendered). The underwriter <select>'s current value is set by JS
+         after cloning - a plain string substitution can't mark the right
+         <option> as selected. -->
+    <template id="editOfferRowTemplate">
+        <div class="offer-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;">
+            <input type="hidden" name="Offers[__INDEX__].QuoteOfferId" value="__OFFER_ID__" />
+            <div class="form-group" style="flex:2;min-width:180px;margin-bottom:0;">
+                <label class="form-control-label">Underwriter <span class="text-muted">(was __UNDERWRITER_NAME__)</span></label>
+                <select name="Offers[__INDEX__].UnderwriterId" class="form-control select2-offer-row" style="width:100%;">
+                    @foreach (var u in Model.UnderwriterOptions)
+                    {
+                        <option value="@u.UnderwriterId">@u.Name (@u.Code)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:110px;margin-bottom:0;">
+                <label class="form-control-label">Premium</label>
+                <input type="number" step="0.01" min="0.01" name="Offers[__INDEX__].PremiumAmount" class="form-control" value="__PREMIUM__" required />
+            </div>
+            <div class="form-group" style="flex:2;min-width:160px;margin-bottom:0;">
+                <label class="form-control-label">Replace document (optional)</label>
+                <input type="file" name="Offers[__INDEX__].Document" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+            </div>
+        </div>
+    </template>
+}
+
+<!-- Document preview modal - one shared instance for every offer row's
+     "View" button (see site.js's data-doc-preview handler, which fills
+     doc-preview-body with an <iframe>/<img>/download-link depending on
+     file type, then opens this via jQuery's .modal('show')). Always
+     rendered (not gated behind canAddOffer) since viewing an existing
+     document doesn't depend on whether new ones can still be added. -->
+<div class="modal fade" id="docPreviewModal" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times-circle"></i></button>
+                <h4 class="modal-title" id="doc-preview-title">Document</h4>
+            </div>
+            <div class="modal-body" id="doc-preview-body"></div>
+        </div>
+    </div>
+</div>
+
+@section PageScripts {
+    <script src="~/assets/static/plugins/select2/dist/js/select2.min.js"></script>
+    <script src="~/assets/static/plugins/bootstrap-sweetalert2/sweetalert2.all.min.js"></script>
+    <script>
+        $(function () {
+            // Select2 dropdowns need dropdownParent set to whichever modal
+            // they live inside (a known Bootstrap-modal+Select2 z-index/focus
+            // quirk - without this the dropdown panel can render behind the
+            // modal backdrop or not receive clicks) - the page-level staff
+            // picker isn't inside a modal, so it's initialized separately
+            // with no dropdownParent at all. Note: addOfferModal/
+            // editOffersModal no longer have any static ".select2" elements
+            // at page load (their rows are built dynamically - see below),
+            // so those two modals' own Select2 init happens per-row instead.
+            $('.panel-body > form .select2').select2();
+        });
+
+        // Add-offer(s) modal - builds one row per click of "Add another
+        // offer" from #offerRowTemplate, string-replacing __INDEX__ with
+        // the row's position so posted field names stay contiguous
+        // (Offers[0]..., Offers[1]..., no gaps) - the default MVC model
+        // binder needs that to bind a List<T> correctly. Re-indexes on every
+        // add/remove for the same reason.
+        (function () {
+            var container = document.getElementById('offerRowsContainer');
+            var template = document.getElementById('offerRowTemplate');
+            var addBtn = document.getElementById('addOfferRowBtn');
+            if (!container || !template || !addBtn) { return; }
+
+            function reindexRows() {
+                var rows = container.querySelectorAll('.offer-row');
+                rows.forEach(function (row, i) {
+                    row.querySelectorAll('[name]').forEach(function (el) {
+                        el.name = el.name.replace(/Offers\[\d+\]/, 'Offers[' + i + ']');
+                    });
+                    var removeBtn = row.querySelector('.remove-offer-row');
+                    if (removeBtn) { removeBtn.style.display = rows.length > 1 ? '' : 'none'; }
+                });
+            }
+
+            function addRow() {
+                var index = container.querySelectorAll('.offer-row').length;
+                var html = template.innerHTML.split('__INDEX__').join(String(index));
+                var wrapper = document.createElement('div');
+                wrapper.innerHTML = html.trim();
+                var row = wrapper.firstElementChild;
+                container.appendChild(row);
+
+                if (window.jQuery) {
+                    jQuery(row).find('.select2-offer-row').select2({ dropdownParent: jQuery('#addOfferModal') });
+                }
+
+                var removeBtn = row.querySelector('.remove-offer-row');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function () {
+                        if (container.querySelectorAll('.offer-row').length <= 1) { return; }
+                        row.remove();
+                        reindexRows();
+                    });
+                }
+
+                reindexRows();
+            }
+
+            addBtn.addEventListener('click', addRow);
+
+            // Rebuild down to exactly one blank row every time the modal is
+            // opened - reusing whatever was left behind from a previous
+            // open (or a redirect back here after a failed submit) would
+            // carry stale Select2 instances and out-of-sync indices.
+            if (window.jQuery) {
+                jQuery('#addOfferModal').on('show.bs.modal', function () {
+                    container.innerHTML = '';
+                    addRow();
+                });
+            } else {
+                addRow();
+            }
+        })();
+
+        // Edit-selected-offers modal - "Edit selected" only enables once at
+        // least one .offer-edit-checkbox is ticked; clicking it snapshots
+        // the checked rows' own data-* attributes (underwriter id/name,
+        // premium) into #editOfferRowTemplate clones, pre-filled, right
+        // before the modal opens. No "add another row" here - the row set
+        // is exactly whatever was selected in the grid, not open-ended.
+        (function () {
+            var editBtn = document.getElementById('editSelectedOffersBtn');
+            var rowsContainer = document.getElementById('editOfferRowsContainer');
+            var template = document.getElementById('editOfferRowTemplate');
+            var selectAll = document.getElementById('offerSelectAllCheckbox');
+            if (!editBtn || !rowsContainer || !template) { return; }
+
+            function checkboxes() {
+                return Array.prototype.slice.call(document.querySelectorAll('.offer-edit-checkbox'));
+            }
+
+            function updateEditBtnState() {
+                editBtn.disabled = !checkboxes().some(function (cb) { return cb.checked; });
+            }
+
+            checkboxes().forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    if (!cb.checked && selectAll) { selectAll.checked = false; }
+                    updateEditBtnState();
+                });
+            });
+            updateEditBtnState();
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    checkboxes().forEach(function (cb) { cb.checked = selectAll.checked; });
+                    updateEditBtnState();
+                });
+            }
+
+            function buildRows() {
+                rowsContainer.innerHTML = '';
+                var selected = checkboxes().filter(function (cb) { return cb.checked; });
+
+                selected.forEach(function (cb, i) {
+                    var html = template.innerHTML
+                        .split('__INDEX__').join(String(i))
+                        .split('__OFFER_ID__').join(cb.value)
+                        .split('__UNDERWRITER_NAME__').join(cb.getAttribute('data-underwriter-name') || '')
+                        .split('__PREMIUM__').join(cb.getAttribute('data-premium') || '');
+
+                    var wrapper = document.createElement('div');
+                    wrapper.innerHTML = html.trim();
+                    var row = wrapper.firstElementChild;
+
+                    var select = row.querySelector('select');
+                    if (select) { select.value = cb.getAttribute('data-underwriter-id') || ''; }
+
+                    rowsContainer.appendChild(row);
+
+                    if (window.jQuery) {
+                        jQuery(row).find('.select2-offer-row').select2({ dropdownParent: jQuery('#editOffersModal') });
+                    }
+                });
+            }
+
+            editBtn.addEventListener('click', function () {
+                if (checkboxes().filter(function (cb) { return cb.checked; }).length === 0) { return; }
+                buildRows();
+                if (window.jQuery) { jQuery('#editOffersModal').modal('show'); }
+            });
+        })();
+    </script>
+}

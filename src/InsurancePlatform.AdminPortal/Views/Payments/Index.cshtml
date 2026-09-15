@@ -1,0 +1,34 @@
+@model PaymentLookupViewModel
+@{
+    ViewData["Title"] = "Payments";
+}
+
+<!-- begin page-header -->
+<h1 class="page-header"><i class="fas fa-money-bill-wave"></i> Payments <small>Payments are always viewed per purchase - enter a Purchase ID to see its payment attempts, or open a purchase from the Purchases list and follow its "View payments" link.</small></h1>
+<!-- end page-header -->
+
+<div class="panel panel-inverse" style="max-width:420px;">
+    <div class="panel-heading">
+        <h4 class="panel-title">Look up a purchase</h4>
+    </div>
+    <div class="panel-body">
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <form asp-action="Index" method="post">
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="PurchaseId"></label>
+                <input class="form-control" asp-for="PurchaseId" type="number" placeholder="e.g. 123" autofocus />
+                <span asp-validation-for="PurchaseId" class="field-error"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success"><i class="fa fa-search"></i> Look up</button>
+        </form>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->

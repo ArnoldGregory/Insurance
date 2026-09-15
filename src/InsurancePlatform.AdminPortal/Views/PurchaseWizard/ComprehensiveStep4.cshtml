@@ -1,0 +1,65 @@
+@model WizardStep4ViewModel
+@{
+    ViewData["WizardStep"] = 4;
+    ViewData["WizardTitle"] = "Comprehensive - Complete";
+    ViewData["WizardSubtitle"] = $"Policy {Model.Purchase.PolicyNumber ?? "pending"} for {Model.ClientName}";
+    var payBadge = Model.Purchase.PaymentStatus == "PAID" ? "wz-badge--success" : "wz-badge--warning";
+}
+@await Html.PartialAsync("_WizardHeader")
+
+<div class="wz-success">
+    <div class="wz-success-icon"><i class="fa fa-check"></i></div>
+    <h2 class="wz-success-title">Purchase Complete</h2>
+    <p class="wz-success-sub">Payment confirmed and the policy is on file.</p>
+</div>
+
+<div class="wz-card">
+    <div class="wz-card-header">
+        <div class="wz-card-icon wz-card-icon--green"><i class="fa fa-file-invoice"></i></div>
+        <div>
+            <h4 class="wz-card-title">Purchase #@Model.Purchase.PurchaseId</h4>
+            <p class="wz-card-desc">Here's a summary of everything that was saved.</p>
+        </div>
+    </div>
+    <div class="wz-card-body">
+        <div class="wz-detail-grid">
+            <div class="wz-detail">
+                <span class="wz-detail-label">Client</span>
+                <span class="wz-detail-value">@Model.ClientName</span>
+            </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Underwriter</span>
+                <span class="wz-detail-value">@Model.Purchase.UnderwriterName</span>
+            </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Premium</span>
+                <span class="wz-detail-value wz-detail-value--gold">KES @Model.Purchase.PremiumAmount.ToString("N2")</span>
+            </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Period</span>
+                <span class="wz-detail-value">@Model.Purchase.PeriodName</span>
+            </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Cover Dates</span>
+                <span class="wz-detail-value">@Model.Purchase.StartDate.ToString("dd MMM yyyy") — @Model.Purchase.EndDate.ToString("dd MMM yyyy")</span>
+            </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Policy Number</span>
+                <span class="wz-detail-value">@(Model.Purchase.PolicyNumber ?? "—")</span>
+            </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Payment Status</span>
+                <span class="wz-detail-value"><span class="wz-badge @payBadge">@Model.Purchase.PaymentStatus</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="wz-actions" style="justify-content:center;gap:12px;margin-top:24px;">
+    <a asp-controller="Purchases" asp-action="Details" asp-route-id="@Model.Purchase.PurchaseId" class="wz-btn wz-btn--ghost"><i class="fa fa-eye"></i> View Full Purchase</a>
+    <a asp-action="Comprehensive" asp-route-reset="true" class="wz-btn wz-btn--ghost"><i class="fa fa-plus"></i> Start Another Quote</a>
+    <form asp-action="ComprehensiveFinish" method="post" style="margin:0;">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="wz-btn wz-btn--gold"><i class="fa fa-check"></i> Finish</button>
+    </form>
+</div>

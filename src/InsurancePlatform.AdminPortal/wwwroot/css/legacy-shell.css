@@ -1,0 +1,254 @@
+/* ================================================================
+   Legacy shell - reverted per request back to the custom topbar+sidebar
+   design that existed before the Bootstrap "Color Admin" theme conversion
+   (screenshot: full-width black topbar with stacked "Amura / INSURANCE
+   AGENCY" wordmark, green sidebar starting below it, rounded profile
+   avatar, "MENU" label, gold active pill).
+   ----------------------------------------------------------------
+   Content screens (Quote Requests, Clients, Purchases, Payments, Menus,
+   Purchase Wizard) explicitly stay on the Bootstrap/DataTables/SweetAlert2/
+   Select2 conversion - only the SHELL (topbar/sidebar/nav chrome around
+   @RenderBody()) reverts. That's why this is its OWN file, loaded LAST
+   (after bootstrap.min.css, the vendored theme CSS, and amura-theme.css)
+   rather than re-linking the old site.css wholesale - site.css also
+   defines generic `.btn`/`.form-control`/`.alert`/`.card` etc. that would
+   have collided with and corrupted Bootstrap's OWN same-named classes on
+   every content page. This file only contains classes that are unique to
+   the shell markup in _Layout.cshtml/Menu/Default.cshtml, ported as-is
+   from that project history, plus a small "reset" block up top for the
+   handful of class names (.sidebar/.content/.main) the vendored theme
+   ALSO defines generically and would otherwise leak into this reverted
+   markup even though the two systems don't share DOM structure.
+   ================================================================ */
+:root {
+  --shell-gold:        #d4af37;
+  --shell-gold-hover:  #b28f22;
+  --shell-gold-dim:    rgba(212,175,55,.14);
+  --shell-gold-ring:   rgba(212,175,55,.30);
+  --shell-green:       #115636;
+  --shell-chrome-bg:   #121212;
+  --shell-sidebar-w:   220px;
+  --shell-border:      #dde5e0;
+}
+
+/* ── Reset: neutralize the vendored theme's own generic .sidebar/.content/
+   .main rules before reasserting the old ones below - same class names,
+   different DOM structure, so this just avoids inheriting stray
+   position/padding assumptions (e.g. the theme's `.sidebar{position:
+   absolute;padding-top:54px;z-index:1010}`) that would otherwise still
+   apply since they're plain class selectors. ── */
+.shell, .sidebar, .main, .content { all: revert; box-sizing: border-box; }
+
+/* ── Portal shell ────────────────────────────────────────── */
+/* margin-top:54px reserves space for the topbar, which is position:fixed
+   below (taken clean out of normal flow so it truly stays put on scroll,
+   not just "sticky" which can be foiled by an ancestor's stacking
+   context) - without this the shell's content would start at y:0 and sit
+   underneath the fixed bar. */
+.shell { display: flex; min-height: calc(100vh - 54px); margin-top: 54px; }
+
+.sidebar {
+  width: var(--shell-sidebar-w);
+  background: var(--shell-green);
+  border-right: 1px solid rgba(255,255,255,.08);
+  display: flex; flex-direction: column;
+  position: fixed; top: 54px; bottom: 0; left: 0;
+  z-index: 100;
+  margin: 0; padding: 0;
+}
+
+.sidebar-profile {
+  text-align: center;
+  padding: 18px 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.sidebar-profile-avatar {
+  width: 56px; height: 56px; margin: 0 auto 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: #fff;
+}
+.sidebar-profile-name { font-size: 14px; font-weight: 600; color: #fff; }
+.sidebar-profile-role { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; letter-spacing: .3px; }
+
+.sidebar-nav   { flex: 1; padding: 14px 14px; overflow-y: auto; }
+.sidebar-label {
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.55);
+  text-transform: uppercase; letter-spacing: .8px;
+  padding: 8px 6px 10px;
+}
+
+/* Left margin/inset for every nav row - previously 12px (plus the
+   sidebar-nav's own 8px) read as flush against the edge; bumped both up
+   so top-level items line up clearly inside the sidebar instead of
+   hugging its border. */
+.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  color: rgba(255,255,255,.75); text-decoration: none !important;
+  font-size: 14px; border-radius: 6px;
+  transition: background .12s, color .12s;
+  margin-bottom: 2px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-link:hover  { background: rgba(255,255,255,.1); color: #fff; }
+.nav-link.active { background: rgba(255,255,255,.15); color: #ffffff; font-weight: 600; }
+.nav-link i, .nav-link svg { width: 16px; flex-shrink: 0; text-align: center; }
+
+.nav-group-toggle { justify-content: space-between; }
+.nav-group-toggle .nav-link-label { display: flex; align-items: center; gap: 10px; flex: 1; }
+.nav-group-toggle .nav-chevron {
+  width: 12px; height: 12px; flex-shrink: 0;
+  transition: transform .15s;
+}
+/* Closed = pointing right, open = pointing down - makes it obvious a
+   group is collapsible and shows its current state at a glance. */
+.nav-group.open .nav-chevron { transform: rotate(90deg); }
+
+/* Sub-menu - collapsed to 0 height by default (site.js's nav-group-toggle
+   click handler adds/removes ".open" on the parent .nav-group, which is
+   the only thing that opens this). Given a left margin + border so the
+   whole block reads as visually nested under its parent, not just a
+   continuation of the same list - and each child link's own padding-left
+   pushes its label further right than any top-level item's label. */
+.nav-submenu {
+  list-style: none;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .18s ease;
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(255,255,255,.12);
+}
+.nav-group.open .nav-submenu { max-height: 480px; }
+.nav-submenu .nav-link { padding: 8px 12px; font-size: 13px; }
+
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+
+.logout-btn {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.45); padding: 4px;
+  border-radius: 4px; display: flex; transition: color .12s;
+}
+.logout-btn:hover { color: #ff6b6b; }
+
+/* ── Main content ────────────────────────────────────────── */
+.main { flex: 1; margin-left: var(--shell-sidebar-w); display: flex; flex-direction: column; margin-top: 0; padding: 0; }
+
+.topbar {
+  height: 54px; border-bottom: 1px solid rgba(255,255,255,.08);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  background: var(--shell-chrome-bg);
+  position: fixed; top: 0; left: 0; right: 0;
+  width: 100%;
+  z-index: 200;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; flex-shrink: 0;
+  padding-right: 16px; margin-right: 2px;
+  border-right: 1px solid rgba(255,255,255,.12);
+  height: 34px;
+}
+.topbar-brand-icon { width: 28px; height: auto; flex-shrink: 0; display: block; }
+.topbar-brand-text    { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.2; }
+.topbar-brand-subtext { font-size: 9px; color: rgba(255,255,255,.5); letter-spacing: .4px; }
+
+.topbar-user  { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-username {
+  font-size: 13px; font-weight: 500; color: #fff;
+  max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.role-pill {
+  font-size: 11px; font-weight: 700; color: #fff;
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px; padding: 3px 10px; letter-spacing: .3px;
+  white-space: nowrap;
+}
+
+/* Notification bell - old custom toggle version (site.js's notif-bell
+   handler was reverted to match - targets #notif-bell-btn/#notif-dropdown
+   again instead of a real Bootstrap dropdown). */
+.notif-bell-wrap { position: relative; }
+.notif-bell-btn {
+  background: none; border: none; cursor: pointer; position: relative;
+  color: rgba(255,255,255,.75); padding: 6px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .12s, background .12s;
+}
+.notif-bell-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+.notif-badge {
+  position: absolute; top: 0; right: 0; min-width: 16px; height: 16px;
+  padding: 0 4px; border-radius: 8px; background: #f05133;
+  color: #fff; font-size: 10px; font-weight: 700; line-height: 16px;
+  text-align: center; border: 1.5px solid var(--shell-chrome-bg);
+}
+.notif-dropdown {
+  display: none; position: absolute; top: calc(100% + 10px); right: 0;
+  width: 300px; background: #fff; border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.22); border: 1px solid var(--shell-border);
+  overflow: hidden; z-index: 60;
+}
+.notif-dropdown.show { display: block; }
+.notif-dropdown-header {
+  padding: 12px 16px; font-size: 13px; font-weight: 700; color: #111827;
+  border-bottom: 1px solid var(--shell-border); background: #f8f8f8;
+}
+.notif-dropdown-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; text-decoration: none; border-bottom: 1px solid var(--shell-border);
+  color: #111827; font-size: 13px; transition: background .12s;
+}
+.notif-dropdown-item:last-child { border-bottom: none; }
+.notif-dropdown-item:hover { background: #f8f8f8; }
+.notif-dropdown-item-count {
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  background: var(--shell-gold-dim); color: var(--shell-gold-hover); font-weight: 700;
+  font-size: 12px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.notif-dropdown-empty { padding: 18px 16px; font-size: 13px; color: #9ca3af; text-align: center; }
+
+.content { padding: 28px; flex: 1; max-width: none; width: 100%; }
+.content-full { max-width: none; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+.sidebar-toggle-btn {
+  display: none; background: none; border: none; cursor: pointer;
+  color: #fff; padding: 6px; border-radius: 6px; flex-shrink: 0;
+}
+.sidebar-toggle-btn:hover { background: rgba(255,255,255,.12); }
+.sidebar-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,23,42,.45); z-index: 150;
+}
+.sidebar-backdrop.show { display: block; }
+
+@media (max-width: 768px) {
+  .sidebar-toggle-btn { display: flex; }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .2s ease;
+    z-index: 200;
+    box-shadow: 4px 0 24px rgba(0,0,0,.2);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .content { padding: 20px 16px; }
+  .topbar { padding: 0 16px; gap: 10px; }
+  .topbar-username, .role-pill { display: none; }
+  .topbar-brand { padding-right: 10px; }
+  .topbar-brand-text, .topbar-brand-subtext { display: none; }
+}

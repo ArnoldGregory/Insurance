@@ -1,0 +1,419 @@
+/* ================================================================
+   Amura brand override, layered on top of the vendored "Color Admin"
+   Bootstrap 3 theme (wwwroot/assets/static/... - copied straight out of
+   BIMA_D_LINE - Copy, see _Layout.cshtml's own comment on why).
+   ----------------------------------------------------------------
+   The theme's own CSS (style.min.css) is a single minified file with no
+   CSS custom properties to swap - colors are hardcoded throughout. Rather
+   than hand-edit that vendored file (which would make re-vendoring/
+   updating it later painful), every brand color lives here instead, as a
+   small stylesheet loaded AFTER the theme so its rules win on equal
+   specificity. Sticks to the same 3 tones established earlier this
+   project: gold (#D4AF37 primary), green (#115636 - now the SIDEBAR, per
+   the logo's own leaf color), near-black (#121212 - the TOPBAR, matching
+   the logo's dark backdrop).
+   ================================================================ */
+:root {
+  --amura-gold:      #d4af37;
+  --amura-gold-2:    #c5a028;
+  --amura-green:     #115636;
+  --amura-green-2:   #0d3f28;
+  --amura-chrome:    #121212;
+  /* Aliases so the auth-page/form/alert/otp rules ported below (originally
+     from the old site.css) don't need every var() reference rewritten. */
+  --gold:       var(--amura-gold);
+  --gold-ring:  rgba(212,175,55,.30);
+  --red:        #f05133;
+  --red-dim:    rgba(240,81,51,.10);
+  --text-1:     #111827;
+  --text-2:     #4b5563;
+  --text-3:     #9ca3af;
+  --green:      var(--amura-green);
+  --border:     #dde5e0;
+  --radius-sm:  5px;
+  --chrome-bg:  var(--amura-chrome);
+}
+
+/* ── Topbar (#header) - near-black, matches the logo's own backdrop ──
+   Left plain/minimal on purpose - the theme's own .navbar-brand/.navbar-nav
+   CSS (fixed height:54px, line-height:30px) already vertically centers a
+   normal single-line brand + nav correctly by itself. An earlier attempt to
+   force a taller 2-line "Amura / INSURANCE AGENCY" brand into this bar
+   fought that built-in centering with height/flex overrides and made
+   things look worse, not better - reverted back to just colors here. */
+#header.navbar-default {
+  background: var(--amura-chrome);
+  border-color: rgba(255,255,255,.08);
+}
+#header .navbar-brand { color: #fff; }
+#header .navbar-toggle .icon-bar { background: #fff; }
+#header .navbar-nav > li > a { color: rgba(255,255,255,.8); }
+#header .navbar-nav > li > a:hover,
+#header .navbar-nav > li > a:focus { color: #fff; background: rgba(255,255,255,.08); }
+.navbar-user-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+  font-size: 11px; font-weight: 700; color: #fff; margin-right: 6px;
+}
+.navbar-user .badge { background: var(--amura-gold); color: #1a1400; margin-left: 4px; }
+
+/* Notification bell (topbar) */
+.navbar-notif > a { position: relative; }
+.notif-badge {
+  position: absolute; top: 6px; right: 2px; min-width: 15px; height: 15px;
+  padding: 0 4px; border-radius: 8px; background: #f05133; color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 15px; text-align: center;
+}
+.notif-dropdown-menu { width: 300px; padding: 0; }
+.notif-dropdown-menu .dropdown-header { font-weight: 700; padding: 10px 15px; border-bottom: 1px solid #eee; }
+.notif-dropdown-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 15px; border-bottom: 1px solid #f2f2f2; color: #333; font-size: 13px;
+}
+.notif-dropdown-item:hover { background: #f8f8f8; text-decoration: none; }
+.notif-dropdown-item-count {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(212,175,55,.16); color: var(--amura-gold-2); font-weight: 700;
+  font-size: 11px; display: inline-flex; align-items: center; justify-content: center;
+}
+.notif-dropdown-empty { padding: 16px 15px; font-size: 13px; color: #999; text-align: center; }
+
+/* Logout - a <form> styled to look like every other dropdown-menu link */
+.logout-form { margin: 0; }
+.logout-form button {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  padding: 3px 20px; font-size: 13px; color: #333; cursor: pointer;
+}
+.logout-form button:hover { background: #f5f5f5; color: #262626; }
+
+/* ── Sidebar - the logo's leaf green, uniformly top to bottom ──
+   The theme's own compiled CSS puts a DIFFERENT background specifically on
+   the profile block (li.nav-profile) and the scrollbar wrapper div than on
+   #sidebar itself - overriding #sidebar's background alone left the top
+   "Welcome/avatar/name" section a leftover theme-default blue while only
+   the nav links below turned green. Forcing every one of those inner
+   containers to transparent lets the single green on #sidebar show through
+   everywhere instead of patching each one with its own green fill. */
+#sidebar.sidebar, .sidebar-bg { background: var(--amura-green) !important; }
+#sidebar [data-scrollbar],
+#sidebar .nav,
+#sidebar .nav-profile { background: transparent !important; }
+/* Top-level nav links - the theme's own default is `padding:6px 2px`
+   (barely any left inset at all), which is why every item sat flush
+   against the sidebar's left edge instead of lining up under "Navigation"
+   (that label uses the theme's own `padding:10px 20px`). 20px left/right
+   now matches that label exactly. Sub-menu items already get their own
+   30px (.sub-menu itself) + 20px (each <a>) = 50px indent from the
+   theme's stock CSS - untouched here - so children now read as clearly
+   nested under their parent instead of flush with every other row. */
+#sidebar .nav > li > a { color: rgba(255,255,255,.85); padding: 9px 20px; }
+#sidebar .nav > li > a:hover, #sidebar .nav > li.active > a { background: rgba(255,255,255,.12); color: #fff; }
+#sidebar .nav > li.has-sub.expand > a, #sidebar .nav > li.has-sub.active > a { background: rgba(255,255,255,.1); }
+#sidebar .sub-menu { background: rgba(0,0,0,.12) !important; }
+#sidebar .sub-menu > li > a { color: rgba(255,255,255,.7); }
+#sidebar .sub-menu > li > a:hover, #sidebar .sub-menu > li.active > a { color: #fff; }
+#sidebar .nav-header { color: rgba(255,255,255,.55); }
+#sidebar .nav-profile .info { color: #fff; }
+
+/* Compact profile block - the theme's own default padding/avatar size
+   made "Welcome" + avatar + name + role take up a lot of vertical space
+   before the nav links even start. */
+#sidebar .nav-profile { padding: 3px 0 !important; }
+#sidebar .nav-profile .info { font-size: 12px; line-height: 1.3; }
+#sidebar .nav-profile .left-profile-details { font-size: 11px; opacity: .75; margin-bottom: 0; }
+/* The theme's own .image rule floats the avatar left in some of its
+   variants - overriding float/display here centers it under "Welcome"
+   instead of it sitting flush against the left edge. */
+#sidebar .nav-profile .left-profile-image { margin: 2px 0; text-align: center; }
+#sidebar .nav-profile .left-profile-image .image { float: none !important; display: inline-block; margin: 0 auto; }
+.sidebar-profile-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.25);
+  font-size: 15px; font-weight: 700; color: #fff;
+}
+
+/* Sidebar group-toggle chevron - closed = pointing up ("vertical"),
+   open = pointing down, instead of the theme's default static
+   fa-chevron-down that never visually changed no matter the state. */
+#sidebar .has-sub > a .fa-chevron-down { transition: transform .15s ease; transform: rotate(180deg); }
+#sidebar .has-sub.expand > a .fa-chevron-down,
+#sidebar .has-sub.active > a .fa-chevron-down { transform: rotate(0deg); }
+
+/* ── Buttons/links - gold as the brand accent, success/danger/info keep
+   their normal Bootstrap semantics (this theme uses btn-success heavily
+   as its default "primary action" color; leaving that alone avoids
+   re-deriving semantic meaning across every vendored plugin's own CSS). */
+.btn-gold, a.btn-gold { background: var(--amura-gold); border-color: var(--amura-gold-2); color: #fff; }
+.btn-gold:hover, .btn-gold:focus { background: var(--amura-gold-2); border-color: var(--amura-gold-2); color: #fff; }
+.panel-inverse > .panel-heading { background: var(--amura-chrome); color: #fff; }
+.panel-inverse > .panel-heading .panel-title { color: #fff; }
+
+/* ── Page-freeze loader overlay - unrelated to the theme swap, carried
+   over as-is from the old site.css (still toggled by showPageLoader()/
+   hidePageLoader() in site.js). ── */
+.page-loader-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(18,18,18,.55); align-items: center; justify-content: center;
+}
+.page-loader-overlay.show { display: flex; }
+.page-loader-content { text-align: center; }
+.page-loader-spinner {
+  width: 40px; height: 40px; margin: 0 auto 12px;
+  border: 3px solid rgba(255,255,255,.25); border-top-color: var(--amura-gold);
+  border-radius: 50%; animation: page-loader-spin .8s linear infinite;
+}
+@keyframes page-loader-spin { to { transform: rotate(360deg); } }
+.page-loader-text { color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .2px; }
+
+/* ── Auth pages (Login/VerifyOtp) - simple centered card, Bootstrap-based
+   now instead of the old custom .auth-card system. ── */
+.auth-page {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; background: var(--amura-chrome); padding: 24px;
+}
+.auth-brand { margin-bottom: 24px; }
+.auth-brand img { height: 64px; }
+.auth-card {
+  background: #fff; border-radius: 8px; padding: 32px; width: 100%;
+  max-width: 380px; box-shadow: 0 12px 32px rgba(0,0,0,.35);
+}
+.auth-card h3 { margin-bottom: 6px; font-weight: 700; }
+.auth-card .btn-block { margin-top: 8px; }
+
+/* ── Login's own full-bleed split-screen layout (photo left / form right +
+   copyright bar) - only Login.cshtml uses this (see _Layout.cshtml's
+   "SplitAuth" branch); VerifyOtp/AccessDenied keep the plain centered
+   .auth-page/.auth-card treatment above, untouched. ── */
+.auth-split {
+  min-height: 100vh; display: flex;
+}
+.auth-split-photo {
+  flex: 1 1 50%; position: relative; overflow: hidden;
+  display: flex; align-items: flex-start;
+}
+.auth-split-photo > img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.auth-split-photo-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(18,18,18,.55) 0%, rgba(18,18,18,.05) 30%, rgba(18,18,18,.05) 70%, rgba(18,18,18,.55) 100%);
+}
+.auth-split-brand {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px;
+  margin: 24px; padding: 8px 18px 8px 8px; border-radius: 999px;
+  background: rgba(18,18,18,.55); box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.auth-split-brand img {
+  display: block; width: 36px; height: 36px; object-fit: contain;
+  flex: 0 0 36px;
+}
+.auth-split-brand-text { color: #fff; font-size: 17px; font-weight: 700; line-height: 1.15; }
+.auth-split-brand-subtext { color: rgba(255,255,255,.8); font-size: 10px; letter-spacing: .06em; font-weight: 600; line-height: 1.15; }
+
+.auth-split-form {
+  flex: 1 1 50%; display: flex; flex-direction: column; background: #fff;
+  min-width: 0;
+}
+.auth-split-form-inner {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  max-width: 400px; width: 100%; margin: 0 auto; padding: 48px 24px;
+}
+.auth-split-footer {
+  padding: 16px 24px; text-align: center; font-size: 12px; color: var(--text-3);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .auth-split-photo { display: none; }
+  .auth-split-form-inner { padding: 32px 20px; }
+}
+
+/* Bootstrap 3's real label class is `.control-label` - `.form-control-label`
+   isn't a real Bootstrap class at all. Every converted form (Clients,
+   Menus, Payments, PurchaseWizard, QuoteRequests) was built using that
+   name though, so rather than rename ~47 occurrences across 9 files back
+   to `.control-label`, it's simplest to just make `.form-control-label`
+   itself a real, unscoped rule here (this used to only be scoped to
+   `.auth-card`, which left it unstyled everywhere else - see the
+   Bootstrap-conversion verification pass that caught this). */
+.form-control-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+
+/* ── Login/VerifyOtp/AccessDenied - ported as-is from the old site.css so
+   those 3 views keep working unchanged (they weren't in scope for the
+   panel/DataTable rebuild - only the content/list screens were). ── */
+.auth-title    { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+.auth-subtitle { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+.auth-footer { margin-top: 20px; text-align: center; font-size: 13px; color: #6b7280; }
+.auth-footer a { color: var(--gold); }
+
+.field       { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+.field input[type=text],
+.field input[type=email],
+.field input[type=password],
+.field textarea {
+  width: 100%; background: #f9fafb; border: 1px solid #d1d5db;
+  border-radius: var(--radius-sm); padding: 9px 12px; color: #111827;
+  font-size: 14px; outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.field input:focus, .field textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-ring); }
+.field input::placeholder, .field textarea::placeholder { color: var(--text-3); }
+.field-error { font-size: 12px; color: var(--red); margin-top: 4px; }
+
+.text-danger, span[data-valmsg-for], .field-validation-error { font-size: 12px; color: var(--red); display: block; margin-top: 4px; }
+.validation-summary-errors, div[data-valmsg-summary] {
+  background: var(--red-dim); border: 1px solid rgba(240,81,51,.3);
+  border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 20px;
+  font-size: 13px; color: var(--red);
+}
+.validation-summary-errors ul, div[data-valmsg-summary] ul { padding-left: 16px; margin: 4px 0 0; }
+.validation-summary-valid { display: none; }
+
+.alert { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 14px; line-height: 1.5; }
+.alert svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; }
+.alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.alert-warning { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+.alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+.otp-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 8px; }
+.otp-box {
+  width: 50px; height: 56px; border: 1.5px solid #d1d5db; border-radius: 10px;
+  text-align: center; font-size: 22px; font-weight: 700; color: #111827;
+  background: #f9fafb; outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.otp-box:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-ring); background: #fff; }
+.otp-error { font-size: 12px; color: var(--red); margin-bottom: 16px; min-height: 18px; }
+@media (max-width: 480px) {
+  .otp-boxes { gap: 6px; }
+  .otp-box { width: 40px; height: 48px; font-size: 18px; }
+}
+
+/* AccessDenied / Error status pages */
+.status-page { text-align: center; padding: 8px 0 4px; }
+.status-icon { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 20px; }
+.status-icon.success { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+.status-icon.warning { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+.status-icon.error   { background: #fef2f2; color: var(--red); border: 1px solid #fca5a5; }
+.status-icon.info    { background: #f0fdf4; color: var(--green); border: 1px solid #6ee7b7; }
+.status-title { font-size: 20px; font-weight: 700; color: var(--text-1); margin-bottom: 8px; }
+.status-desc  { font-size: 14px; color: var(--text-2); margin-bottom: 24px; line-height: 1.6; max-width: 340px; margin-left: auto; margin-right: auto; }
+.btn-outline  { background: transparent; color: var(--gold); border-color: var(--gold); }
+.btn-outline:hover { background: rgba(212,175,55,.14); color: var(--gold-2); }
+
+/* Quote Requests summary cards - per-product pending/in-progress/total,
+   each doubling as the product filter (see Views/QuoteRequests/Index.cshtml). */
+.qr-summary-row { margin-bottom: 16px; }
+.qr-summary-card {
+  display: block; background: #fff; border: 1px solid #e4e7ea; border-radius: 4px;
+  padding: 12px 14px; margin-bottom: 15px; text-decoration: none; color: inherit;
+  transition: border-color .12s, box-shadow .12s;
+}
+.qr-summary-card:hover { text-decoration: none; border-color: var(--amura-gold); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.qr-summary-card.active { border-color: var(--amura-gold); box-shadow: 0 0 0 2px rgba(212,175,55,.25); }
+.qr-summary-product { font-weight: 700; font-size: 13px; margin-bottom: 6px; color: #333; }
+.qr-summary-stats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #777; }
+.qr-summary-stats b { color: #222; }
+
+/* ================================================================
+   Dashboard (Views/Home/Index.cshtml) - role-aware stat cards + Chart.js
+   canvases. dash-stat-card is the small icon+number+label tile (Purchases/
+   Payments/Clients/Commissions counts); dash-panel is the section wrapper
+   around a stat-card row plus its chart, replacing a plain .panel only
+   where a section needs its own heading + margin-bottom rhythm.
+   ================================================================ */
+.dash-section-title {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  color: #8a8a8a; margin: 0 0 10px;
+}
+.dash-stat-row { margin-bottom: 24px; }
+.dash-stat-card {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border: 1px solid #e4e7ea; border-left: 3px solid var(--amura-gold);
+  border-radius: 4px; padding: 14px 16px; margin-bottom: 15px;
+}
+.dash-stat-card.is-green  { border-left-color: var(--amura-green); }
+.dash-stat-card.is-red    { border-left-color: #d9534f; }
+.dash-stat-card.is-blue   { border-left-color: #337ab7; }
+.dash-stat-icon {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(212,175,55,.12); color: var(--amura-gold-2); font-size: 16px;
+}
+.dash-stat-card.is-green .dash-stat-icon { background: rgba(17,86,54,.1); color: var(--amura-green); }
+.dash-stat-card.is-red   .dash-stat-icon { background: rgba(217,83,79,.1); color: #d9534f; }
+.dash-stat-card.is-blue  .dash-stat-icon { background: rgba(51,122,183,.1); color: #337ab7; }
+.dash-stat-value { font-size: 20px; font-weight: 700; color: #262626; line-height: 1.1; }
+.dash-stat-label { font-size: 12px; color: #8a8a8a; margin-top: 2px; }
+
+/* The agent's own commission balance - one prominent gold callout, not
+   just another dash-stat-card, since it's the single most important
+   number on that role's dashboard. */
+.dash-balance-card {
+  background: linear-gradient(135deg, var(--amura-green) 0%, #0c3823 100%);
+  border-radius: 6px; padding: 24px 28px; color: #fff; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+}
+.dash-balance-label { font-size: 13px; color: rgba(255,255,255,.7); text-transform: uppercase; letter-spacing: .5px; }
+.dash-balance-value { font-size: 32px; font-weight: 700; color: var(--amura-gold); margin-top: 4px; }
+
+.dash-chart-panel .panel-body { padding: 18px; }
+.dash-chart-panel canvas { max-height: 220px; }
+
+/* ================================================================
+   Purchase Wizard (Views/PurchaseWizard/Step1.cshtml) - selectable
+   quote-option "cards". Bootstrap 3 (this theme's base) has no native
+   card-select widget, so each option is a real .panel; this block just
+   paints the hover/selected states on top of it. The actual click-to-
+   select behavior is plain JS living in Step1.cshtml itself (a <label>
+   wrapping a hidden radio per .quote-card), unchanged by this rule.
+   ================================================================ */
+.quote-card {
+  display: block; cursor: pointer; position: relative; margin-bottom: 15px;
+  transition: border-color .12s, box-shadow .12s;
+}
+.quote-card .panel-body { position: relative; padding-right: 34px; }
+.quote-card:hover { border-color: var(--amura-gold); }
+.quote-card.selected { border-color: var(--amura-gold); box-shadow: 0 0 0 2px rgba(212,175,55,.25); }
+.quote-card-radio { position: absolute; opacity: 0; pointer-events: none; }
+.quote-card-check {
+  position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #ccc; background: #fff;
+}
+.quote-card.selected .quote-card-check { border-color: var(--amura-gold); background: var(--amura-gold); }
+.quote-card.selected .quote-card-check::after {
+  content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+
+/* ================================================================
+   Status badges (.label-success/-warning/-danger/-info) - used all
+   over the portal for row status (Quote Requests, Purchases, Payments,
+   Clients, the wizard header...). assets/static/2/css/style.min.css
+   defines these as COMPOUND selectors - ".badge.badge-success,
+   .label.label-success{background:transparent;color:#F5F5F5}" (and the
+   same "background:transparent" pattern for -danger/-info/-default) -
+   specificity (0,2,0). Every view in this app renders
+   class="label label-success" (both classes on one element), so that
+   compound selector actually matches and its (0,2,0) specificity beats
+   a plain single-class ".label-success" rule (0,1,0) NO MATTER WHICH
+   CSS file loads later - specificity always outranks source order.
+   (First attempt at this fix used single-class selectors and still
+   lost to style.min.css for exactly this reason.) Matching the same
+   ".label.label-XXX" two-class shape here ties the specificity, and
+   THEN this file's later position in _Layout.cshtml's <link> order
+   decides the winner - which is what actually restores a real,
+   readable, non-invisible pill for every status color.
+   ================================================================ */
+.label.label-success, .label.label-warning, .label.label-danger, .label.label-info, .label.label-default,
+.label-success, .label-warning, .label-danger, .label-info, .label-default {
+  display: inline-block; padding: .3em .6em; font-size: 85%; font-weight: 700;
+  line-height: 1; border-radius: 10px; color: #fff;
+}
+.label.label-success, .label-success { background: var(--amura-green); color: #fff; }
+.label.label-warning, .label-warning { background: #b8860b; color: #fff; }
+.label.label-danger,  .label-danger  { background: #c0392b; color: #fff; }
+.label.label-info,    .label-info    { background: #2f6fa3; color: #fff; }
+.label.label-default, .label-default { background: #6c757d; color: #fff; }

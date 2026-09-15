@@ -1,0 +1,10 @@
+#!/bin/bash
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT name FROM mysql.proc WHERE db='insurance_platform' AND name LIKE '%%Purchase%%';"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT name FROM mysql.proc WHERE db='insurance_platform' AND name LIKE '%%Audit%%';"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "DESCRIBE Vehicles;"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT vehicle_id, client_id, make, model, registration_no FROM Vehicles LIMIT 3;"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT quote_request_id, ref_no, product_id, client_id, status, created_on FROM QuoteRequests LIMIT 3;"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT quote_offer_id, quote_request_id, underwriter_id, premium_amount, status FROM QuoteOffers LIMIT 3;"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT audit_id, actor_type, actor_id, action, entity, entity_id, old_value, new_value, created_on FROM AuditLog WHERE entity='Purchases' ORDER BY created_on DESC LIMIT 5;"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT audit_id, actor_type, actor_id, action, entity, entity_id, created_on FROM AuditLog WHERE entity='Payments' ORDER BY created_on DESC LIMIT 5;"
+mysql -u esbuser -p'@M@kurun!m3z@' insurance_platform -e "SELECT audit_id, actor_type, actor_id, action, entity, entity_id, created_on FROM AuditLog WHERE entity='QuoteRequests' ORDER BY created_on DESC LIMIT 5;"

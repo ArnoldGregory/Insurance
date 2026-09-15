@@ -1,0 +1,74 @@
+@model ClientEditViewModel
+@{
+    ViewData["Title"] = "Edit client";
+}
+
+<!-- begin page-header -->
+<h1 class="page-header"><i class="fas fa-user-edit"></i> Edit client <small>ID Number <b>@Model.IdNo</b> (not editable here).</small></h1>
+<!-- end page-header -->
+
+<div class="panel panel-inverse" style="max-width:560px;">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a asp-action="Details" asp-route-id="@Model.ClientId" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        <h4 class="panel-title">Client details</h4>
+    </div>
+    <div class="panel-body">
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <form asp-action="Edit" method="post">
+            <input type="hidden" asp-for="ClientId" />
+            <input type="hidden" asp-for="IdNo" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="FullName"></label>
+                <input class="form-control" asp-for="FullName" autofocus />
+                <span asp-validation-for="FullName" class="field-error"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-control-label" asp-for="Dob"></label>
+                        <input class="form-control" asp-for="Dob" type="date" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-control-label" asp-for="Phone"></label>
+                        <input class="form-control" asp-for="Phone" />
+                        <span asp-validation-for="Phone" class="field-error"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="Email"></label>
+                <input class="form-control" asp-for="Email" type="email" />
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="Address"></label>
+                <input class="form-control" asp-for="Address" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-control-label" asp-for="KraPin"></label>
+                <input class="form-control" asp-for="KraPin" />
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:6px;">
+                <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Save changes</button>
+                <a asp-action="Details" asp-route-id="@Model.ClientId" class="btn btn-default">Cancel</a>
+            </div>
+        </form>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->

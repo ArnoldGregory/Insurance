@@ -1,0 +1,402 @@
+@model ComprehensiveSettingsViewModel
+@{
+    ViewData["Title"] = "Comprehensive Settings";
+    ViewData["FullWidth"] = true;
+}
+@{
+    var activeTab = Context.Request.Query["tab"].FirstOrDefault() ?? "bands";
+    var uwJson = System.Text.Json.JsonSerializer.Serialize(Model.Underwriters);
+}
+
+<style>
+    .cs-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;}
+    .cs-overlay.open{display:flex;}
+    .cs-dialog{background:#fff;border-radius:10px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;}
+    .cs-dialog-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb;background:#fafbfc;border-radius:10px 10px 0 0;}
+    .cs-dialog-hdr h5{margin:0;font-size:16px;font-weight:700;}
+    .cs-dialog-close{background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:0 4px;line-height:1;}
+    .cs-dialog-close:hover{color:#111;}
+    .cs-dialog-body{padding:20px;}
+    .cs-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;}
+    .cs-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .cs-form-full{grid-column:1/-1;}
+    .cs-field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;}
+    .cs-field input,.cs-field select,.cs-field textarea{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;}
+    .cs-field input:focus,.cs-field select:focus,.cs-field textarea:focus{border-color:#b8960f;outline:none;box-shadow:0 0 0 2px rgba(184,150,15,.15);}
+    .cs-required{color:#dc2626;}
+    .cs-btn{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .cs-btn-primary{background:#b8960f;color:#fff;border-color:#b8960f;}
+    .cs-btn-primary:hover{background:#9a7d0d;}
+    .cs-btn-cancel{background:#fff;color:#374151;border-color:#d1d5db;}
+    .cs-btn-cancel:hover{background:#f3f4f6;}
+</style>
+
+<h1 class="page-header">
+    <i class="fas fa-sliders-h"></i> Comprehensive Settings
+    <small>Pricing configuration for comprehensive motor policies</small>
+</h1>
+
+@if (!string.IsNullOrEmpty(TempData["StatusMessage"] as string))
+{
+    var isError = TempData["StatusIsError"] is true;
+    <div class="wz-alert @(isError ? "wz-alert--error" : "wz-alert--success")">
+        <i class="fas @(isError ? "fa-exclamation-circle" : "fa-check-circle")"></i>
+        @TempData["StatusMessage"]
+    </div>
+}
+
+<div class="wz-card">
+    <div class="wz-card-header">
+        <div class="wz-card-icon"><i class="fas fa-sliders-h"></i></div>
+        <div style="flex:1;">
+            <div class="wz-card-title">Comprehensive Pricing</div>
+            <div class="wz-card-desc">Manage rate bands, benefits, and liability limits</div>
+        </div>
+        <div>
+            <label class="wz-label" for="underwriterFilter" style="margin-bottom:0;">Underwriter</label>
+            <select id="underwriterFilter" class="wz-select" style="width:220px;" onchange="onUnderwriterFilter()">
+                <option value="">All underwriters</option>
+                @foreach (var uw in Model.Underwriters)
+                {
+                    <option value="@uw.UnderwriterId" selected="@(Model.FilterUnderwriterId == uw.UnderwriterId)">@uw.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="wz-card-body" style="padding:0;">
+        <div style="display:flex;border-bottom:1px solid var(--border);padding:0 20px;">
+            <a href="?tab=bands@(Model.FilterUnderwriterId.HasValue ? "&underwriterId="+Model.FilterUnderwriterId : "")" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="bands" ? "var(--gold)" : "var(--text-2)");border-bottom:2px solid @(activeTab=="bands" ? "var(--gold)" : "transparent");">Rate Bands</a>
+            <a href="?tab=benefits@(Model.FilterUnderwriterId.HasValue ? "&underwriterId="+Model.FilterUnderwriterId : "")" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="benefits" ? "var(--gold)" : "var(--text-2)");border-bottom:2px solid @(activeTab=="benefits" ? "var(--gold)" : "transparent");">Benefits</a>
+            <a href="?tab=limits@(Model.FilterUnderwriterId.HasValue ? "&underwriterId="+Model.FilterUnderwriterId : "")" style="padding:12px 20px;font-weight:600;font-size:14px;text-decoration:none;color:@(activeTab=="limits" ? "var(--gold)" : "var(--text-2)");border-bottom:2px solid @(activeTab=="limits" ? "var(--gold)" : "transparent");">Limits of Liability</a>
+        </div>
+
+        <div style="padding:20px;">
+            @if (activeTab == "bands")
+            {
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <span class="wz-t_muted">@(Model.RateBands.Count) record(s)</span>
+                    <button type="button" class="wz-btn wz-btn--gold wz-btn--sm" onclick="openBandModal(null)"><i class="fas fa-plus"></i> Add Rate Band</button>
+                </div>
+                if (Model.RateBands.Any())
+                {
+                    <div class="table-wrap">
+                        <table class="wz-table">
+                            <thead>
+                                <tr><th>Underwriter</th><th>Min Value</th><th>Max Value</th><th>Rate %</th><th>Min Premium</th><th>Status</th><th style="width:130px;"></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var b in Model.RateBands.OrderBy(b => b.UnderwriterName).ThenBy(b => b.ValueMin))
+                                {
+                                    <tr>
+                                        <td><strong>@b.UnderwriterName</strong></td>
+                                        <td>@b.ValueMin.ToString("N0")</td>
+                                        <td>@b.ValueMax.ToString("N0")</td>
+                                        <td>@b.RatePercent.ToString("N2")%</td>
+                                        <td>@b.MinPremium.ToString("N0")</td>
+                                        <td>@if (b.IsActive) { <span class="wz-badge wz-badge--success">Active</span> } else { <span class="wz-badge wz-badge--warning">Off</span> }</td>
+                                        <td>
+                                            <button type="button" class="btn btn-xs btn-default" onclick='openBandModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { b.BandId, b.UnderwriterId, b.ValueMin, b.ValueMax, b.RatePercent, b.MinPremium })))'><i class="fa fa-pencil-alt"></i> Edit</button>
+                                            <form asp-action="DeleteRateBand" method="post" style="display:inline;" onsubmit="return confirm('Delete?')">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="bandId" value="@b.BandId" />
+                                                <input type="hidden" name="underwriterId" value="@Model.FilterUnderwriterId" />
+                                                <button type="submit" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div style="text-align:center;padding:40px;color:var(--text-3);"><i class="fas fa-layer-group" style="font-size:32px;margin-bottom:10px;display:block;"></i>No rate bands found. Click "Add Rate Band" to start.</div>
+                }
+            }
+            else if (activeTab == "benefits")
+            {
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <span class="wz-t_muted">@(Model.Benefits.Count) record(s)</span>
+                    <button type="button" class="wz-btn wz-btn--gold wz-btn--sm" onclick="openBenefitModal(null)"><i class="fas fa-plus"></i> Add Benefit</button>
+                </div>
+                if (Model.Benefits.Any())
+                {
+                    <div class="table-wrap">
+                        <table class="wz-table">
+                            <thead>
+                                <tr><th>Underwriter</th><th>Code</th><th>Name</th><th>Price</th><th>In Base</th><th>Order</th><th style="width:130px;"></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var b in Model.Benefits.OrderBy(b => b.UnderwriterName).ThenBy(b => b.DisplayOrder))
+                                {
+                                    <tr>
+                                        <td><strong>@b.UnderwriterName</strong></td>
+                                        <td><code>@b.BenefitCode</code></td>
+                                        <td>@b.BenefitName</td>
+                                        <td>@b.DefaultPrice.ToString("N0")</td>
+                                        <td>@if (b.IsIncludedInBase) { <span class="wz-badge wz-badge--success">Yes</span> } else { <span class="wz-badge wz-badge--warning">No</span> }</td>
+                                        <td>@b.DisplayOrder</td>
+                                        <td>
+                                            <button type="button" class="btn btn-xs btn-default" onclick='openBenefitModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { b.BenefitId, b.UnderwriterId, b.BenefitCode, b.BenefitName, b.DefaultPrice, b.IsIncludedInBase, b.Description, b.DisplayOrder })))'><i class="fa fa-pencil-alt"></i> Edit</button>
+                                            <form asp-action="DeleteBenefit" method="post" style="display:inline;" onsubmit="return confirm('Delete?')">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="benefitId" value="@b.BenefitId" />
+                                                <input type="hidden" name="underwriterId" value="@Model.FilterUnderwriterId" />
+                                                <button type="submit" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div style="text-align:center;padding:40px;color:var(--text-3);"><i class="fas fa-gift" style="font-size:32px;margin-bottom:10px;display:block;"></i>No benefits found. Click "Add Benefit" to start.</div>
+                }
+            }
+            else
+            {
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <span class="wz-t_muted">@(Model.LiabilityLimits.Count) record(s)</span>
+                    <button type="button" class="wz-btn wz-btn--gold wz-btn--sm" onclick="openLimitModal(null)"><i class="fas fa-plus"></i> Add Limit</button>
+                </div>
+                if (Model.LiabilityLimits.Any())
+                {
+                    <div class="table-wrap">
+                        <table class="wz-table">
+                            <thead>
+                                <tr><th>Underwriter</th><th>Name</th><th>Value</th><th>Order</th><th style="width:130px;"></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var l in Model.LiabilityLimits.OrderBy(l => l.UnderwriterName).ThenBy(l => l.DisplayOrder))
+                                {
+                                    <tr>
+                                        <td><strong>@l.UnderwriterName</strong></td>
+                                        <td>@l.LimitName</td>
+                                        <td>@l.LimitValue</td>
+                                        <td>@l.DisplayOrder</td>
+                                        <td>
+                                            <button type="button" class="btn btn-xs btn-default" onclick='openLimitModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { l.LiabilityLimitId, l.UnderwriterId, l.LimitName, l.LimitValue, l.DisplayOrder })))'><i class="fa fa-pencil-alt"></i> Edit</button>
+                                            <form asp-action="DeleteLiabilityLimit" method="post" style="display:inline;" onsubmit="return confirm('Delete?')">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="limitId" value="@l.LiabilityLimitId" />
+                                                <input type="hidden" name="underwriterId" value="@Model.FilterUnderwriterId" />
+                                                <button type="submit" class="btn btn-xs btn-danger"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div style="text-align:center;padding:40px;color:var(--text-3);"><i class="fas fa-shield-alt" style="font-size:32px;margin-bottom:10px;display:block;"></i>No liability limits found. Click "Add Limit" to start.</div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<div class="cs-overlay" id="bandOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="cs-dialog">
+        <div class="cs-dialog-hdr">
+            <h5><i class="fas fa-layer-group" style="color:var(--gold);margin-right:8px;"></i><span id="bandModalTitle">Add Rate Band</span></h5>
+            <button class="cs-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="UpsertRateBand" method="post">
+            @Html.AntiForgeryToken()
+            <div class="cs-dialog-body">
+                <input type="hidden" name="BandId" id="bandBandId" value="" />
+                <div class="cs-form">
+                    <div class="cs-field">
+                        <label>Underwriter <span class="cs-required">*</span></label>
+                        <select name="UnderwriterId" id="bandUnderwriterId" required></select>
+                    </div>
+                    <div class="cs-field">
+                        <label>Rate % <span class="cs-required">*</span></label>
+                        <input type="number" name="RatePercent" id="bandRatePercent" step="0.01" required />
+                    </div>
+                    <div class="cs-field">
+                        <label>Min Value (KES) <span class="cs-required">*</span></label>
+                        <input type="number" name="ValueMin" id="bandValueMin" step="1" required />
+                    </div>
+                    <div class="cs-field">
+                        <label>Max Value (KES) <span class="cs-required">*</span></label>
+                        <input type="number" name="ValueMax" id="bandValueMax" step="1" required />
+                    </div>
+                    <div class="cs-field">
+                        <label>Min Premium (KES) <span class="cs-required">*</span></label>
+                        <input type="number" name="MinPremium" id="bandMinPremium" step="1" required />
+                    </div>
+                    <div class="cs-field">
+                        <label>Display Order</label>
+                        <input type="number" name="DisplayOrder" id="bandDisplayOrder" value="0" />
+                    </div>
+                </div>
+            </div>
+            <div class="cs-dialog-foot">
+                <button type="button" class="cs-btn cs-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="cs-btn cs-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="cs-overlay" id="benefitOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="cs-dialog">
+        <div class="cs-dialog-hdr">
+            <h5><i class="fas fa-gift" style="color:var(--gold);margin-right:8px;"></i><span id="benefitModalTitle">Add Benefit</span></h5>
+            <button class="cs-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="UpsertBenefit" method="post">
+            @Html.AntiForgeryToken()
+            <div class="cs-dialog-body">
+                <input type="hidden" name="BenefitId" id="benefitBenefitId" value="" />
+                <div class="cs-form">
+                    <div class="cs-field">
+                        <label>Underwriter <span class="cs-required">*</span></label>
+                        <select name="UnderwriterId" id="benefitUnderwriterId" required></select>
+                    </div>
+                    <div class="cs-field">
+                        <label>Benefit Code <span class="cs-required">*</span></label>
+                        <input type="text" name="BenefitCode" id="benefitCode" required />
+                    </div>
+                    <div class="cs-field cs-form-full">
+                        <label>Benefit Name <span class="cs-required">*</span></label>
+                        <input type="text" name="BenefitName" id="benefitName" required />
+                    </div>
+                    <div class="cs-field">
+                        <label>Default Price (KES)</label>
+                        <input type="number" name="DefaultPrice" id="benefitDefaultPrice" step="1" value="0" />
+                    </div>
+                    <div class="cs-field">
+                        <label>Display Order</label>
+                        <input type="number" name="DisplayOrder" id="benefitDisplayOrder" value="0" />
+                    </div>
+                    <div class="cs-field">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" name="IsIncludedInBase" id="benefitInBase" value="true" style="width:16px;height:16px;" />
+                            Included in base price
+                        </label>
+                    </div>
+                    <div class="cs-field cs-form-full">
+                        <label>Description</label>
+                        <textarea name="Description" id="benefitDescription" rows="2" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="cs-dialog-foot">
+                <button type="button" class="cs-btn cs-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="cs-btn cs-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="cs-overlay" id="limitOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="cs-dialog">
+        <div class="cs-dialog-hdr">
+            <h5><i class="fas fa-shield-alt" style="color:var(--gold);margin-right:8px;"></i><span id="limitModalTitle">Add Limit</span></h5>
+            <button class="cs-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="UpsertLiabilityLimit" method="post">
+            @Html.AntiForgeryToken()
+            <div class="cs-dialog-body">
+                <input type="hidden" name="LiabilityLimitId" id="limitLiabilityLimitId" value="" />
+                <div class="cs-form">
+                    <div class="cs-field">
+                        <label>Underwriter <span class="cs-required">*</span></label>
+                        <select name="UnderwriterId" id="limitUnderwriterId" required></select>
+                    </div>
+                    <div class="cs-field">
+                        <label>Display Order</label>
+                        <input type="number" name="DisplayOrder" id="limitDisplayOrder" value="0" />
+                    </div>
+                    <div class="cs-field">
+                        <label>Limit Name <span class="cs-required">*</span></label>
+                        <input type="text" name="LimitName" id="limitName" required />
+                    </div>
+                    <div class="cs-field">
+                        <label>Limit Value <span class="cs-required">*</span></label>
+                        <input type="text" name="LimitValue" id="limitValue" required />
+                    </div>
+                </div>
+            </div>
+            <div class="cs-dialog-foot">
+                <button type="button" class="cs-btn cs-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="cs-btn cs-btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    var UW_OPTIONS = @Html.Raw(uwJson);
+
+    function populateSelect(selId) {
+        var sel = document.getElementById(selId);
+        sel.innerHTML = '';
+        UW_OPTIONS.forEach(function (uw) {
+            var opt = document.createElement('option');
+            opt.value = uw.UnderwriterId;
+            opt.textContent = uw.Name;
+            sel.appendChild(opt);
+        });
+    }
+
+    function closeModals() {
+        document.getElementById('bandOverlay').classList.remove('open');
+        document.getElementById('benefitOverlay').classList.remove('open');
+        document.getElementById('limitOverlay').classList.remove('open');
+    }
+
+    function onUnderwriterFilter() {
+        var uwId = document.getElementById('underwriterFilter').value;
+        var url = '@Url.Action("Comprehensive", "Pricing")';
+        if (uwId) url += '?underwriterId=' + uwId;
+        window.location.href = url;
+    }
+
+    function openBandModal(data) {
+        populateSelect('bandUnderwriterId');
+        document.getElementById('bandModalTitle').textContent = data ? 'Edit Rate Band' : 'Add Rate Band';
+        document.getElementById('bandBandId').value = data ? data.BandId : '';
+        if (data) document.getElementById('bandUnderwriterId').value = data.UnderwriterId;
+        document.getElementById('bandValueMin').value = data ? data.ValueMin : '';
+        document.getElementById('bandValueMax').value = data ? data.ValueMax : '';
+        document.getElementById('bandRatePercent').value = data ? data.RatePercent : '';
+        document.getElementById('bandMinPremium').value = data ? data.MinPremium : '';
+        document.getElementById('bandDisplayOrder').value = 0;
+        document.getElementById('bandOverlay').classList.add('open');
+    }
+
+    function openBenefitModal(data) {
+        populateSelect('benefitUnderwriterId');
+        document.getElementById('benefitModalTitle').textContent = data ? 'Edit Benefit' : 'Add Benefit';
+        document.getElementById('benefitBenefitId').value = data ? data.BenefitId : '';
+        if (data) document.getElementById('benefitUnderwriterId').value = data.UnderwriterId;
+        document.getElementById('benefitCode').value = data ? data.BenefitCode : '';
+        document.getElementById('benefitName').value = data ? data.BenefitName : '';
+        document.getElementById('benefitDefaultPrice').value = data ? data.DefaultPrice : 0;
+        document.getElementById('benefitInBase').checked = data ? data.IsIncludedInBase : false;
+        document.getElementById('benefitDescription').value = data ? (data.Description || '') : '';
+        document.getElementById('benefitDisplayOrder').value = data ? (data.DisplayOrder || 0) : 0;
+        document.getElementById('benefitOverlay').classList.add('open');
+    }
+
+    function openLimitModal(data) {
+        populateSelect('limitUnderwriterId');
+        document.getElementById('limitModalTitle').textContent = data ? 'Edit Limit' : 'Add Limit';
+        document.getElementById('limitLiabilityLimitId').value = data ? data.LiabilityLimitId : '';
+        if (data) document.getElementById('limitUnderwriterId').value = data.UnderwriterId;
+        document.getElementById('limitName').value = data ? data.LimitName : '';
+        document.getElementById('limitValue').value = data ? data.LimitValue : '';
+        document.getElementById('limitDisplayOrder').value = data ? (data.DisplayOrder || 0) : 0;
+        document.getElementById('limitOverlay').classList.add('open');
+    }
+</script>

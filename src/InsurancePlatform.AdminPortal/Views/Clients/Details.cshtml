@@ -1,0 +1,47 @@
+@model ClientDetail
+@{
+    ViewData["Title"] = Model.FullName;
+    var canEdit = ViewData["CanEdit"] is true;
+}
+
+<!-- begin page-header -->
+<h1 class="page-header"><i class="fas fa-user"></i> @Model.FullName <small>ID Number @Model.IdNo</small></h1>
+<!-- end page-header -->
+
+<div class="panel panel-inverse" style="max-width:640px;">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a asp-action="Index" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        <h4 class="panel-title">Client details</h4>
+    </div>
+    <div class="panel-body">
+        <table class="table table-condensed">
+            <tbody>
+                <tr><td class="text-muted" style="width:160px;">Full name</td><td>@Model.FullName</td></tr>
+                <tr><td class="text-muted">ID Number</td><td>@Model.IdNo</td></tr>
+                <tr><td class="text-muted">Date of birth</td><td>@(Model.Dob?.ToString("dd MMM yyyy") ?? "—")</td></tr>
+                <tr><td class="text-muted">Phone</td><td>@Model.Phone</td></tr>
+                <tr><td class="text-muted">Email</td><td>@(Model.Email ?? "—")</td></tr>
+                <tr><td class="text-muted">Address</td><td>@(Model.Address ?? "—")</td></tr>
+                <tr><td class="text-muted">KRA PIN</td><td>@(Model.KraPin ?? "—")</td></tr>
+                <tr><td class="text-muted">Registered via</td><td><span class="label label-info">@Model.RegistrationChannel</span></td></tr>
+                <tr><td class="text-muted">Has portal login</td><td>@(Model.UserId is not null ? "Yes" : "No - staff-registered only")</td></tr>
+                <tr><td class="text-muted">Created</td><td>@Model.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td></tr>
+            </tbody>
+        </table>
+
+        <div style="display:flex;gap:10px;margin-top:6px;">
+            @if (canEdit)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.ClientId" class="btn btn-success"><i class="fa fa-pencil-alt"></i> Edit</a>
+                <form asp-action="Delete" asp-route-id="@Model.ClientId" method="post" data-confirm="Delete this client record? This can be reversed by a database admin, but not from this screen." style="margin:0;">
+                    <button type="submit" class="btn btn-danger"><i class="fa fa-trash"></i> Delete</button>
+                </form>
+            }
+            <a asp-action="Index" class="btn btn-default">Back to list</a>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->

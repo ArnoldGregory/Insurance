@@ -1,0 +1,138 @@
+@model PurchaseIndexViewModel
+@{
+    ViewData["Title"] = "Purchases";
+}
+@section PageStyles {
+    <link href="~/assets/static/plugins/select2/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/DataTables/media/css/dataTables.bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/DataTables/extensions/Responsive/css/responsive.bootstrap.min.css" rel="stylesheet" />
+}
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-file-contract"></i> Purchases
+    <small>@(User.IsInRole("AG") ? "Showing purchases you personally executed." : "Showing purchases across every agent.")</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse" id="main_panel">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Index", "Purchases")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+        </div>
+        <h4 class="panel-title">Purchases</h4>
+    </div>
+    <div class="panel-body">
+        <form asp-action="Index" method="get" class="form-inline m-b-15">
+            <div class="form-group m-r-10">
+                <label class="m-r-5">Status</label>
+                <select name="status" class="form-control select2" style="width:170px;">
+                    <option value="">All statuses</option>
+                    @foreach (var s in PurchaseIndexViewModel.StatusOptions)
+                    {
+                        <option value="@s" selected="@(Model.Status == s)">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group m-r-10">
+                <label class="m-r-5">Payment</label>
+                <select name="paymentStatus" class="form-control select2" style="width:170px;">
+                    <option value="">Any payment status</option>
+                    @foreach (var p in PurchaseIndexViewModel.PaymentStatusOptions)
+                    {
+                        <option value="@p" selected="@(Model.PaymentStatus == p)">@p</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success m-r-10"><i class="fa fa-filter"></i> Filter</button>
+            <a asp-action="Index" asp-route-paymentStatus="PENDING" class="btn btn-default">Pending payment only</a>
+        </form>
+
+        <table id="purchasesTable" class="table table-striped table-hover table-bordered table-condensed table-responsive">
+            <thead>
+                <tr role="row">
+                    <th>ID</th>
+                    <th>Client</th>
+                    <th>Product</th>
+                    <th>Underwriter</th>
+                    <th>Premium</th>
+                    <th>Policy No.</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th style="width:70px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Items)
+                {
+                    var statusBadge = p.Status switch
+                    {
+                        "ACTIVE" => "label-success",
+                        "CANCELLED" => "label-danger",
+                        _ => "label-warning"
+                    };
+                    <tr>
+                        <td>#@p.PurchaseId</td>
+                        <td>@p.ClientName</td>
+                        <td>@p.ProductCode</td>
+                        <td>@p.UnderwriterName</td>
+                        <td>@p.PremiumAmount.ToString("N2")</td>
+                        <td>@(p.PolicyNumber ?? "—")</td>
+                        <td><span class="label @(p.PaymentStatus == "PAID" ? "label-success" : "label-warning")">@p.PaymentStatus</span></td>
+                        <td><span class="label @statusBadge">@p.Status</span></td>
+                        <td>@p.CreatedOn.ToString("dd MMM yyyy")</td>
+                        <td><a asp-action="Details" asp-route-id="@p.PurchaseId" class="btn btn-info btn-xs"><i class="fa fa-eye"></i> View</a> <a asp-action="Journey" asp-route-id="@p.PurchaseId" class="btn btn-warning btn-xs"><i class="fa fa-route"></i> Journey</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+@if (Model.TotalPages > 1)
+{
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-muted">Page @Model.PageNumber of @Model.TotalPages &middot; @Model.TotalCount total</span>
+        <div>
+            @if (Model.PageNumber > 1)
+            {
+                <a class="btn btn-default btn-sm" asp-action="Index" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-pageSize="@Model.PageSize"><i class="fa fa-arrow-left"></i> Previous</a>
+            }
+            @if (Model.PageNumber < Model.TotalPages)
+            {
+                <a class="btn btn-default btn-sm" asp-action="Index" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-pageSize="@Model.PageSize">Next <i class="fa fa-arrow-right"></i></a>
+            }
+        </div>
+    </div>
+}
+
+@section PageScripts {
+    <script src="~/assets/static/plugins/select2/dist/js/select2.min.js"></script>
+    <script src="~/assets/static/plugins/DataTables/media/js/jquery.dataTables.js"></script>
+    <script src="~/assets/static/plugins/DataTables/media/js/dataTables.bootstrap.min.js"></script>
+    <script src="~/assets/static/plugins/DataTables/extensions/Responsive/js/dataTables.responsive.min.js"></script>
+    <script>
+        $(function () {
+            // Same treatment as Clients/Index and QuoteRequests/Index: real
+            // status/paymentStatus filtering + pageNumber/pageSize stay
+            // server-side via the form and query string; DataTables only
+            // adds client-side sort/instant-search chrome on top of the one
+            // page of rows already rendered.
+            $('#purchasesTable').DataTable({
+                responsive: true,
+                order: [],
+                pageLength: @Model.PageSize,
+                language: { search: "Search:", emptyTable: "No purchases match these filters." }
+            });
+            $('.select2').select2();
+        });
+    </script>
+}

@@ -1,0 +1,148 @@
+@model QuoteRequestIndexViewModel
+@{
+    ViewData["Title"] = "Quote Requests";
+}
+@section PageStyles {
+    <link href="~/assets/static/plugins/select2/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/DataTables/media/css/dataTables.bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/DataTables/extensions/Responsive/css/responsive.bootstrap.min.css" rel="stylesheet" />
+    <link href="~/assets/static/plugins/bootstrap-sweetalert2/sweetalert2.min.css" rel="stylesheet" />
+}
+<!-- begin page-header -->
+<h1 class="page-header"><i class="fas fa-tasks"></i> Quote Requests <small>Medical, Professional Indemnity, Travel &amp; Domestic - Motor is priced directly and never appears here</small></h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<!-- begin per-product pending/in-progress/total counts - each card doubles as the product filter -->
+<div class="row qr-summary-row">
+    <div class="col-md-3 col-sm-6">
+        <a class="qr-summary-card @(Model.ProductId is null ? "active" : "")" asp-action="Index" asp-route-status="@Model.Status" asp-route-productId="">
+            <div class="qr-summary-product">All products</div>
+            <div class="qr-summary-stats">
+                <span><b>@Model.Summary.Sum(s => s.PendingCount)</b> pending</span>
+                <span><b>@Model.Summary.Sum(s => s.InProgressCount)</b> in progress</span>
+                <span><b>@Model.Summary.Sum(s => s.TotalCount)</b> total</span>
+            </div>
+        </a>
+    </div>
+    @foreach (var s in Model.Summary)
+    {
+        <div class="col-md-3 col-sm-6">
+            <a class="qr-summary-card @(Model.ProductId == s.ProductId ? "active" : "")" asp-action="Index" asp-route-status="@Model.Status" asp-route-productId="@s.ProductId">
+                <div class="qr-summary-product">@s.ProductName</div>
+                <div class="qr-summary-stats">
+                    <span><b>@s.PendingCount</b> pending</span>
+                    <span><b>@s.InProgressCount</b> in progress</span>
+                    <span><b>@s.TotalCount</b> total</span>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+<!-- end summary cards -->
+
+<div class="panel panel-inverse" id="main_panel">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Index", "QuoteRequests")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+        </div>
+        <h4 class="panel-title">Work queue</h4>
+    </div>
+    <div class="panel-body">
+        <form asp-action="Index" method="get" class="form-inline m-b-15">
+            <input type="hidden" name="productId" value="@Model.ProductId" />
+            <input type="hidden" name="mine" value="@Model.Mine" />
+            <div class="form-group m-r-10">
+                <label class="m-r-5">Status</label>
+                <select name="status" id="statusFilter" class="form-control select2" style="width:180px;">
+                    <option value="">All statuses</option>
+                    @foreach (var s in QuoteRequestIndexViewModel.StatusOptions)
+                    {
+                        <option value="@s" selected="@(Model.Status == s)">@s</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter</button>
+            @if (Model.ProductId is not null)
+            {
+                <span class="m-l-10 text-muted">
+                    Showing @(Model.Summary.FirstOrDefault(s => s.ProductId == Model.ProductId)?.ProductName ?? "this product") only -
+                    <a asp-action="Index" asp-route-status="@Model.Status">clear</a>
+                </span>
+            }
+            @if (Model.Mine)
+            {
+                <span class="m-l-10 text-muted">
+                    Showing requests assigned to you only -
+                    <a asp-action="Index" asp-route-status="@Model.Status" asp-route-productId="@Model.ProductId">clear</a>
+                </span>
+            }
+        </form>
+
+        <table id="quoteRequestsTable" class="table table-striped table-hover table-bordered table-condensed table-responsive">
+            <thead>
+                <tr role="row">
+                    <th>Ref No</th>
+                    <th>Product</th>
+                    <th>Status</th>
+                    <th>Channel</th>
+                    <th>Assigned to</th>
+                    <th>Created</th>
+                    <th style="width:70px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var q in Model.Items)
+                {
+                    var badgeClass = q.Status switch
+                    {
+                        "QUOTED" => "label-success",
+                        "EXPIRED" => "label-danger",
+                        "CONVERTED" => "label-success",
+                        "IN_PROGRESS" => "label-info",
+                        _ => "label-warning"
+                    };
+                    <tr>
+                        <td>@(q.RefNo ?? $"#{q.QuoteRequestId}")</td>
+                        <td>@q.ProductCode</td>
+                        <td><span class="label @badgeClass">@q.Status</span></td>
+                        <td>@q.Channel</td>
+                        <td>@(q.AssignedToName ?? "Unassigned")</td>
+                        <td>@q.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td>
+                        <td><a asp-action="Details" asp-route-id="@q.QuoteRequestId" class="btn btn-info btn-xs"><i class="fa fa-eye"></i> View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+@section PageScripts {
+    <script src="~/assets/static/plugins/select2/dist/js/select2.min.js"></script>
+    <script src="~/assets/static/plugins/DataTables/media/js/jquery.dataTables.js"></script>
+    <script src="~/assets/static/plugins/DataTables/media/js/dataTables.bootstrap.min.js"></script>
+    <script src="~/assets/static/plugins/DataTables/extensions/Responsive/js/dataTables.responsive.min.js"></script>
+    <script src="~/assets/static/plugins/bootstrap-sweetalert2/sweetalert2.all.min.js"></script>
+    <script>
+        $(function () {
+            // Real jQuery DataTables, initialized straight over the rows the
+            // server already rendered above (status/product/"mine" filtering
+            // stays server-side via the form - DataTables only adds
+            // client-side search/sort/paging chrome on top of that one
+            // filtered page, same as this theme's own list screens).
+            $('#quoteRequestsTable').DataTable({
+                responsive: true,
+                order: [],
+                pageLength: 20,
+                language: { search: "Search:", emptyTable: "No quote requests match this filter." }
+            });
+            $('.select2').select2();
+        });
+    </script>
+}

@@ -1,0 +1,85 @@
+@model VerifyOtpViewModel
+@{
+    ViewData["Title"] = "Verify OTP";
+}
+<div class="auth-card">
+    <div class="auth-title">OTP Verification</div>
+    <div class="auth-subtitle">
+        We sent a one-time code for ID <strong>@Model.IdNo</strong>. Enter it below to finish signing in.
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <form asp-controller="Account" asp-action="VerifyOtp" method="post" id="otpForm">
+        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+        <input asp-for="IdNo" type="hidden" />
+        <input type="hidden" name="OtpCode" id="hiddenOtp" />
+
+        <div class="field" style="text-align:center;">
+            <label style="text-align:center;">Enter the 6-digit code</label>
+            <div class="otp-boxes" id="otpBoxes">
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="off" autofocus />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="off" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="off" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="off" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="off" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="off" />
+            </div>
+            <div class="otp-error" id="otpClientError"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+    </form>
+
+    <div class="auth-footer">
+        <a asp-controller="Account" asp-action="Login">Start over</a>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var boxes = document.querySelectorAll('.otp-box');
+    var hidden = document.getElementById('hiddenOtp');
+    var clientError = document.getElementById('otpClientError');
+
+    function sync() {
+        hidden.value = Array.from(boxes).map(function (b) { return b.value; }).join('');
+    }
+
+    boxes.forEach(function (box, i) {
+        box.addEventListener('input', function () {
+            box.value = box.value.replace(/\D/g, '').slice(-1);
+            if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+            sync();
+        });
+        box.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
+        });
+        box.addEventListener('paste', function (e) {
+            e.preventDefault();
+            var t = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+            for (var j = 0; j < boxes.length && j < t.length; j++) boxes[j].value = t[j];
+            sync();
+            if (t.length >= boxes.length) boxes[boxes.length - 1].focus();
+        });
+    });
+
+    document.getElementById('otpForm').addEventListener('submit', function (e) {
+        sync();
+        if (hidden.value.length < 6) {
+            e.preventDefault();
+            clientError.textContent = 'Enter all 6 digits.';
+            var firstEmpty = Array.from(boxes).find(function (b) { return !b.value; });
+            if (firstEmpty) firstEmpty.focus();
+        }
+    });
+})();
+</script>
+}

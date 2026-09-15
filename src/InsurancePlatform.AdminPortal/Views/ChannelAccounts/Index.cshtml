@@ -1,0 +1,145 @@
+@model ChannelAccountsViewModel
+@{
+    ViewData["Title"] = "Channel Accounts";
+}
+
+<style>
+    .ca-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;}
+    .ca-overlay.open{display:flex;}
+    .ca-dialog{background:#fff;border-radius:10px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;}
+    .ca-dialog-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb;background:#fafbfc;border-radius:10px 10px 0 0;}
+    .ca-dialog-hdr h5{margin:0;font-size:16px;font-weight:700;}
+    .ca-dialog-close{background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:0 4px;line-height:1;}
+    .ca-dialog-close:hover{color:#111;}
+    .ca-dialog-body{padding:20px;}
+    .ca-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e5e7eb;}
+    .ca-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .ca-form-full{grid-column:1/-1;}
+    .ca-field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;}
+    .ca-field input{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;}
+    .ca-field input:focus{border-color:#b8960f;outline:none;box-shadow:0 0 0 2px rgba(184,150,15,.15);}
+    .ca-required{color:#dc2626;}
+    .ca-btn{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    .ca-btn-primary{background:#b8960f;color:#fff;border-color:#b8960f;}
+    .ca-btn-primary:hover{background:#9a7d0d;}
+    .ca-btn-cancel{background:#fff;color:#374151;border-color:#d1d5db;}
+    .ca-btn-cancel:hover{background:#f3f4f6;}
+</style>
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-plug"></i> Channel Accounts
+    <small>Machine-to-machine API accounts for external systems</small>
+</h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a href="@Url.Action("Index", "ChannelAccounts")" class="btn btn-xs btn-icon btn-circle btn-success"><i class="fa fa-repeat"></i></a>
+            <button type="button" class="btn btn-xs btn-icon btn-circle btn-default" onclick="openCreateModal()"><i class="fa fa-plus"></i></button>
+        </div>
+        <h4 class="panel-title">Channel accounts</h4>
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Channel</th>
+                        <th>Allowed IP Range</th>
+                        <th>Status</th>
+                        <th style="width:210px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var acc in Model.Items.OrderBy(a => a.Channel))
+                    {
+                        <tr>
+                            <td><strong>@acc.Channel</strong></td>
+                            <td>@(acc.AllowedIpRange ?? "—")</td>
+                            <td>
+                                @if (acc.IsActive)
+                                {
+                                    <span class="label label-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="label label-danger">Inactive</span>
+                                }
+                            </td>
+                            <td style="white-space:nowrap;">
+                                <form asp-action="ToggleStatus" method="post" style="display:inline;margin:0;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@acc.ServiceAccountId" />
+                                    <input type="hidden" name="isActive" value="@(!acc.IsActive)" />
+                                    <button type="submit" class="btn btn-default btn-xs">@(acc.IsActive ? "Deactivate" : "Activate")</button>
+                                </form>
+                                <form asp-action="RegenerateKey" method="post" style="display:inline;margin:0;" onsubmit="return confirm('Regenerate this account\'s API key? The old one stops working immediately.')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@acc.ServiceAccountId" />
+                                    <button type="submit" class="btn btn-warning btn-xs"><i class="fa fa-key"></i> Regenerate key</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="4"><p class="text-muted" style="margin:0;">No channel accounts found.</p></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- end panel-body -->
+</div>
+<!-- end panel -->
+
+<div class="ca-overlay" id="createOverlay" onclick="if(event.target===this)closeModals()">
+    <div class="ca-dialog">
+        <div class="ca-dialog-hdr">
+            <h5><i class="fas fa-plug" style="color:var(--gold);margin-right:8px;"></i>Add Channel Account</h5>
+            <button class="ca-dialog-close" onclick="closeModals()">&times;</button>
+        </div>
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="ca-dialog-body">
+                <div class="ca-form">
+                    <div class="ca-field ca-form-full">
+                        <label>Channel <span class="ca-required">*</span></label>
+                        <input type="text" name="Channel" id="caChannel" placeholder="e.g. WEBSITE_GUEST" required />
+                        <small class="text-muted">The string external systems send as their X-Channel header.</small>
+                    </div>
+                    <div class="ca-field ca-form-full">
+                        <label>Allowed IP range</label>
+                        <input type="text" name="AllowedIpRange" id="caIp" placeholder="e.g. 172.16.0.0/16" />
+                        <small class="text-muted">Leave empty to allow any IP.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="ca-dialog-foot">
+                <button type="button" class="ca-btn ca-btn-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="ca-btn ca-btn-primary"><i class="fas fa-save"></i> Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function closeModals() {
+        document.getElementById('createOverlay').classList.remove('open');
+    }
+
+    function openCreateModal() {
+        document.getElementById('caChannel').value = '';
+        document.getElementById('caIp').value = '';
+        document.getElementById('createOverlay').classList.add('open');
+    }
+</script>

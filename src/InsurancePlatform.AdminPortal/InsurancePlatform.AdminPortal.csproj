@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>insuranceplatform-adminportal</UserSecretsId>
+  </PropertyGroup>
+
+  <!--
+    Deliberately NO <ProjectReference> to any InsurancePlatform.* project
+    (Domain/Application/Data/Infrastructure/Api). This portal is a pure
+    HTTP client of InsurancePlatform.Api - same architectural boundary as
+    bima-dline-web (the Next.js site): it never touches MySQL, never sees a
+    connection string, never runs a stored procedure. Everything it needs
+    (menu tree, role code, permissions) comes back as JSON from the API.
+    Duplicating a handful of small DTO shapes here (see Models/) is the
+    accepted cost of keeping that boundary real instead of leaking Data-layer
+    types into a project that has no business touching a database.
+  -->
+
+</Project>
