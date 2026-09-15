@@ -334,7 +334,14 @@ try
     // unmapped route. See CorrelationMiddleware's doc comment.
     app.UseMiddleware<CorrelationMiddleware>();
 
-    app.UseHttpsRedirection();
+    // NO UseHttpsRedirection here, on purpose: TLS is terminated at the
+    // reverse proxy in front of this API (insuranceapi.riziki.app), not by
+    // the app itself, and the Admin Portal talks to this API over plain
+    // HTTP (InsuranceApi:BaseUrl = http://localhost:5044 in dev). If this
+    // middleware were present, the portal's HttpClient would get a 307 to
+    // https://localhost:7125 and fail on the self-signed dev cert - exactly
+    // the symptom where login/menus appear "down" while the API is up. The
+    // proxy is responsible for the https->http handoff and for any redirects.
 
     // Serves whatever's under wwwroot. Underwriter-quote documents no longer
     // live here - they're written to the shared folder configured at

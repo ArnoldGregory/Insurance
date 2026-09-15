@@ -98,7 +98,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// No UseHttpsRedirection, on purpose - the portal sits behind a TLS
+// terminating proxy in production, and in dev it's served over plain
+// http://localhost:5150 (the API it calls is also plain http, see
+// InsuranceApi:BaseUrl). App-layer redirection would 307 every browser
+// request to https://localhost:* and break local testing.
 app.UseStaticFiles();
 
 app.UseRouting();
