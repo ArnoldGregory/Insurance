@@ -155,7 +155,21 @@ public class RegistrationService : IRegistrationService
         };
     }
 
-    private static string GenerateOtpCode() => "111111";
+    // Same reasoning as AuthService.GenerateOtpCode: a real random 6-digit
+    // code in production, the dev-only fixed code from the gitignored
+    // appsettings.Development.json (Notifications:DevOtp) when the
+    // AllowOtpDeliveryFailure bypass is switched on.
+    private string GenerateOtpCode()
+    {
+        if (bool.TryParse(_configuration["Notifications:AllowOtpDeliveryFailure"], out var allowWithoutDelivery)
+            && allowWithoutDelivery
+            && !string.IsNullOrWhiteSpace(_configuration["Notifications:DevOtp"]))
+        {
+            return _configuration["Notifications:DevOtp"]!;
+        }
+
+        return RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+    }
 
     private static string HashOtp(string otpCode)
     {

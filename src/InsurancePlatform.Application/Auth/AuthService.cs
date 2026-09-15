@@ -298,7 +298,31 @@ public class AuthService : IAuthService
     internal static bool IsValidChannel(string? channel) => channel is "PORTAL" or "MOBILE";
 
    
-    private static string GenerateOtpCode() => "111111";
+    /// <summary>
+    /// Produces the OTP actually sent to the user. No secret value is ever
+    /// hardcoded here:
+    ///   * Production (Notifications:AllowOtpDeliveryFailure=false, or no
+    ///     DevOtp key configured) -> a real random 6-digit code, generated
+    ///     via RandomNumberGenerator (cryptographically secure - the code
+    ///     is effective immediately, so a predictable one would be a real
+    ///     login bypass, not a theoretical weakness).
+    ///   * Local dev only (AllowOtpDeliveryFailure=true + a DevOtp value in
+    ///     the gitignored appsettings.Development.json) -> that fixed code,
+    ///     so a developer can log in even though SCAPI email delivery fails
+    ///     on a dev box. DevOtp is never committed to the repo and a
+    ///     production deployment simply doesn't configure it.
+    /// </summary>
+    private string GenerateOtpCode()
+    {
+        if (bool.TryParse(_configuration["Notifications:AllowOtpDeliveryFailure"], out var allowWithoutDelivery)
+            && allowWithoutDelivery
+            && !string.IsNullOrWhiteSpace(_configuration["Notifications:DevOtp"]))
+        {
+            return _configuration["Notifications:DevOtp"]!;
+        }
+
+        return RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+    }
 
     // Deliberately plain SHA-256, not BCrypt, for the OTP hash. BCrypt's
     // slowness is valuable for *password* hashes because it makes offline
