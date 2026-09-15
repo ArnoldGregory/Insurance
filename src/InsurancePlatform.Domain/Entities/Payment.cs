@@ -9,6 +9,7 @@ public class Payment
     public string Method { get; set; } = string.Empty;
     public string? PayerPhone { get; set; }
     public string? TransactionReference { get; set; }
+    public string? GatewayReference { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime InitiatedOn { get; set; }
     public DateTime? CompletedOn { get; set; }

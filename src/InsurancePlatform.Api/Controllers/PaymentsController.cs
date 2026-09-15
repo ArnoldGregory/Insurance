@@ -124,6 +124,24 @@ public class PaymentsController : BaseApiController
                 $"Payment recorded as pending (payment_id={paymentId}), but the STK push could not be sent: {pushResult.Message} The customer can still pay via Paybill using account reference {request.AccountReference}.");
         }
 
+        // Persist the gateway's own CheckoutRequestID against the payment
+        // while we still have it in the push response - Safaricom's Daraja
+        // STK callback is keyed on that reference, so this is what lets the
+        // webhook in MpesaCallbackController find and resolve this payment
+        // later WITHOUT trusting any client-supplied value. Best-effort: a
+        // failure here only loses the auto-resolve link (the customer could
+        // still complete payment); it never affects the push outcome already
+        // returned above.
+        if (!string.IsNullOrWhiteSpace(pushResult.CheckoutRequestId))
+        {
+            var refResult = await _paymentRepository.SetGatewayReferenceAsync(paymentId, pushResult.CheckoutRequestId);
+
+            if (!refResult.IsSuccess)
+            {
+                _logger.LogWarn($"Could not store gateway_reference={pushResult.CheckoutRequestId} for payment_id={paymentId}: {refResult.ResultMessage}");
+            }
+        }
+
         _logger.LogInfo($"STK push sent: payment_id={paymentId}, purchase_id={request.PurchaseId}, merchant_request_id={pushResult.MerchantRequestId}, checkout_request_id={pushResult.CheckoutRequestId}.");
         return Success(
             new { PaymentId = paymentId, PushSent = true, pushResult.MerchantRequestId, pushResult.CheckoutRequestId },

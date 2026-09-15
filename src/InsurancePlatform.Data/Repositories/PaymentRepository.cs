@@ -58,6 +58,71 @@ public class PaymentRepository : IPaymentRepository
         return _executor.ExecuteAsync("usp_Payment_UpdateStatus", parameters);
     }
 
+    public Task<StoredProcResult> SetGatewayReferenceAsync(long paymentId, string gatewayReference)
+    {
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_payment_id", paymentId),
+            new("p_gateway_reference", gatewayReference)
+        };
+
+        return _executor.ExecuteAsync("usp_Payment_SetGatewayReference", parameters);
+    }
+
+    public async Task<StoredProcResult<long?>> ResolveByGatewayReferenceAsync(
+        string gatewayReference, string status, string? mpesaReceipt, string actorType, long? actorId)
+    {
+        var paymentIdParam = new MySqlParameter("o_payment_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
+        var notProcessedParam = new MySqlParameter("o_not_processed", MySqlDbType.Int32) { Direction = ParameterDirection.Output };
+
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_gateway_reference", gatewayReference),
+            new("p_status", status),
+            new("p_transaction_reference", (object?)mpesaReceipt ?? DBNull.Value),
+            new("p_actor_type", actorType),
+            new("p_actor_id", (object?)actorId ?? DBNull.Value),
+            paymentIdParam,
+            notProcessedParam
+        };
+
+        var result = await _executor.ExecuteAsync("usp_Payment_ResolveByGatewayReference", parameters);
+
+        return new StoredProcResult<long?>
+        {
+            ResultCode = result.ResultCode,
+            ResultMessage = result.ResultMessage,
+            Data = paymentIdParam.Value is null or DBNull ? null : Convert.ToInt64(paymentIdParam.Value)
+        };
+    }
+
+    public async Task<StoredProcResult<long?>> ResolveByTransactionReferenceAsync(
+        string transactionReference, string status, string? mpesaReceipt, string actorType, long? actorId)
+    {
+        var paymentIdParam = new MySqlParameter("o_payment_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
+        var notProcessedParam = new MySqlParameter("o_not_processed", MySqlDbType.Int32) { Direction = ParameterDirection.Output };
+
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_transaction_reference", transactionReference),
+            new("p_status", status),
+            new("p_mpesa_receipt", (object?)mpesaReceipt ?? DBNull.Value),
+            new("p_actor_type", actorType),
+            new("p_actor_id", (object?)actorId ?? DBNull.Value),
+            paymentIdParam,
+            notProcessedParam
+        };
+
+        var result = await _executor.ExecuteAsync("usp_Payment_ResolveByTransactionReference", parameters);
+
+        return new StoredProcResult<long?>
+        {
+            ResultCode = result.ResultCode,
+            ResultMessage = result.ResultMessage,
+            Data = paymentIdParam.Value is null or DBNull ? null : Convert.ToInt64(paymentIdParam.Value)
+        };
+    }
+
     public Task<StoredProcResult<List<Payment>>> GetByPurchaseAsync(long purchaseId)
     {
         var parameters = new List<MySqlParameter> { new("p_purchase_id", purchaseId) };
@@ -91,6 +156,7 @@ public class PaymentRepository : IPaymentRepository
             Method = reader.GetString("method"),
             PayerPhone = reader.IsDBNull(reader.GetOrdinal("payer_phone")) ? null : reader.GetString("payer_phone"),
             TransactionReference = reader.IsDBNull(reader.GetOrdinal("transaction_reference")) ? null : reader.GetString("transaction_reference"),
+            GatewayReference = reader.IsDBNull(reader.GetOrdinal("gateway_reference")) ? null : reader.GetString("gateway_reference"),
             Status = reader.GetString("status"),
             InitiatedOn = reader.GetDateTime("initiated_on"),
             CompletedOn = reader.IsDBNull(reader.GetOrdinal("completed_on")) ? null : reader.GetDateTime("completed_on")

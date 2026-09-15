@@ -12,6 +12,30 @@ public interface IPaymentRepository
     Task<StoredProcResult> UpdateStatusAsync(
         long paymentId, string status, string? transactionReference, string actorType, long actorId);
 
+    /// <summary>
+    /// Wraps usp_Payment_SetGatewayReference - persists the gateway's own
+    /// transaction id (e.g. Daraja CheckoutRequestID) against a payment
+    /// right after an STK push is accepted, so the later webhook can find
+    /// that payment by reference alone.
+    /// </summary>
+    Task<StoredProcResult> SetGatewayReferenceAsync(long paymentId, string gatewayReference);
+
+    /// <summary>
+    /// Wraps usp_Payment_ResolveByGatewayReference - idempotent webhook
+    /// resolution keyed on the payment gateway's CheckoutRequestID. Returns
+    /// the resolved payment_id (null if no payment matched).
+    /// </summary>
+    Task<StoredProcResult<long?>> ResolveByGatewayReferenceAsync(
+        string gatewayReference, string status, string? mpesaReceipt, string actorType, long? actorId);
+
+    /// <summary>
+    /// Wraps usp_Payment_ResolveByTransactionReference - idempotent webhook
+    /// resolution keyed on transaction_reference (C2B Paybill BillRefNumber).
+    /// Returns the resolved payment_id (null if no payment matched).
+    /// </summary>
+    Task<StoredProcResult<long?>> ResolveByTransactionReferenceAsync(
+        string transactionReference, string status, string? mpesaReceipt, string actorType, long? actorId);
+
     Task<StoredProcResult<List<Payment>>> GetByPurchaseAsync(long purchaseId);
 
     /// <summary>

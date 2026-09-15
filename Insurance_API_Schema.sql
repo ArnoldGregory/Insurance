@@ -563,6 +563,7 @@ CREATE TABLE Payments (
     method                         VARCHAR(20) NOT NULL,
     payer_phone                     VARCHAR(20) NULL,
     transaction_reference             VARCHAR(100) NULL,
+    gateway_reference                 VARCHAR(100) NULL,   -- Daraja CheckoutRequestID / C2B reference echoed by webhook callbacks
     status                              VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     initiated_on                         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_on                          DATETIME NULL,
@@ -573,6 +574,7 @@ CREATE TABLE Payments (
 
 CREATE INDEX idx_payments_purchase ON Payments(purchase_id);
 CREATE INDEX idx_payments_reference ON Payments(transaction_reference);
+CREATE INDEX idx_payments_gateway_reference ON Payments(gateway_reference);
 
 -- =====================================================================
 -- 5a. UNDERWRITER POLICY LEVEL NUMBER
@@ -691,7 +693,7 @@ CREATE TABLE AuditLog (
     old_value                     JSON NULL,
     new_value                        JSON NULL,
     created_on                          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_audit_actor_type CHECK (actor_type IN ('USER','CLIENT','CHANNEL_SERVICE'))
+    CONSTRAINT chk_audit_actor_type CHECK (actor_type IN ('USER','CLIENT','CHANNEL_SERVICE','GATEWAY_WEBHOOK'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE INDEX idx_audit_entity ON AuditLog(entity, entity_id);
