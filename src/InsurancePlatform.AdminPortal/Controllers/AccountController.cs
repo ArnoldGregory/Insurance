@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Security.Claims;
 using InsurancePlatform.AdminPortal.Models;
 using InsurancePlatform.AdminPortal.Services;
@@ -43,9 +44,23 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var result = await _apiClient.LoginAsync(model.IdNo, model.Password);
+        ApiResponse<object?>? result = null;
+        try
+        {
+            result = await _apiClient.LoginAsync(model.IdNo, model.Password);
+        }
+        catch (HttpRequestException)
+        {
+            model.ErrorMessage = "Unable to reach the server. Please try again in a few minutes.";
+            return View(model);
+        }
+        catch (TaskCanceledException)
+        {
+            model.ErrorMessage = "The request timed out. Please try again in a few minutes.";
+            return View(model);
+        }
 
-        if (!result.Success)
+        if (!result!.Success)
         {
             model.ErrorMessage = result.Message;
             return View(model);
@@ -89,9 +104,23 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var result = await _apiClient.VerifyOtpAsync(model.IdNo, model.OtpCode);
+        ApiResponse<VerifyOtpData>? result = null;
+        try
+        {
+            result = await _apiClient.VerifyOtpAsync(model.IdNo, model.OtpCode);
+        }
+        catch (HttpRequestException)
+        {
+            model.ErrorMessage = "Unable to reach the server. Please try again in a few minutes.";
+            return View(model);
+        }
+        catch (TaskCanceledException)
+        {
+            model.ErrorMessage = "The request timed out. Please try again in a few minutes.";
+            return View(model);
+        }
 
-        if (!result.Success || result.Data is null)
+        if (!result!.Success || result.Data is null)
         {
             model.ErrorMessage = result.Message;
             return View(model);

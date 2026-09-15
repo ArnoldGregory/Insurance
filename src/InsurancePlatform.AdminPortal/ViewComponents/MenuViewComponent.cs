@@ -46,9 +46,19 @@ public class MenuViewComponent : ViewComponent
 
         if (!_cache.TryGetValue(cacheKey, out List<MenuTreeItem>? tree))
         {
-            var result = await _apiClient.GetAsync<List<MenuTreeItem>>("/api/menus/mine");
-            tree = result.Success ? result.Data ?? new List<MenuTreeItem>() : new List<MenuTreeItem>();
-            _cache.Set(cacheKey, tree, CacheDuration);
+            try
+            {
+                var result = await _apiClient.GetAsync<List<MenuTreeItem>>("/api/menus/mine");
+                tree = result.Success ? result.Data ?? new List<MenuTreeItem>() : new List<MenuTreeItem>();
+                _cache.Set(cacheKey, tree, CacheDuration);
+            }
+            catch (Exception)
+            {
+                // API unreachable or timed out - show an empty sidebar rather than
+                // crashing every page. Do NOT cache the failure so the next page
+                // load retries the API automatically.
+                tree = new List<MenuTreeItem>();
+            }
         }
 
         return View(tree);
