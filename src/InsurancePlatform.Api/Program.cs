@@ -239,6 +239,18 @@ try
     // will accept.
     var jwtKey = builder.Configuration["Jwt:Key"]
         ?? throw new InvalidOperationException("Jwt:Key is not configured in appsettings.json.");
+
+    // Fail fast on a weak signing key. A JWT-signing key shorter than 32
+    // bytes (256 bits) is brute-forceable in practice no matter how the
+    // token validation is tuned - this guard makes a weak/misconfigured
+    // key a startup error instead of a silent auth bypass. The dev key is
+    // 39 UTF-8 bytes, so local runs are unaffected.
+    if (Encoding.UTF8.GetBytes(jwtKey).Length < 32)
+    {
+        throw new InvalidOperationException(
+            "Jwt:Key must be at least 32 bytes (256 bits) - the current value is too short to safely sign JWTs.");
+    }
+
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? string.Empty;
     var jwtAudience = builder.Configuration["Jwt:Audience"] ?? string.Empty;
 
@@ -255,6 +267,13 @@ try
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                 ValidateLifetime = true,
+                RequireExpirationTime = true,
+                // Pin the accepted algorithm explicitly so an
+                // algorithm-confusion attack (an attacker rewriting the
+                // "alg" header) can never downgrade verification to a
+                // weaker or "none" path even if a future config change
+                // introduces another signing key.
+                ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                 // A small allowance for clock drift between this server and
                 // whichever machine issued the token - without this, a token
                 // that's technically still valid can get rejected as
