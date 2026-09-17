@@ -1,0 +1,97 @@
+@page
+@model AmuraWebsite.Pages.ContactModel
+@{
+    ViewData["Title"] = "Contact";
+    ViewData["Description"] = "Get in touch with Amura Insurance Agency.";
+}
+
+<section class="hero" style="padding: 6rem 0 4.5rem;">
+    <div class="container hero-content">
+        <span class="hero-kicker">Get in touch</span>
+        <h1 style="font-size:clamp(2.2rem,4.5vw,3.2rem); max-width: 18ch;">We're easy to reach, and easier to talk to.</h1>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-7 reveal">
+                <div class="contact-card">
+
+                    @if (Model.Submitted)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Thanks — your message has been received@(string.IsNullOrEmpty(Model.ReferenceNumber) ? "." : $" (ref. {Model.ReferenceNumber}).") We'll be in touch shortly.
+                        </div>
+                    }
+
+                    <form method="post" novalidate>
+                        <input type="hidden" asp-for="FormToken" />
+                        <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
+                            <label for="Input_Website">Leave this field blank</label>
+                            <input asp-for="Input.Website" tabindex="-1" autocomplete="off" />
+                        </div>
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.FullName" class="form-label">Full name</label>
+                                <input asp-for="Input.FullName" class="form-control" placeholder="Jane Wanjiku" />
+                                <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Phone" class="form-label">Phone (optional)</label>
+                                <input asp-for="Input.Phone" class="form-control" placeholder="07xx xxx xxx" />
+                                <span asp-validation-for="Input.Phone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Email" class="form-label">Email</label>
+                                <input asp-for="Input.Email" class="form-control" placeholder="jane@example.com" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Message" class="form-label">How can we help?</label>
+                                <textarea asp-for="Input.Message" class="form-control" rows="5" placeholder="Tell us a little about what you're looking for."></textarea>
+                                <span asp-validation-for="Input.Message" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-quote btn-lg mt-4">Send message</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-5 reveal">
+                <span class="eyebrow">Contact details</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.6rem; font-weight:600;">Reach us directly</h2>
+
+                <div class="contact-info-item">
+                    <div class="dot">@@</div>
+                    <div>
+                        <strong>Email</strong>
+                        <!-- PENDING: confirm real contact email/phone/address with Amura -->
+                        <div class="text-muted">hello@amura.co.ke</div>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="dot">&#9742;</div>
+                    <div>
+                        <strong>Phone</strong>
+                        <div class="text-muted">+254 712 345 678</div>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="dot">&#128205;</div>
+                    <div>
+                        <strong>Office</strong>
+                        <div class="text-muted">Nairobi, Kenya</div>
+                    </div>
+                </div>
+
+                <div class="media-placeholder mt-4" style="min-height: 200px;">
+                    Map / office location placeholder
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

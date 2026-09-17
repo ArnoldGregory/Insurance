@@ -237,6 +237,15 @@
                 <span class="pj-hero-badge @(payBadgeClass == "wz-badge--success" ? "success" : "warning")">
                     <i class="fa fa-credit-card" style="font-size:10px;"></i> @(s.PaymentStatus ?? "UNKNOWN")
                 </span>
+                <span class="pj-hero-badge @(s.CertificateStatus == "GENERATED" ? "success" : "warning")">
+                    <i class="fa fa-award" style="font-size:10px;"></i> CERT @(s.CertificateStatus == "GENERATED" ? s.CertificateNumber : "NOT GENERATED")
+                </span>
+                @if (s.PaymentStatus == "PAID" && s.CertificateStatus == "GENERATED")
+                {
+                    <a asp-action="Certificate" asp-route-id="@Model.PurchaseId" class="pj-hero-badge success" style="text-decoration:none;">
+                        <i class="fa fa-download" style="font-size:10px;"></i> View certificate
+                    </a>
+                }
             </div>
         </div>
         <div class="pj-hero-grid">

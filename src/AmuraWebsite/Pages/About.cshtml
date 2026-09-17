@@ -1,0 +1,80 @@
+@page
+@model AmuraWebsite.Pages.AboutModel
+@{
+    ViewData["Title"] = "About";
+    ViewData["Description"] = "About Amura Insurance Agency.";
+}
+
+<!-- ============================ STORY ============================ -->
+<section class="section">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-6 order-lg-2 reveal">
+                <!-- Real photography still pending; showing brand mark here in the meantime -->
+                <div class="logo-showcase">
+                    <img src="~/images/logo-lockup.png" alt="Amura Insurance Agency" />
+                </div>
+            </div>
+            <div class="col-lg-6 order-lg-1 reveal">
+                <span class="eyebrow">Our story</span>
+                <h2 class="mt-3" style="font-size:clamp(1.7rem,3vw,2.2rem); font-weight:600;">
+                    Insurance shouldn't need a translator.
+                </h2>
+                <p class="mt-3">
+                    <!-- PENDING: replace with confirmed copy from Amura -->
+                    We started Amura to close the gap between what insurance policies say and
+                    what people actually understand about their cover. Every product on this
+                    site is explained the way we'd explain it to a friend — then backed by the
+                    paperwork that makes it official.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================ VALUES ============================ -->
+<section class="section section-cream">
+    <div class="container">
+        <span class="eyebrow">What guides us</span>
+        <h2 class="mt-3 mb-5" style="font-size:clamp(1.7rem,3vw,2.2rem); font-weight:600;">
+            Our values
+        </h2>
+        <div class="row g-4">
+            <div class="col-md-4 reveal">
+                <div class="value-card">
+                    <h3>Clarity first</h3>
+                    <p>We explain cover in plain language before you ever sign anything.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="value-card">
+                    <h3>Real people, real claims</h3>
+                    <p>When something goes wrong, you talk to someone who can actually help.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="value-card">
+                    <h3>Right-sized cover</h3>
+                    <p>We'd rather recommend less cover that fits than more cover that doesn't.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================= CTA ============================= -->
+<section class="section">
+    <div class="container">
+        <div class="cta-band reveal">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);">Have a question first?</h2>
+                    <p class="mb-0" style="color:rgba(11,11,12,0.75);">We're happy to talk before you commit to anything.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a asp-page="/Contact" class="btn btn-dark-pill btn-lg">Contact us</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

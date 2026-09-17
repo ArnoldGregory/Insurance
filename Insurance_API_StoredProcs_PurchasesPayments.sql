@@ -236,16 +236,23 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
-    SELECT pu.purchase_id, pu.product_id, pr.code AS product_code, pu.client_id,
+    SELECT pu.purchase_id, pu.product_id, pr.code AS product_code, pr.name AS product_name, pu.client_id,
+           c.full_name AS client_name, c.id_no AS client_id_no, c.phone AS client_phone, c.email AS client_email,
            pu.purchased_by_user_id, pu.channel_service_account_id, pu.underwriter_id,
            u.name AS underwriter_name, pu.quote_offer_id, pu.premium_amount, pu.period_id,
            per.name AS period_name, pu.start_date, pu.end_date, pu.policy_number,
-           pu.payment_status, pu.status, pu.created_on
+           pu.payment_status, pu.status, pu.created_on,
+           pu.certificate_status, pu.cert_generated_on, pu.certificate_number,
+           v.reg_no AS vehicle_reg_no, v.make AS vehicle_make, v.model AS vehicle_model
     FROM Purchases pu
     JOIN Products pr ON pr.product_id = pu.product_id
     JOIN Underwriters u ON u.underwriter_id = pu.underwriter_id
     JOIN Periods per ON per.period_id = pu.period_id
-    WHERE pu.purchase_id = p_purchase_id;
+    LEFT JOIN Clients c ON c.client_id = pu.client_id
+    LEFT JOIN VehiclePurchaseSnapshot vps ON vps.purchase_id = pu.purchase_id
+    LEFT JOIN Vehicles v ON v.vehicle_id = vps.vehicle_id
+    WHERE pu.purchase_id = p_purchase_id
+    LIMIT 1;
 
     -- Motor purchases also carry a snapshot row
     SELECT snapshot_id, vehicle_id, vehicle_value, tonnage, licensedtocarry, antitheft, risk, amount
@@ -529,7 +536,7 @@ BEGIN
         SELECT DATE_SUB(month_start, INTERVAL 1 MONTH), n + 1 FROM months WHERE n < 5
     )
     SELECT
-        DATE_FORMAT(m.month_start, '%Y-%m') AS year_month,
+        DATE_FORMAT(m.month_start, '%Y-%m') AS `year_month`,
         DATE_FORMAT(m.month_start, '%b %Y') AS month_label,
         COUNT(pu.purchase_id) AS purchase_count,
         COALESCE(SUM(pu.premium_amount), 0) AS premium_total
@@ -825,7 +832,8 @@ CREATE PROCEDURE usp_Payment_ResolveByGatewayReference (
     OUT o_result_code           INT,
     OUT o_result_message        VARCHAR(500),
     OUT o_payment_id            BIGINT UNSIGNED,
-    OUT o_not_processed         INT
+    OUT o_not_processed         INT,
+    OUT o_purchase_id           BIGINT UNSIGNED
 )
 proc_label: BEGIN
     DECLARE v_payment_id     BIGINT UNSIGNED;
@@ -866,6 +874,7 @@ proc_label: BEGIN
     END IF;
 
     SET o_payment_id = v_payment_id;
+    SET o_purchase_id = v_purchase_id;
     SET o_not_processed = 1;
     SET o_result_code = 0;
     SET o_result_message = 'Already processed; callback ignored.';
@@ -915,7 +924,8 @@ CREATE PROCEDURE usp_Payment_ResolveByTransactionReference (
     OUT o_result_code           INT,
     OUT o_result_message        VARCHAR(500),
     OUT o_payment_id            BIGINT UNSIGNED,
-    OUT o_not_processed         INT
+    OUT o_not_processed         INT,
+    OUT o_purchase_id           BIGINT UNSIGNED
 )
 proc_label: BEGIN
     DECLARE v_payment_id     BIGINT UNSIGNED;
@@ -956,6 +966,7 @@ proc_label: BEGIN
     END IF;
 
     SET o_payment_id = v_payment_id;
+    SET o_purchase_id = v_purchase_id;
     SET o_not_processed = 1;
     SET o_result_code = 0;
     SET o_result_message = 'Already processed; callback ignored.';

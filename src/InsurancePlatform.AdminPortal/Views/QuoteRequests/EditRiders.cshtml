@@ -1,0 +1,135 @@
+@model OfferRidersEditViewModel
+@{
+    ViewData["Title"] = "Offer Add-ons";
+}
+
+<!-- begin page-header -->
+<h1 class="page-header"><i class="fas fa-list"></i> Add-ons <small>@Model.UnderwriterName &ndash; Offer #@Model.QuoteOfferId on Quote Request #@Model.QuoteRequestId</small></h1>
+<!-- end page-header -->
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="panel panel-inverse" style="max-width:720px;">
+    <div class="panel-heading">
+        <div class="panel-heading-btn">
+            <a asp-action="Details" asp-route-id="@Model.QuoteRequestId" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        <h4 class="panel-title">Structured add-ons <small style="color:#a9c0d3;">premium @Model.PremiumAmount.ToString("N2")</small></h4>
+    </div>
+    <div class="panel-body">
+        <p class="text-muted" style="margin-top:0;">
+            Add-ons are the extra cover lines the client compares next to each premium
+            (e.g. RSA, Anti-theft, Courtesy car). Saving replaces the whole list for this offer
+            and refreshes the comparison email. Leave the amount blank when the add-on is included.
+        </p>
+
+        <form asp-action="EditRiders" method="post">
+            <input type="hidden" asp-for="QuoteOfferId" />
+            <input type="hidden" asp-for="QuoteRequestId" />
+
+            <div id="ridersContainer">
+                @if (Model.Riders.Count == 0)
+                {
+                    <p class="text-muted" id="noRidersHint" style="margin-top:0;">No add-ons yet &ndash; click "Add another add-on" to create one.</p>
+                }
+                @for (var i = 0; i < Model.Riders.Count; i++)
+                {
+                    <div class="rider-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;">
+                        <div class="form-group" style="margin:0;flex:2;min-width:160px;">
+                            <label class="form-control-label">Name</label>
+                            <input name="Riders[@i].Name" value="@Model.Riders[i].Name" type="text" maxlength="150" class="form-control" placeholder="e.g. RSA" required />
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:110px;">
+                            <label class="form-control-label">Amount (KSh)</label>
+                            <input name="Riders[@i].Amount" value="@(Model.Riders[i].Amount?.ToString(System.Globalization.CultureInfo.InvariantCulture))" type="number" step="0.01" min="0" class="form-control" placeholder="optional" />
+                        </div>
+                        <div class="form-group" style="margin:0;flex:2;min-width:160px;">
+                            <label class="form-control-label">Note</label>
+                            <input name="Riders[@i].Note" value="@Model.Riders[i].Note" type="text" maxlength="500" class="form-control" placeholder="optional" />
+                        </div>
+                        <button type="button" class="btn btn-danger btn-sm remove-rider-row" title="Remove this add-on"><i class="fa fa-trash"></i></button>
+                    </div>
+                }
+            </div>
+
+            <button type="button" class="btn btn-default btn-sm" id="addRiderRowBtn"><i class="fa fa-plus"></i> Add another add-on</button>
+
+            <div style="display:flex;gap:10px;margin-top:14px;">
+                <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Save add-ons</button>
+                <a asp-action="Details" asp-route-id="@Model.QuoteRequestId" class="btn btn-default">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<template id="riderRowTemplate">
+    <div class="rider-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;">
+        <div class="form-group" style="margin:0;flex:2;min-width:160px;">
+            <label class="form-control-label">Name</label>
+            <input name="Riders[__INDEX__].Name" type="text" maxlength="150" class="form-control" placeholder="e.g. RSA" required />
+        </div>
+        <div class="form-group" style="margin:0;flex:1;min-width:110px;">
+            <label class="form-control-label">Amount (KSh)</label>
+            <input name="Riders[__INDEX__].Amount" type="number" step="0.01" min="0" class="form-control" placeholder="optional" />
+        </div>
+        <div class="form-group" style="margin:0;flex:2;min-width:160px;">
+            <label class="form-control-label">Note</label>
+            <input name="Riders[__INDEX__].Note" type="text" maxlength="500" class="form-control" placeholder="optional" />
+        </div>
+        <button type="button" class="btn btn-danger btn-sm remove-rider-row" title="Remove this add-on"><i class="fa fa-trash"></i></button>
+    </div>
+</template>
+
+@section PageScripts {
+    <script>
+        (function () {
+            var container = document.getElementById('ridersContainer');
+            var template = document.getElementById('riderRowTemplate');
+
+            function renumber() {
+                // Keep indices contiguous (Riders[0], Riders[1], ...) so the
+                // default MVC model binder maps rows back into the List<T>.
+                Array.prototype.slice.call(container.querySelectorAll('.rider-row')).forEach(function (row, i) {
+                    row.querySelectorAll('input').forEach(function (el) {
+                        el.name = el.name.replace(/Riders\[\d+\]/, 'Riders[' + i + ']');
+                    });
+                });
+            }
+
+            function wireRemove(containerEl) {
+                containerEl.querySelectorAll('.remove-rider-row').forEach(function (btn) {
+                    btn.onclick = function () {
+                        if (container.querySelectorAll('.rider-row').length <= 1) { return; }
+                        btn.closest('.rider-row').remove();
+                        renumber();
+                        updateNoRidersHint();
+                    };
+                });
+            }
+
+            function updateNoRidersHint() {
+                var hint = document.getElementById('noRidersHint');
+                if (hint) {
+                    hint.style.display = (container.querySelectorAll('.rider-row').length === 0) ? '' : 'none';
+                }
+            }
+
+            document.getElementById('addRiderRowBtn').onclick = function () {
+                var index = container.querySelectorAll('.rider-row').length;
+                var rowHtml = template.innerHTML.replace(/__INDEX__/g, index);
+                var wrapper = document.createElement('div');
+                wrapper.innerHTML = rowHtml.trim();
+                container.appendChild(wrapper.firstChild);
+                renumber();
+                updateNoRidersHint();
+                wireRemove(container);
+            };
+
+            wireRemove(container);
+            updateNoRidersHint();
+        })();
+    </script>
+}

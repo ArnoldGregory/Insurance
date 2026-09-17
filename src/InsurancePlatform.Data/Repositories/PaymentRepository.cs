@@ -69,11 +69,12 @@ public class PaymentRepository : IPaymentRepository
         return _executor.ExecuteAsync("usp_Payment_SetGatewayReference", parameters);
     }
 
-    public async Task<StoredProcResult<long?>> ResolveByGatewayReferenceAsync(
+    public async Task<StoredProcResult<PaymentResolveResult?>> ResolveByGatewayReferenceAsync(
         string gatewayReference, string status, string? mpesaReceipt, string actorType, long? actorId)
     {
         var paymentIdParam = new MySqlParameter("o_payment_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
         var notProcessedParam = new MySqlParameter("o_not_processed", MySqlDbType.Int32) { Direction = ParameterDirection.Output };
+        var purchaseIdParam = new MySqlParameter("o_purchase_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
 
         var parameters = new List<MySqlParameter>
         {
@@ -83,24 +84,31 @@ public class PaymentRepository : IPaymentRepository
             new("p_actor_type", actorType),
             new("p_actor_id", (object?)actorId ?? DBNull.Value),
             paymentIdParam,
-            notProcessedParam
+            notProcessedParam,
+            purchaseIdParam
         };
 
         var result = await _executor.ExecuteAsync("usp_Payment_ResolveByGatewayReference", parameters);
 
-        return new StoredProcResult<long?>
+        return new StoredProcResult<PaymentResolveResult?>
         {
             ResultCode = result.ResultCode,
             ResultMessage = result.ResultMessage,
-            Data = paymentIdParam.Value is null or DBNull ? null : Convert.ToInt64(paymentIdParam.Value)
+            Data = new PaymentResolveResult
+            {
+                PaymentId = paymentIdParam.Value is null or DBNull ? null : Convert.ToInt64(paymentIdParam.Value),
+                PurchaseId = purchaseIdParam.Value is null or DBNull ? null : Convert.ToInt64(purchaseIdParam.Value),
+                NotProcessed = notProcessedParam.Value is null or DBNull ? false : Convert.ToInt32(notProcessedParam.Value) == 1
+            }
         };
     }
 
-    public async Task<StoredProcResult<long?>> ResolveByTransactionReferenceAsync(
+    public async Task<StoredProcResult<PaymentResolveResult?>> ResolveByTransactionReferenceAsync(
         string transactionReference, string status, string? mpesaReceipt, string actorType, long? actorId)
     {
         var paymentIdParam = new MySqlParameter("o_payment_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
         var notProcessedParam = new MySqlParameter("o_not_processed", MySqlDbType.Int32) { Direction = ParameterDirection.Output };
+        var purchaseIdParam = new MySqlParameter("o_purchase_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
 
         var parameters = new List<MySqlParameter>
         {
@@ -110,16 +118,22 @@ public class PaymentRepository : IPaymentRepository
             new("p_actor_type", actorType),
             new("p_actor_id", (object?)actorId ?? DBNull.Value),
             paymentIdParam,
-            notProcessedParam
+            notProcessedParam,
+            purchaseIdParam
         };
 
         var result = await _executor.ExecuteAsync("usp_Payment_ResolveByTransactionReference", parameters);
 
-        return new StoredProcResult<long?>
+        return new StoredProcResult<PaymentResolveResult?>
         {
             ResultCode = result.ResultCode,
             ResultMessage = result.ResultMessage,
-            Data = paymentIdParam.Value is null or DBNull ? null : Convert.ToInt64(paymentIdParam.Value)
+            Data = new PaymentResolveResult
+            {
+                PaymentId = paymentIdParam.Value is null or DBNull ? null : Convert.ToInt64(paymentIdParam.Value),
+                PurchaseId = purchaseIdParam.Value is null or DBNull ? null : Convert.ToInt64(purchaseIdParam.Value),
+                NotProcessed = notProcessedParam.Value is null or DBNull ? false : Convert.ToInt32(notProcessedParam.Value) == 1
+            }
         };
     }
 

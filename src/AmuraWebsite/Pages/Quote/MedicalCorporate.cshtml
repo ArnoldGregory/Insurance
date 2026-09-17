@@ -1,0 +1,83 @@
+@page
+@model AmuraWebsite.Pages.Quote.MedicalCorporateModel
+@{
+    ViewData["Title"] = "Medical Quote — Corporate";
+    ViewData["Description"] = "Get a quote for corporate group medical cover from Amura Insurance Agency.";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-7 reveal">
+                <div class="contact-card">
+
+                    @if (Model.Submitted)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Thanks — your quote request has been received@(string.IsNullOrEmpty(Model.ReferenceNumber) ? "." : $" (ref. {Model.ReferenceNumber}).") We'll be in touch shortly.
+                        </div>
+                    }
+
+                    <form method="post" novalidate>
+                        <input type="hidden" asp-for="FormToken" />
+                        <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
+                            <label for="Input_Website">Leave this field blank</label>
+                            <input asp-for="Input.Website" tabindex="-1" autocomplete="off" />
+                        </div>
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label asp-for="Input.CompanyName" class="form-label">Company name</label>
+                                <input asp-for="Input.CompanyName" class="form-control" placeholder="Acme Ltd" />
+                                <span asp-validation-for="Input.CompanyName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.ContactPerson" class="form-label">Contact person</label>
+                                <input asp-for="Input.ContactPerson" class="form-control" placeholder="Jane Wanjiku" />
+                                <span asp-validation-for="Input.ContactPerson" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.IdNo" class="form-label">Contact person National ID / Passport number</label>
+                                <input asp-for="Input.IdNo" class="form-control" placeholder="e.g. 33333333" />
+                                <span asp-validation-for="Input.IdNo" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Phone" class="form-label">Phone</label>
+                                <input asp-for="Input.Phone" class="form-control" placeholder="07xx xxx xxx" />
+                                <span asp-validation-for="Input.Phone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Email" class="form-label">Email</label>
+                                <input asp-for="Input.Email" class="form-control" placeholder="jane@acme.co.ke" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.NumberOfEmployees" class="form-label">Number of employees</label>
+                                <input asp-for="Input.NumberOfEmployees" class="form-control" type="number" min="1" />
+                                <span asp-validation-for="Input.NumberOfEmployees" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.CoverLevel" class="form-label">Preferred cover level</label>
+                                <select asp-for="Input.CoverLevel" class="form-select">
+                                    <option value="Basic">Basic</option>
+                                    <option value="Standard" selected>Standard</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="Not sure">Not sure — advise me</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-quote btn-lg mt-4">Get my quote</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-5 reveal">
+                <span class="eyebrow">What's covered</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">Corporate medical</h2>
+                <p class="text-muted">Group cover for your team, with tiered benefit options and a single renewal date for the whole scheme.</p>
+            </div>
+        </div>
+    </div>
+</section>

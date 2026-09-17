@@ -1,7 +1,8 @@
 # SCAPI Email delivery failure — error_code 99 (EMAIL_OTP_BIMA)
 
-Status: **OPEN — server-side (SCAPI), needs SCAPI/POA action. No code fix on our side
-required.** This file documents the problem so whoever owns the SCAPI box can act on it.
+Status: **OPEN — server-side (SCAPI), needs SCAPI/POA action. App-side mitigation now in
+place (email→SMS OTP fallback, applied 2026-09-16).** This file documents the problem so
+whoever owns the SCAPI box can act on it.
 
 ## Symptom
 
@@ -55,9 +56,18 @@ template / handing off to its mailer).
 
 ## In-app impact & current mitigation
 
-- Our application treats a false send as a failed OTP delivery and does NOT issue the
-  code unless the dev bypass is on:
-  `Notifications:AllowOtpDeliveryFailure` (must stay **false** in production).
-- Long-term it is wise to switch login OTPs to the **SMS** delivery path
-  (`EMAIL_OTP_BIMA` → SCAPI `SINGLE`), which the app already supports
-  (`OtpNotificationSender.SendOtpSmsAsync`), and keep email for receipts/quotes.
+- **Fallback (applied 2026-09-16):** `AuthService` (login + password reset) and
+  `RegistrationService` now send the OTP **email-first, SMS-fallback** with the *same*
+  code. When SCAPI returns `error_code 99` for the email, the code is automatically
+  delivered to the account's phone via the SCAPI `SINGLE` (SMS) route instead — so
+  login/registration/password-reset no longer hard-fail just because `EMAIL_OTP_BIMA` is
+  down. OTP is still created exactly once (keyed by user+purpose), so the fallback can
+  never mint a second, silently-issued code. A `LogWarn`/`LogInfo` line records which
+  channel actually carried the code.
+- If the account has **no email**, nothing changes: it goes straight to SMS.
+- Only when **both** channels fail does the flow apply the old behaviour
+  (`Notifications:AllowOtpDeliveryFailure` must stay **false** in production).
+- Long-term it is wise to switch login OTPs to the **SMS** delivery path alone
+  (`EMAIL_OTP_BIMA` → SCAPI `SINGLE`) — the app already supports it
+  (`OtpNotificationSender.SendOtpSmsAsync`) — and keep email for receipts/quotes, or to
+  get SCAPI's email pipeline fixed per the action list above.

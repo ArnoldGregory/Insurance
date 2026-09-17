@@ -367,6 +367,60 @@ public class QuoteRequestsController : Controller
     }
 
     /// <summary>
+    /// Add-ons editor GET. Same "no single-offer endpoint" reasoning as
+    /// EditOffer: the offer's own fields travel here as query parameters
+    /// from the offer row's link, and the currently-saved add-ons are
+    /// fetched from GET /api/quoterequests/{quoteRequestId}/offers/{quoteOfferId}/riders.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> EditRiders(long quoteOfferId, long quoteRequestId, string underwriterName, decimal premiumAmount)
+    {
+        var vm = new OfferRidersEditViewModel
+        {
+            QuoteOfferId = quoteOfferId,
+            QuoteRequestId = quoteRequestId,
+            UnderwriterName = underwriterName,
+            PremiumAmount = premiumAmount
+        };
+
+        var ridersResult = await _apiClient.GetAsync<List<QuoteOfferRiderItem>>($"/api/quoterequests/{quoteRequestId}/offers/{quoteOfferId}/riders");
+        if (ridersResult.Success && ridersResult.Data is not null)
+        {
+            vm.Riders = ridersResult.Data;
+        }
+
+        return View(vm);
+    }
+
+    /// <summary>
+    /// Saves the whole add-on set - one PUT to /api/quote-offers/{id}/riders
+    /// that replaces the offer's existing lines (the old set is soft-deleted
+    /// server-side). Blank Name rows are dropped before sending.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditRiders(OfferRidersEditViewModel model)
+    {
+        if (model.QuoteOfferId <= 0 || model.QuoteRequestId <= 0)
+        {
+            TempData["StatusMessage"] = "Missing offer details.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id = model.QuoteRequestId });
+        }
+
+        var validRows = (model.Riders ?? new()).Where(r => !string.IsNullOrWhiteSpace(r.Name)).ToList();
+
+        var payload = new { Riders = validRows.Select(r => new { r.Name, r.Amount, r.Note }) };
+
+        var result = await _apiClient.PutAsync<object>($"/api/quote-offers/{model.QuoteOfferId}/riders", payload);
+
+        TempData["StatusMessage"] = result.Success ? "Add-ons updated." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+
+        return RedirectToAction(nameof(Details), new { id = model.QuoteRequestId });
+    }
+
+    /// <summary>
     /// URL the browser uses to download an offer document. Offer documents
     /// now live in a shared storage folder on the API host (outside its
     /// webroot, no public static-file URL), so downloads go through this

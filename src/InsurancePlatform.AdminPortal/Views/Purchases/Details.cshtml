@@ -46,6 +46,21 @@
                         <tr><td class="text-muted">Start date</td><td>@Model.StartDate.ToString("dd MMM yyyy")</td></tr>
                         <tr><td class="text-muted">End date</td><td>@Model.EndDate.ToString("dd MMM yyyy")</td></tr>
                         <tr><td class="text-muted">Policy number</td><td>@(Model.PolicyNumber ?? "—")</td></tr>
+                        <tr><td class="text-muted">Certificate no.</td><td>@(Model.CertificateNumber ?? "—")</td></tr>
+                        <tr>
+                            <td class="text-muted">Certificate status</td>
+                            <td>
+                                <span class="label @(Model.CertificateStatus == "GENERATED" ? "label-success" : "label-warning")">@(Model.CertificateStatus == "GENERATED" ? "GENERATED" : "NOT GENERATED")</span>
+                            </td>
+                        </tr>
+                        @if (!string.IsNullOrWhiteSpace(Model.NtsaCertificateNo))
+                        {
+                            <tr><td class="text-muted">Official NTSA cert</td><td><a asp-action="Certificate" asp-route-id="@Model.PurchaseId" style="font-family:monospace;">@Model.NtsaCertificateNo</a> @(Model.NtsaIssuedOn?.ToString("(dd MMM yyyy)") ?? "") &middot; <a asp-action="NtsaDocument" asp-route-id="@Model.PurchaseId" target="_blank">stored response</a></td></tr>
+                        }
+                        else
+                        {
+                            <tr><td class="text-muted">Official NTSA cert</td><td class="text-muted">— (internal fallback certificate)</td></tr>
+                        }
                         <tr><td class="text-muted">Purchased by</td><td>@(Model.PurchasedByUserId?.ToString() ?? (Model.ChannelServiceAccountId is not null ? "Channel service" : "—"))</td></tr>
                         <tr><td class="text-muted">Created</td><td>@Model.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td></tr>
                     </tbody>
@@ -127,6 +142,10 @@
 }
 
 <div style="display:flex;gap:10px;">
+    @if (Model.PaymentStatus == "PAID" && Model.CertificateStatus == "GENERATED")
+    {
+        <a asp-action="Certificate" asp-route-id="@Model.PurchaseId" class="btn btn-success"><i class="fa fa-award"></i> View certificate</a>
+    }
     @if (canChangeStatus)
     {
         @* Payments screen is gated to the same SA/AA/SP roles as canChangeStatus (RoleCodes.QuoteBackoffice) - hidden here for Agent so this link never leads to an AccessDenied page. *@

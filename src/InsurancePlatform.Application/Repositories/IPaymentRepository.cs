@@ -23,17 +23,19 @@ public interface IPaymentRepository
     /// <summary>
     /// Wraps usp_Payment_ResolveByGatewayReference - idempotent webhook
     /// resolution keyed on the payment gateway's CheckoutRequestID. Returns
-    /// the resolved payment_id (null if no payment matched).
+    /// the resolved payment_id and its owning purchase_id (both null if no
+    /// payment matched).
     /// </summary>
-    Task<StoredProcResult<long?>> ResolveByGatewayReferenceAsync(
+    Task<StoredProcResult<PaymentResolveResult?>> ResolveByGatewayReferenceAsync(
         string gatewayReference, string status, string? mpesaReceipt, string actorType, long? actorId);
 
     /// <summary>
     /// Wraps usp_Payment_ResolveByTransactionReference - idempotent webhook
     /// resolution keyed on transaction_reference (C2B Paybill BillRefNumber).
-    /// Returns the resolved payment_id (null if no payment matched).
+    /// Returns the resolved payment_id and its owning purchase_id (both null
+    /// if no payment matched).
     /// </summary>
-    Task<StoredProcResult<long?>> ResolveByTransactionReferenceAsync(
+    Task<StoredProcResult<PaymentResolveResult?>> ResolveByTransactionReferenceAsync(
         string transactionReference, string status, string? mpesaReceipt, string actorType, long? actorId);
 
     Task<StoredProcResult<List<Payment>>> GetByPurchaseAsync(long purchaseId);

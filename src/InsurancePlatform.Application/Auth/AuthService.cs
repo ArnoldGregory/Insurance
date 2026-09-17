@@ -3,6 +3,7 @@ using System.Text;
 using InsurancePlatform.Application.Notifications;
 using InsurancePlatform.Application.Repositories;
 using InsurancePlatform.Domain.Common;
+using InsurancePlatform.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 
 namespace InsurancePlatform.Application.Auth;
@@ -119,11 +120,9 @@ public class AuthService : IAuthService
         }
 
         var externalRefNumber = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
-        var sent = sendingByEmail
-            ? await _otpSender.SendOtpEmailAsync(user.Email!, user.FullName, otpCode, externalRefNumber)
-            : await _otpSender.SendOtpSmsAsync(user.Phone, otpCode, externalRefNumber);
+        var sent = await DeliverOtpAsync(user, otpCode, externalRefNumber);
 
-        if (!sent)
+        if (sent is null)
         {
             _logger.LogError($"Login OTP created (otp_id={createResult.Data}) but gateway delivery failed for id_no={idNo}.");
             if (!bool.TryParse(_configuration["Notifications:AllowOtpDeliveryFailure"], out var allowWithoutDelivery) || !allowWithoutDelivery)
@@ -132,7 +131,7 @@ public class AuthService : IAuthService
             }
         }
 
-        _logger.LogInfo($"Login OTP sent for id_no={idNo} via {(sendingByEmail ? "email" : "sms")}.");
+        _logger.LogInfo($"Login OTP sent for id_no={idNo} via {sent ?? "none"}.");
         return new AuthResult { Success = true, Message = "Verification code sent." };
     }
 
@@ -206,17 +205,15 @@ public class AuthService : IAuthService
         }
 
         var externalRefNumber = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
-        var sent = sendingByEmail
-            ? await _otpSender.SendOtpEmailAsync(user.Email!, user.FullName, otpCode, externalRefNumber)
-            : await _otpSender.SendOtpSmsAsync(user.Phone, otpCode, externalRefNumber);
+        var sent = await DeliverOtpAsync(user, otpCode, externalRefNumber);
 
-        if (!sent)
+        if (sent is null)
         {
             _logger.LogError($"Reset-password OTP created (otp_id={createResult.Data}) but gateway delivery failed for id_no={idNo}.");
         }
         else
         {
-            _logger.LogInfo($"Reset-password OTP sent for id_no={idNo} via {(sendingByEmail ? "email" : "sms")}.");
+            _logger.LogInfo($"Reset-password OTP sent for id_no={idNo} via {sent}.");
         }
 
         return new AuthResult { Success = true, Message = genericMessage };
@@ -296,6 +293,44 @@ public class AuthService : IAuthService
     /// ever authenticate via ChannelLoginAsync, never through this check.
     /// </summary>
     internal static bool IsValidChannel(string? channel) => channel is "PORTAL" or "MOBILE";
+
+    /// <summary>
+    /// Delivers an OTP, preferring email when the account has one, and
+    /// falling back to SMS with the SAME code when the email send fails.
+    /// Returns "email", "sms", or null when BOTH channels failed.
+    ///
+    /// The Email is the case SCAPI's EMAIL_OTP_BIMA is broken (it returns
+    /// error_code 99 for every send - see SCAPI_EMAIL_ISSUE.md), so a login
+    /// /password-reset must not hard-fail just because that endpoint is
+    /// down: the user still gets the code on their phone. The OTP is only
+    /// ever created ONCE in the calling methods (keyed by user+purpose, and
+    /// the code is the same on both channels), so the fallback can never
+    /// silently issue a second, valid code.
+    /// </summary>
+    private async Task<string?> DeliverOtpAsync(User user, string otpCode, string externalRefNumber)
+    {
+        if (!string.IsNullOrWhiteSpace(user.Email))
+        {
+            var emailed = await _otpSender.SendOtpEmailAsync(user.Email!, user.FullName, otpCode, externalRefNumber);
+            if (emailed)
+            {
+                return "email";
+            }
+
+            _logger.LogWarn($"OTP email delivery failed for user_id={user.UserId}; falling back to SMS.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.Phone))
+        {
+            var smsSent = await _otpSender.SendOtpSmsAsync(user.Phone, otpCode, externalRefNumber);
+            if (smsSent)
+            {
+                return "sms";
+            }
+        }
+
+        return null;
+    }
 
    
     /// <summary>

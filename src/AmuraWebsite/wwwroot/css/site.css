@@ -1,0 +1,800 @@
+/* ==========================================================================
+   Amura Insurance Agency — Design Tokens
+   Display: Fraunces (serif, gravitas)   Body/UI: Inter
+   Palette: ink / charcoal / gold gradient / cream / slate
+   ========================================================================== */
+
+:root {
+    --ink: #0b0b0c;
+    --charcoal: #17171a;
+    --charcoal-2: #202024;
+    --gold-1: #d4af37;
+    --gold-2: #c5a028;
+    --gold-soft: #e8cf8a;
+    --cream: #f7f5f0;
+    --offwhite: #fbfaf7;
+    --slate: #6b6b70;
+    --slate-light: #a9a9ae;
+    --line-on-dark: rgba(212, 175, 55, 0.22);
+    --line-on-light: rgba(11, 11, 12, 0.08);
+    /* Oak green — the header/nav brand palette (logo green family) */
+    /* Oak green — legacy header attempt, kept for reference */
+    --oak-green: #2f4a3a;
+    --oak-green-dark: #1f3327;
+    --oak-green-light: #3d5f4b;
+    /* Navy/gold — the confirmed target palette (matches the approved design) */
+    --navy: #1b5e3a;
+    --navy-light: #227a4c;
+    --navy-deep: #14432a;
+    --amura-orange: #d4a72c;
+    --amura-orange-dark: #b8891a;
+    --v2-gray: #6b7280;
+    --v2-light-bg: #f6f8fb;
+    --v2-border: #e6eaf0;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 24px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--offwhite);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .brand-mark {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+}
+
+a {
+    text-decoration: none;
+}
+
+.section {
+    padding: 6rem 0;
+}
+
+@media (max-width: 767.98px) {
+    .section {
+        padding: 3.5rem 0;
+    }
+}
+
+.eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+    .eyebrow::before {
+        content: "";
+        width: 24px;
+        height: 1px;
+        background: var(--gold-2);
+        display: inline-block;
+    }
+
+.gold-text {
+    background: linear-gradient(100deg, var(--gold-1), var(--gold-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* ==========================================================================
+   Header / Nav
+   ========================================================================== */
+
+.brand-mark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    background: linear-gradient(100deg, var(--gold-soft), var(--gold-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.brand-icon {
+    height: 34px;
+    width: auto;
+    margin-right: 0.55rem;
+}
+
+.brand-icon-footer {
+    height: 28px;
+    margin-right: 0.5rem;
+}
+
+.navbar-nav .nav-link {
+    color: var(--slate-light);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.5rem 0.9rem !important;
+    transition: color 0.2s ease;
+}
+
+    .navbar-nav .nav-link:hover,
+    .navbar-nav .nav-link.active {
+        color: var(--gold-soft);
+    }
+
+.btn-quote {
+    background: linear-gradient(100deg, var(--gold-1), var(--gold-2));
+    color: var(--ink) !important;
+    font-weight: 600;
+    padding: 0.55rem 1.4rem;
+    border-radius: 999px;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .btn-quote:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.35);
+        color: var(--ink);
+    }
+
+/* ==========================================================================
+   Header — oak-green top strip + white nav row
+   ========================================================================== */
+.site-header-group {
+    position: sticky;
+    top: 0;
+    z-index: 1001;
+}
+
+.top-strip {
+    background: var(--navy-deep);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.82rem;
+    padding: 0.5rem 0;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+    .top-strip .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+.top-strip-contact {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+    .top-strip-contact a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+        .top-strip-contact a:hover {
+            color: var(--amura-orange);
+        }
+
+.top-strip-social {
+    display: flex;
+    gap: 1rem;
+}
+
+    .top-strip-social a {
+        color: rgba(255, 255, 255, 0.75);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.78rem;
+        letter-spacing: 0.03em;
+    }
+
+        .top-strip-social a:hover {
+            color: var(--amura-orange);
+        }
+
+.amura-header {
+    background: var(--offwhite);
+    border-bottom: 1px solid var(--line-on-light);
+}
+
+    .amura-header .navbar {
+        padding: 0.9rem 0;
+    }
+
+    .amura-header .brand-mark {
+        background: none;
+        -webkit-text-fill-color: initial;
+        color: var(--navy);
+    }
+
+    .amura-header .nav-link {
+        color: var(--ink) !important;
+        font-weight: 500;
+        padding: 0.5rem 0.9rem !important;
+    }
+
+        .amura-header .nav-link:hover,
+        .amura-header .nav-link.active {
+            color: var(--navy-deep) !important;
+        }
+
+.header-phone {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--ink);
+}
+
+    .header-phone svg {
+        color: var(--navy);
+        flex-shrink: 0;
+    }
+
+.header-phone-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+    .header-phone-text small {
+        color: var(--slate);
+        font-size: 0.72rem;
+    }
+
+    .header-phone-text strong {
+        font-size: 0.95rem;
+    }
+
+/* ==========================================================================
+   Hero — signature: slow gold light-sweep across a near-black field
+   ========================================================================== */
+.hero {
+    position: relative;
+    background: linear-gradient(120deg, var(--navy) 0%, var(--navy-light) 60%, var(--navy-deep) 100%);
+    color: var(--offwhite);
+    overflow: hidden;
+    padding: 8rem 0 7rem;
+}
+
+    .hero::before {
+        content: "";
+        position: absolute;
+        inset: -20%;
+        background: linear-gradient( 115deg, transparent 30%, rgba(212, 175, 55, 0.16) 45%, rgba(212, 175, 55, 0.06) 55%, transparent 70% );
+        background-size: 220% 220%;
+        background-position: 65% 40%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+/* Optional photo layer — added via a .hero-bg div when a page has a real
+   photo (see Home, Contact). Pages without one just keep the plain dark
+   field above. */
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 18%;
+    z-index: 0;
+}
+
+@keyframes goldSweep {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero::before {
+        animation: none;
+    }
+
+    .seal {
+        animation: none !important;
+    }
+
+    .hero-content > * {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+    .hero-content > * {
+        opacity: 0;
+        transform: translateY(16px);
+        animation: heroReveal 0.8s ease forwards;
+    }
+
+        .hero-content > *:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .hero-content > *:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .hero-content > *:nth-child(3) {
+            animation-delay: 0.35s;
+        }
+
+        .hero-content > *:nth-child(4) {
+            animation-delay: 0.5s;
+        }
+
+        .hero-content > *:nth-child(5) {
+            animation-delay: 0.65s;
+        }
+
+@keyframes heroReveal {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-kicker {
+    color: var(--gold-soft);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+}
+
+.hero h1 {
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 600;
+    line-height: 1.08;
+    margin: 1rem 0 1.4rem;
+}
+
+.hero-emphasis {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    background: linear-gradient(100deg, var(--gold-soft), var(--gold-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero p.lead {
+    color: var(--slate-light);
+    font-size: 1.15rem;
+    max-width: 42ch;
+}
+
+.hero-actions {
+    margin-top: 2.2rem;
+}
+
+.seal-centered {
+    margin: 3rem auto 0;
+}
+
+.btn-ghost-light {
+    color: var(--offwhite);
+    border: 1px solid rgba(247, 245, 240, 0.3);
+    border-radius: 999px;
+    padding: 0.55rem 1.4rem;
+    font-weight: 500;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+    .btn-ghost-light:hover {
+        color: var(--offwhite);
+        border-color: var(--gold-soft);
+        background: rgba(212, 175, 55, 0.08);
+    }
+
+/* Gold seal — recurring trust mark (About + Hero) */
+.seal {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: sealSpin 40s linear infinite;
+    flex-shrink: 0;
+}
+
+    .seal::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        border: 1px dashed var(--line-on-dark);
+    }
+
+.seal-inner {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-align: center;
+    color: var(--gold-soft);
+    animation: sealSpinReverse 40s linear infinite;
+}
+
+@keyframes sealSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes sealSpinReverse {
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+/* ==========================================================================
+   Trust strip
+   ========================================================================== */
+
+.trust-strip {
+    background: var(--charcoal);
+    color: var(--slate-light);
+    padding: 1.6rem 0;
+    border-bottom: 1px solid var(--line-on-dark);
+}
+
+    .trust-strip .trust-item {
+        text-align: center;
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+    }
+
+        .trust-strip .trust-item strong {
+            display: block;
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            color: var(--gold-soft);
+            font-weight: 600;
+        }
+
+/* ==========================================================================
+   Product cards
+   ========================================================================== */
+
+.product-card {
+    background: var(--offwhite);
+    border: 1px solid var(--line-on-light);
+    border-radius: var(--radius-md);
+    padding: 2rem 1.75rem;
+    height: 100%;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    overflow: hidden;
+}
+
+.product-card-image {
+    display: block;
+    width: calc(100% + 3.5rem);
+    height: 170px;
+    object-fit: cover;
+    margin: -2rem -1.75rem 1.25rem;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(11, 11, 12, 0.08);
+    border-color: var(--gold-2);
+}
+
+.product-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+    font-family: var(--font-display);
+}
+
+.product-card h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.product-card p {
+    color: var(--slate);
+    font-size: 0.92rem;
+    margin-bottom: 1.1rem;
+}
+
+.product-card a {
+    color: var(--gold-2);
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+    .product-card a:hover {
+        color: var(--ink);
+    }
+
+/* ==========================================================================
+   Placeholder media blocks (stand-in for pending photography)
+   ========================================================================== */
+
+.media-placeholder {
+    background: linear-gradient(135deg, var(--charcoal), var(--charcoal-2));
+    border: 1px dashed var(--line-on-dark);
+    border-radius: var(--radius-lg);
+    color: var(--slate-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.85rem;
+    min-height: 320px;
+    padding: 2rem;
+}
+
+/* Logo showcase — real brand art on a light card (gold/green needs a light base) */
+.logo-showcase {
+    background: var(--cream);
+    border: 1px solid var(--line-on-light);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    padding: 2.5rem;
+}
+
+    .logo-showcase img {
+        max-width: 100%;
+        height: auto;
+        max-height: 360px;
+    }
+
+/* Real photo filling the About-preview box on Home (dark section) */
+.photo-panel {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    min-height: 320px;
+}
+
+    .photo-panel img {
+        width: 100%;
+        height: 100%;
+        min-height: 320px;
+        object-fit: cover;
+        display: block;
+    }
+
+/* ==========================================================================
+   Sections: light / dark utility
+   ========================================================================== */
+
+.section-dark {
+    background: var(--ink);
+    color: var(--offwhite);
+}
+
+    .section-dark .eyebrow {
+        color: var(--gold-soft);
+    }
+
+    .section-dark p {
+        color: var(--slate-light);
+    }
+
+.section-cream {
+    background: var(--cream);
+}
+
+/* ==========================================================================
+   CTA band
+   ========================================================================== */
+
+.cta-band {
+    background: linear-gradient(100deg, var(--gold-1), var(--gold-2));
+    border-radius: var(--radius-lg);
+    padding: 3.5rem;
+    color: var(--ink);
+}
+
+    .cta-band h2 {
+        font-weight: 600;
+    }
+
+.btn-dark-pill {
+    background: var(--ink);
+    color: var(--offwhite);
+    border-radius: 999px;
+    padding: 0.7rem 1.8rem;
+    font-weight: 600;
+    border: none;
+    transition: transform 0.2s ease;
+}
+
+    .btn-dark-pill:hover {
+        transform: translateY(-1px);
+        color: var(--offwhite);
+    }
+
+/* ==========================================================================
+   Contact page
+   ========================================================================== */
+
+.contact-card {
+    background: var(--offwhite);
+    border: 1px solid var(--line-on-light);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+}
+
+    .contact-card .form-control {
+        border-radius: var(--radius-sm);
+        padding: 0.7rem 0.9rem;
+        border-color: var(--line-on-light);
+    }
+
+        .contact-card .form-control:focus {
+            border-color: var(--gold-2);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+        }
+
+.contact-info-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1.6rem;
+}
+
+    .contact-info-item .dot {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: var(--gold-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+    }
+
+/* ==========================================================================
+   About page
+   ========================================================================== */
+
+.value-card {
+    border-left: 2px solid var(--gold-2);
+    padding-left: 1.2rem;
+}
+
+    .value-card h3 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+    }
+
+    .value-card p {
+        color: var(--slate);
+        font-size: 0.92rem;
+    }
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+.amura-footer {
+    background: var(--navy-deep);
+    color: var(--slate-light);
+    padding: 4rem 0 1.75rem;
+}
+
+.brand-mark-footer {
+    font-size: 1.25rem;
+}
+
+.footer-tagline {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    color: var(--slate-light);
+}
+
+.footer-heading {
+    color: var(--offwhite);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+    .footer-links li {
+        margin-bottom: 0.6rem;
+    }
+
+    .footer-links a {
+        color: var(--slate-light);
+        font-size: 0.9rem;
+    }
+
+        .footer-links a:hover {
+            color: var(--gold-soft);
+        }
+
+.footer-contact {
+    font-size: 0.9rem;
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(247, 245, 240, 0.1);
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    font-size: 0.82rem;
+    color: var(--slate-light);
+}
+
+/* ==========================================================================
+   Scroll reveal (progressive enhancement — see site.js)
+   ========================================================================== */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+    .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

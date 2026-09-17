@@ -1,0 +1,161 @@
+@page
+@model AmuraWebsite.Pages.IndexModel
+@{
+    ViewData["Title"] = "Home";
+    ViewData["Description"] = "Amura Insurance Agency — Medical, Motor, Travel, Domestic and Professional Indemnity cover for individuals, families and businesses across Kenya.";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/home-v2.css" asp-append-version="true" />
+}
+
+<!-- ============================= HERO ============================= -->
+<section class="v2-hero">
+    <div class="container v2-hero-grid">
+        <div class="reveal">
+            <span class="eyebrow">Insurance, Simplified</span>
+            <h1>Cover that fits your life, <em>not the other way around.</em></h1>
+            <p>
+                <!-- PENDING: replace with confirmed copy from Amura (Task 5 — Content integration) -->
+                Medical, Motor, Travel, Domestic and Professional Indemnity cover —
+                guided by people who take the time to get your quote right the first time.
+            </p>
+            <div class="v2-hero-actions">
+                <a class="v2-btn v2-btn-primary" asp-page="/Services">Get a Quote</a>
+                <a class="v2-btn v2-btn-outline" asp-page="/Services">Explore Products</a>
+            </div>
+        </div>
+        <div class="v2-hero-visual reveal">
+            <img src="~/images/hero-family.jpg" alt="Family covered by Amura Insurance" />
+            <div class="v2-hero-badge b1"><span class="num">6</span> Product Lines</div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================= TRUST STRIP ========================= -->
+<div class="v2-trust-strip">
+    <div class="container">
+        <div class="v2-trust-item"><span class="dot"></span> Six Product Lines</div>
+        <div class="v2-trust-item"><span class="dot"></span> Motor Cover via DMVIC</div>
+        <div class="v2-trust-item"><span class="dot"></span> Agent Network Across Kenya</div>
+        <div class="v2-trust-item"><span class="dot"></span> Digital Certificates &amp; Renewals</div>
+    </div>
+</div>
+
+<!-- ========================== SERVICES ========================== -->
+<section class="v2-section bg-light" id="services">
+    <div class="container">
+        <div class="v2-center">
+            <span class="eyebrow">What We Offer</span>
+            <h2 class="v2-section-title">Insurance plans built around your life</h2>
+            <p class="v2-section-sub">Six products, one straightforward process — pick the cover that fits, tell us what you need, and we'll come back with a quote.</p>
+        </div>
+        <div class="v2-services-grid">
+            <div class="v2-service-card reveal">
+                <div class="v2-service-icon"><img src="~/images/medical-individual-card.jpg" alt="" /></div>
+                <h3>Medical — Individual &amp; Family</h3>
+                <p>Inpatient and outpatient cover sized to your household.</p>
+                <a class="learn" asp-page="/Quote/MedicalIndividual">Get a quote &rarr;</a>
+            </div>
+            <div class="v2-service-card reveal">
+                <div class="v2-service-icon"><img src="~/images/medical-corporate-card.jpg" alt="" /></div>
+                <h3>Medical — Corporate</h3>
+                <p>Group medical cover for teams of any size.</p>
+                <a class="learn" asp-page="/Quote/MedicalCorporate">Get a quote &rarr;</a>
+            </div>
+            <div class="v2-service-card reveal">
+                <div class="v2-service-icon"><img src="~/images/professional-indemnity-card.jpg" alt="" /></div>
+                <h3>Professional Indemnity</h3>
+                <p>Protection against claims arising from professional advice or services.</p>
+                <a class="learn" asp-page="/Quote/ProfessionalIndemnity">Get a quote &rarr;</a>
+            </div>
+            <div class="v2-service-card reveal">
+                <div class="v2-service-icon"><img src="~/images/travel-card.jpg" alt="" /></div>
+                <h3>Travel Insurance</h3>
+                <p>Cover for medical emergencies, delays and lost baggage abroad.</p>
+                <a class="learn" asp-page="/Quote/Travel">Get a quote &rarr;</a>
+            </div>
+            <div class="v2-service-card reveal">
+                <div class="v2-service-icon"><img src="~/images/domestic-card.jpg" alt="" /></div>
+                <h3>Domestic Insurance</h3>
+                <p>Cover for your home and its contents against loss or damage.</p>
+                <a class="learn" asp-page="/Quote/Domestic">Get a quote &rarr;</a>
+            </div>
+            <div class="v2-service-card reveal">
+                <div class="v2-service-icon"><img src="~/images/motor-card.jpg" alt="" /></div>
+                <h3>Motor Insurance</h3>
+                <p>Comprehensive or third-party cover, arranged through our licensed insurer partners.</p>
+                <a class="learn" asp-page="/Quote/Motor">Get a quote &rarr;</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ======================== ABOUT / BENEFITS ======================== -->
+<section class="v2-section" id="about">
+    <div class="container v2-about">
+        <div class="v2-about-visual reveal">
+            <img src="~/images/contact-hero.jpg" alt="" />
+        </div>
+        <div class="reveal">
+            <span class="eyebrow">Why Amura</span>
+            <h2 class="v2-section-title">Insurance, explained in plain language.</h2>
+            <p class="v2-section-sub" style="margin:0 0 1.5rem;">
+                <!-- PENDING: replace with confirmed About copy from Amura -->
+                We work with individuals, families and businesses across Kenya to find
+                cover that actually matches how they live and work — then stay on hand
+                when it's time to make a claim.
+            </p>
+            <a asp-page="/About" class="v2-btn v2-btn-primary">More about us</a>
+        </div>
+    </div>
+</section>
+
+<!-- ========================= HOW IT WORKS ========================= -->
+<section class="v2-section bg-light" id="how-it-works">
+    <div class="container">
+        <div class="v2-center">
+            <span class="eyebrow">Simple Process</span>
+            <h2 class="v2-section-title">Three steps to cover</h2>
+            <p class="v2-section-sub">No stacks of paperwork, no pressure — just a straightforward path to the right policy.</p>
+        </div>
+        <div class="v2-process-grid">
+            <div class="v2-process-step reveal">
+                <div class="v2-step-num">1</div>
+                <h4>Tell us what you need</h4>
+                <p>Pick a product and share a few details about you or your business.</p>
+            </div>
+            <div class="v2-process-step reveal">
+                <div class="v2-step-num">2</div>
+                <h4>Get a quote</h4>
+                <p>We come back with pricing and cover options that match what you told us.</p>
+            </div>
+            <div class="v2-process-step reveal">
+                <div class="v2-step-num">3</div>
+                <h4>Get covered</h4>
+                <p>Confirm your choice and we handle the paperwork — you get on with your day.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================= CLIENT STORIES ========================= -->
+<section class="v2-section" id="testimonials">
+    <div class="container">
+        <div class="v2-center">
+            <span class="eyebrow">Client Stories</span>
+            <h2 class="v2-section-title">What our clients say</h2>
+        </div>
+        <div class="v2-pending-note">
+            Client testimonials are coming soon — pending real client stories from Amura.
+        </div>
+    </div>
+</section>
+
+<!-- ============================= CTA ============================= -->
+<section class="v2-cta-banner">
+    <div class="container">
+        <h2>Ready to see your quote? Takes a few minutes. No commitment.</h2>
+        <a class="v2-btn v2-btn-primary" asp-page="/Services">Get a Quote</a>
+    </div>
+</section>

@@ -51,12 +51,29 @@
                 <span class="wz-detail-label">Payment Status</span>
                 <span class="wz-detail-value"><span class="wz-badge @payBadge">@Model.Purchase.PaymentStatus</span></span>
             </div>
+            <div class="wz-detail">
+                <span class="wz-detail-label">Certificate</span>
+                <span class="wz-detail-value">
+                    @if (Model.Purchase.CertificateStatus == "GENERATED")
+                    {
+                        <a asp-controller="Purchases" asp-action="Certificate" asp-route-id="@Model.Purchase.PurchaseId" style="font-weight:700;color:#b8860b;">@Model.Purchase.CertificateNumber</a>
+                    }
+                    else
+                    {
+                        <text>Not yet generated</text>
+                    }
+                </span>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="wz-actions" style="justify-content:center;gap:12px;margin-top:24px;">
     <a asp-controller="Purchases" asp-action="Details" asp-route-id="@Model.Purchase.PurchaseId" class="wz-btn wz-btn--ghost"><i class="fa fa-eye"></i> View Full Purchase</a>
+    @if (Model.Purchase.PaymentStatus == "PAID" && Model.Purchase.CertificateStatus == "GENERATED")
+    {
+        <a asp-controller="Purchases" asp-action="Certificate" asp-route-id="@Model.Purchase.PurchaseId" class="wz-btn wz-btn--gold"><i class="fa fa-award"></i> View Certificate</a>
+    }
     <a asp-action="Comprehensive" asp-route-reset="true" class="wz-btn wz-btn--ghost"><i class="fa fa-plus"></i> Start Another Quote</a>
     <form asp-action="ComprehensiveFinish" method="post" style="margin:0;">
         @Html.AntiForgeryToken()

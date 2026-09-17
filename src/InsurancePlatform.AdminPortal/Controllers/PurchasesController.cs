@@ -91,6 +91,22 @@ public class PurchasesController : Controller
         return View(result.Data);
     }
 
+    /// <summary>Shows the stored official NTSA certificate document (raw get_certificate payload) for a purchase that got one issued.</summary>
+    [HttpGet("NtsaDocument/{id}")]
+    public async Task<IActionResult> NtsaDocument(long id)
+    {
+        var result = await _apiClient.GetAsync<VehicleCertificateDocumentModel>($"/api/purchases/{id}/ntsa-certificate");
+
+        if (!result.Success || result.Data is null)
+        {
+            TempData["StatusMessage"] = result.Message ?? "No official NTSA certificate document for this purchase.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return View(result.Data);
+    }
+
     [Authorize(Roles = RoleCodes.QuoteBackoffice)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -145,7 +161,10 @@ public class PurchasesController : Controller
                 CreatedByName = dict.GetString("created_by_name"),
                 CreatedOn = summaryEvent.EventTime,
                 StartDate = dict.GetNullableDate("start_date"),
-                EndDate = dict.GetNullableDate("end_date")
+                EndDate = dict.GetNullableDate("end_date"),
+                CertificateStatus = dict.GetString("certificate_status"),
+                CertificateNumber = dict.GetString("certificate_number"),
+                CertificateGeneratedOn = dict.GetNullableDate("cert_generated_on")
             };
         }
 
@@ -196,6 +215,30 @@ public class PurchasesController : Controller
         }).ToList();
 
         return View(vm);
+    }
+
+    /// <summary>Printable certificate for a PAID purchase whose certificate has been generated.</summary>
+    [HttpGet("Certificate/{id}")]
+    public async Task<IActionResult> Certificate(long id)
+    {
+        var result = await _apiClient.GetAsync<PurchaseDetail>($"/api/purchases/{id}");
+
+        if (!result.Success || result.Data is null)
+        {
+            TempData["StatusMessage"] = result.Message ?? "Could not load purchase.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Index));
+        }
+
+        var purchase = result.Data;
+        if (purchase.PaymentStatus != "PAID" || purchase.CertificateStatus != "GENERATED")
+        {
+            TempData["StatusMessage"] = "The certificate is only available once the payment is confirmed and the certificate has been generated.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Journey), new { id });
+        }
+
+        return View(purchase);
     }
 }
 

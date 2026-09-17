@@ -231,3 +231,34 @@ public class EditQuoteOfferBatchViewModel
     public long QuoteRequestId { get; set; }
     public List<QuoteOfferBatchEditRowViewModel> Offers { get; set; } = new();
 }
+
+/// <summary>One structured add-on/rider line; Name passes the "blank names are dropped server-side" rule.</summary>
+public class QuoteOfferRiderItem
+{
+    [Display(Name = "Add-on name")]
+    public string Name { get; set; } = string.Empty;
+
+    [Display(Name = "Amount (KSh, optional)")]
+    public decimal? Amount { get; set; }
+
+    [Display(Name = "Note (optional)")]
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// Add-ons editor - one offer's whole list is replaced in a single PUT to
+/// /api/quote-offers/{id}/riders (the old set is soft-deleted server-side).
+/// QuoteOfferId/QuoteRequestId/UnderwriterName/PremiumAmount travel as query
+/// parameters from the offer row's link (same "no single-offer endpoint"
+/// reasoning as EditOffer), Prefixed with the currently-saved add-ons from
+/// GET /api/quoterequests/{quoteRequestId}/offers/{quoteOfferId}/riders.
+/// </summary>
+public class OfferRidersEditViewModel
+{
+    public long QuoteOfferId { get; set; }
+    public long QuoteRequestId { get; set; }
+    public string UnderwriterName { get; set; } = string.Empty;
+    public decimal PremiumAmount { get; set; }
+    public List<QuoteOfferRiderItem> Riders { get; set; } = new();
+    public string? ErrorMessage { get; set; }
+}

@@ -1,0 +1,57 @@
+@page
+@model AmuraWebsite.Pages.Quote.ProposalModel
+@{
+    ViewData["Title"] = "Professional Indemnity Proposal";
+    ViewData["Description"] = "Complete your Professional Indemnity proposal.";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-7 reveal">
+                <div class="contact-card">
+
+                    @if (Model.Submitted)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Thanks — your proposal has been received (ref. @Model.ProposalReferenceNumber). We'll be in touch shortly.
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="post" novalidate>
+                            <input type="hidden" asp-for="Reference" />
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label asp-for="Input.ScopeOfWork" class="form-label">Scope of work</label>
+                                    <textarea asp-for="Input.ScopeOfWork" class="form-control" rows="4" placeholder="Briefly describe the services you provide."></textarea>
+                                    <span asp-validation-for="Input.ScopeOfWork" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.AnnualRevenue" class="form-label">Approximate annual revenue</label>
+                                    <input asp-for="Input.AnnualRevenue" class="form-control" placeholder="e.g. KES 5,000,000" />
+                                    <span asp-validation-for="Input.AnnualRevenue" class="text-danger small"></span>
+                                </div>
+                                <div class="col-12">
+                                    <label asp-for="Input.ClaimsHistory" class="form-label">Prior claims history (optional)</label>
+                                    <textarea asp-for="Input.ClaimsHistory" class="form-control" rows="3" placeholder="Leave blank if none."></textarea>
+                                    <span asp-validation-for="Input.ClaimsHistory" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-quote btn-lg mt-4">Submit proposal</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            <div class="col-lg-5 reveal">
+                <span class="eyebrow">Why we ask</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">Underwriting details</h2>
+                <p class="text-muted">These details go to the underwriter alongside your initial request so we can come back with an accurate premium.</p>
+            </div>
+        </div>
+    </div>
+</section>

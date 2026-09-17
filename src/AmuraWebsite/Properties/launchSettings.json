@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:5044",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+    "AmuraWebsite": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5044",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "InsurancePlatform__WebsiteGuestApiKey": "website-guest-test-key-2026"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "InsurancePlatform__WebsiteGuestApiKey": "website-guest-test-key-2026"
+      }
+    }
+  }
+}

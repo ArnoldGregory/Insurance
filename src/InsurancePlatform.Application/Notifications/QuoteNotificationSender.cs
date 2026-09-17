@@ -93,6 +93,18 @@ public class QuoteNotificationSender : IQuoteNotificationSender
 
         foreach (var offer in offers)
         {
+            var addonsArray = new JsonArray();
+
+            foreach (var rider in offer.AddOns)
+            {
+                addonsArray.Add(new JsonObject
+                {
+                    ["name"] = rider.Name,
+                    ["amount"] = rider.Amount?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+                    ["note"] = rider.Note ?? string.Empty
+                });
+            }
+
             offersArray.Add(new JsonObject
             {
                 ["underwriter_name"] = offer.UnderwriterName,
@@ -101,7 +113,11 @@ public class QuoteNotificationSender : IQuoteNotificationSender
                 // decimal serializes to JSON (invariant "F2", not
                 // locale-dependent), same reasoning as that class's comment.
                 ["premium_amount"] = offer.PremiumAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                ["document_file_name"] = offer.DocumentFileName ?? string.Empty
+                ["document_file_name"] = offer.DocumentFileName ?? string.Empty,
+                // One entry per add-on line the back office attached to the
+                // offer ("RSA", "Anti-theft", ...) - name plus optional
+                // amount and note. Empty array when the offer has none.
+                ["addons"] = addonsArray
             });
 
             if (!string.IsNullOrEmpty(offer.ScapiAttachmentPath))

@@ -57,28 +57,81 @@ public class MpesaStkPushService : IMpesaStkPushService
         }
 
         var errorCode = response["error_code"]?.ToString();
-        var errorDesc = response["error_desc"] as JsonObject;
-        var responseCode = errorDesc?["ResponseCode"]?.ToString();
-        var responseDescription = errorDesc?["ResponseDescription"]?.ToString()
-            ?? errorDesc?["CustomerMessage"]?.ToString()
-            ?? "Unknown gateway response.";
+        var errorDesc = response["error_desc"];
 
         // Two success gates, matching the legacy STK push flow this is
         // ported from: error_code=="00" is SCAPI's own gateway-level
         // success, ResponseCode=="0" is Daraja's own "push accepted"
         // code nested one level down inside error_desc. Both must pass.
-        if (errorCode != "00" || responseCode != "0")
+        if (errorCode == "00" && errorDesc is JsonObject gj && gj["ResponseCode"]?.ToString() == "0")
         {
-            return new StkPushResult { Success = false, Message = responseDescription };
+            return new StkPushResult
+            {
+                Success = true,
+                Message = "Payment received successfully. Kindly check your phone to key in your PIN to finish payment.",
+                MerchantRequestId = gj["MerchantRequestID"]?.ToString(),
+                CheckoutRequestId = gj["CheckoutRequestID"]?.ToString()
+            };
         }
+
+        // Failure path - surface the REAL reason instead of a generic
+        // message. SCAPI's failure shapes are inconsistent:
+        //  * JsonObject  - either Daraja's own rejection (ResponseCode/
+        //                  ResponseDescription/CustomerMessage) or SCAPI's
+        //                  { error_desc: { Message: ... } } style.
+        //  * JsonArray   - SCAPI's RMPESAMANAGER wraps a server-side
+        //                  exception as [{ "exception": "<stacktrace>" }]
+        //                  (e.g. an unregistered business_short_code makes
+        //                  its DB lookup throw), so pull text out of it.
+        //  * plain value - SCAPI sometimes returns a flat string.
+        var description = errorDesc switch
+        {
+            JsonObject jo =>
+                jo["ResponseDescription"]?.ToString()
+                ?? jo["CustomerMessage"]?.ToString()
+                ?? jo["Message"]?.ToString()
+                ?? jo["error_desc"]?.ToString()
+                ?? "Gateway rejected the request.",
+            JsonArray arr when arr[0] is JsonObject first =>
+                ExtractExceptionText(first),
+            JsonArray arr => $"Gateway error: {arr.ToJsonString()}",
+            null => "Gateway rejected the request.",
+            _ => errorDesc.ToString()
+        };
 
         return new StkPushResult
         {
-            Success = true,
-            Message = "Payment received successfully. Kindly check your phone to key in your PIN to finish payment.",
-            MerchantRequestId = errorDesc?["MerchantRequestID"]?.ToString(),
-            CheckoutRequestId = errorDesc?["CheckoutRequestID"]?.ToString()
+            Success = false,
+            Message = string.IsNullOrWhiteSpace(description) ? "Gateway rejected the request." : description,
+            MerchantRequestId = errorDesc is JsonObject failJo ? failJo["MerchantRequestID"]?.ToString() : null,
+            CheckoutRequestId = errorDesc is JsonObject failCo ? failCo["CheckoutRequestID"]?.ToString() : null
         };
+    }
+
+    /// <summary>
+    /// SCAPI's RMPESAMANAGER exception envelope is
+    /// [{ "exception": "\n   at ..." }] - a stack trace, not a friendly
+    /// line. Keep the first meaningful line (usually the message the
+    /// exception started with is buried in it, so grab the first non-blank
+    /// line and cap it) rather than returning the whole trace to a client.
+    /// </summary>
+    private static string? ExtractExceptionText(JsonObject element)
+    {
+        var trace = element["exception"]?.ToString();
+        if (string.IsNullOrWhiteSpace(trace))
+        {
+            return "Gateway processing error.";
+        }
+
+        foreach (var line in trace.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                return line.Length <= 300 ? line : line[..300] + "...";
+            }
+        }
+
+        return "Gateway processing error.";
     }
 
     private static string NormalizeKenyanPhoneNumber(string phoneNumber)

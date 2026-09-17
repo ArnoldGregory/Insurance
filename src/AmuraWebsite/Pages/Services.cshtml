@@ -1,0 +1,122 @@
+@page
+@model AmuraWebsite.Pages.ServicesModel
+@{
+    ViewData["Title"] = "Products";
+    ViewData["Description"] = "Medical, Motor, Professional Indemnity, Travel and Domestic insurance from Amura Insurance Agency.";
+}
+
+<!-- ============================ PRODUCTS ============================ -->
+<section class="section">
+    <div class="container" style="padding-left: 2.5rem; padding-right: 2.5rem;">
+        <div class="row g-4">
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/medical-individual-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">M</div>
+                    <h3>Medical — Individual &amp; Family</h3>
+                    <p>Inpatient and outpatient cover sized for one person or the whole household, with options to add dental, optical and maternity.</p>
+                    <a asp-page="/Quote/MedicalIndividual">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/medical-corporate-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">C</div>
+                    <h3>Medical — Corporate</h3>
+                    <p>Group medical cover for your team, with tiered benefit options and a single renewal date for the whole scheme.</p>
+                    <a asp-page="/Quote/MedicalCorporate">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/professional-indemnity-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">P</div>
+                    <h3>Professional Indemnity</h3>
+                    <p>Cover against claims of negligence or error in the professional advice or services you provide to clients.</p>
+                    <a asp-page="/Quote/ProfessionalIndemnity">Start a proposal &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/travel-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">T</div>
+                    <h3>Travel Insurance</h3>
+                    <p>Medical emergencies, trip cancellation, lost luggage and delays covered for single trips or frequent travel.</p>
+                    <a asp-page="/Quote/Travel">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/domestic-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">D</div>
+                    <h3>Domestic Insurance</h3>
+                    <p>Cover for your home and its contents against fire, theft, weather damage and other everyday risks.</p>
+                    <a asp-page="/Quote/Domestic">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/motor-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">V</div>
+                    <h3>Motor Insurance</h3>
+                    <p>Comprehensive or third-party cover for your vehicle, arranged through our licensed insurer partners.</p>
+                    <a asp-page="/Quote/Motor">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ========================== HOW IT WORKS ========================== -->
+<section class="section section-cream" id="how-it-works">
+    <div class="container">
+        <span class="eyebrow">How it works</span>
+        <h2 class="mt-3 mb-5" style="font-size:clamp(1.7rem,3vw,2.2rem); font-weight:600;">
+            Three steps to cover
+        </h2>
+        <div class="row g-4">
+            <div class="col-md-4 reveal">
+                <div class="value-card">
+                    <h3>1. Tell us what you need</h3>
+                    <p>Pick a product above and share a few details about you or your business.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="value-card">
+                    <h3>2. Get a quote</h3>
+                    <p>We come back with pricing and cover options that match what you told us.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="value-card">
+                    <h3>3. Get covered</h3>
+                    <p>Confirm your choice and we handle the paperwork — you get on with your day.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================= CTA ============================= -->
+<section class="section">
+    <div class="container">
+        <div class="cta-band reveal">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);">Not sure which product fits?</h2>
+                    <p class="mb-0" style="color:rgba(11,11,12,0.75);">Tell us a bit about what you're trying to cover and we'll point you the right way.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a asp-page="/Contact" class="btn btn-dark-pill btn-lg">Talk to us</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

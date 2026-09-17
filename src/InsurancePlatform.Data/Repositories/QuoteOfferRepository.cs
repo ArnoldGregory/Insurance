@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using InsurancePlatform.Application.Repositories;
 using InsurancePlatform.Data.Common;
 using InsurancePlatform.Domain.Common;
@@ -88,6 +89,46 @@ public class QuoteOfferRepository : IQuoteOfferRepository
     {
         var parameters = new List<MySqlParameter> { new("p_quote_offer_id", quoteOfferId) };
         return _executor.ExecuteQuerySingleAsync("usp_QuoteOffer_GetById", parameters, MapRow);
+    }
+
+    public Task<StoredProcResult> ReplaceRidersAsync(long quoteOfferId, List<QuoteOfferRider> riders, long actorId)
+    {
+        var payloadJson = JsonSerializer.Serialize((riders ?? new())
+            .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+            .Select(r => new
+            {
+                name = r.Name.Trim(),
+                amount = r.Amount,
+                note = string.IsNullOrWhiteSpace(r.Note) ? null : r.Note.Trim()
+            }));
+
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_quote_offer_id", quoteOfferId),
+            new("p_actor_id", actorId),
+            new("p_addons_json", payloadJson)
+        };
+
+        return _executor.ExecuteAsync("usp_QuoteOfferRider_Replace", parameters);
+    }
+
+    public Task<StoredProcResult<List<QuoteOfferRider>>> GetRidersByOfferAsync(long quoteOfferId)
+    {
+        var parameters = new List<MySqlParameter> { new("p_quote_offer_id", quoteOfferId) };
+        return _executor.ExecuteQueryAsync("usp_QuoteOfferRider_GetByOffer", parameters, MapRiderRow);
+    }
+
+    private static QuoteOfferRider MapRiderRow(MySqlDataReader reader)
+    {
+        return new QuoteOfferRider
+        {
+            RiderId = reader.GetInt64("rider_id"),
+            QuoteOfferId = reader.GetInt64("quote_offer_id"),
+            Name = reader.GetString("name"),
+            Amount = reader.IsDBNull(reader.GetOrdinal("amount")) ? null : reader.GetDecimal("amount"),
+            Note = reader.IsDBNull(reader.GetOrdinal("note")) ? null : reader.GetString("note"),
+            CreatedOn = reader.GetDateTime("created_on")
+        };
     }
 
     private static QuoteOffer MapRow(MySqlDataReader reader)

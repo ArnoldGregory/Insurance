@@ -1,0 +1,77 @@
+@page
+@model AmuraWebsite.Pages.Quote.DomesticModel
+@{
+    ViewData["Title"] = "Domestic Insurance Quote";
+    ViewData["Description"] = "Get a domestic insurance quote from Amura Insurance Agency.";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-7 reveal">
+                <div class="contact-card">
+
+                    @if (Model.Submitted)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Thanks — your quote request has been received (ref. @Model.ReferenceNumber). We'll be in touch shortly.
+                        </div>
+                    }
+
+                    <form method="post" novalidate>
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.FullName" class="form-label">Full name *</label>
+                                <input asp-for="Input.FullName" class="form-control" placeholder="Jane Wanjiku" />
+                                <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.IdNo" class="form-label">National ID / Passport number *</label>
+                                <input asp-for="Input.IdNo" class="form-control" placeholder="e.g. 33333333" />
+                                <span asp-validation-for="Input.IdNo" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Phone" class="form-label">Phone *</label>
+                                <input asp-for="Input.Phone" class="form-control" placeholder="07xx xxx xxx" />
+                                <span asp-validation-for="Input.Phone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Email" class="form-label">Email *</label>
+                                <input asp-for="Input.Email" class="form-control" placeholder="jane@example.com" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.PropertyAddress" class="form-label">Property address *</label>
+                                <input asp-for="Input.PropertyAddress" class="form-control" placeholder="Plot / street, area, town" />
+                                <span asp-validation-for="Input.PropertyAddress" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.PropertyType" class="form-label">Property type *</label>
+                                <select asp-for="Input.PropertyType" class="form-select">
+                                    <option value="House">House</option>
+                                    <option value="Apartment">Apartment</option>
+                                    <option value="Rental unit">Rental unit</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.EstimatedValue" class="form-label">Estimated value to insure *</label>
+                                <input asp-for="Input.EstimatedValue" class="form-control" placeholder="e.g. KES 3,000,000" />
+                                <span asp-validation-for="Input.EstimatedValue" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-quote btn-lg mt-4">Get my quote</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-5 reveal">
+                <span class="eyebrow">What's covered</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">Domestic insurance</h2>
+                <p class="text-muted">Cover for your home and its contents against fire, theft, weather damage and other everyday risks.</p>
+            </div>
+        </div>
+    </div>
+</section>

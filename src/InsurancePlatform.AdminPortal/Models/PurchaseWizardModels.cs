@@ -260,25 +260,35 @@ public class WizardStep2ViewModel
     public string? ClientAddress { get; set; }
 
     [Display(Name = "KRA PIN")]
+    [Required(ErrorMessage = "Client KRA PIN is required.")]
     public string? ClientKraPin { get; set; }
 
     [Required(ErrorMessage = "Vehicle registration number is required.")]
     [Display(Name = "Registration number")]
     public string VehicleRegNo { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Vehicle make is required.")]
+    [Display(Name = "Vehicle make")]
     public string? VehicleMake { get; set; }
+
+    [Required(ErrorMessage = "Vehicle model is required.")]
+    [Display(Name = "Vehicle model")]
     public string? VehicleModel { get; set; }
 
     [Display(Name = "Chassis number")]
+    [Required(ErrorMessage = "Chassis number is required.")]
     public string? VehicleChassisNo { get; set; }
 
     [Display(Name = "Engine number")]
+    [Required(ErrorMessage = "Engine number is required.")]
     public string? VehicleEngineNo { get; set; }
 
     [Display(Name = "Year of manufacture")]
+    [Required(ErrorMessage = "Year of manufacture is required.")]
     public int? VehicleYearOfManufacture { get; set; }
 
     [Display(Name = "Body type")]
+    [Required(ErrorMessage = "Body type is required.")]
     public string? VehicleBodyType { get; set; }
 
     [Display(Name = "Fuel type")]
@@ -389,25 +399,35 @@ public class ComprehensiveStep2ViewModel
     public string? ClientAddress { get; set; }
 
     [Display(Name = "KRA PIN")]
+    [Required(ErrorMessage = "Client KRA PIN is required.")]
     public string? ClientKraPin { get; set; }
 
     [Required(ErrorMessage = "Vehicle registration number is required.")]
     [Display(Name = "Registration number")]
     public string VehicleRegNo { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Vehicle make is required.")]
+    [Display(Name = "Vehicle make")]
     public string? VehicleMake { get; set; }
+
+    [Required(ErrorMessage = "Vehicle model is required.")]
+    [Display(Name = "Vehicle model")]
     public string? VehicleModel { get; set; }
 
     [Display(Name = "Chassis number")]
+    [Required(ErrorMessage = "Chassis number is required.")]
     public string? VehicleChassisNo { get; set; }
 
     [Display(Name = "Engine number")]
+    [Required(ErrorMessage = "Engine number is required.")]
     public string? VehicleEngineNo { get; set; }
 
     [Display(Name = "Year of manufacture")]
+    [Required(ErrorMessage = "Year of manufacture is required.")]
     public int? VehicleYearOfManufacture { get; set; }
 
     [Display(Name = "Body type")]
+    [Required(ErrorMessage = "Body type is required.")]
     public string? VehicleBodyType { get; set; }
 
     [Display(Name = "Fuel type")]

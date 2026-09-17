@@ -1,0 +1,53 @@
+@model VehicleCertificateDocumentModel
+@{
+    ViewData["Title"] = $"Official NTSA Certificate - {@Model.PolicyNumber ?? Model.PurchaseId.ToString()}";
+    ViewData["FullWidth"] = true;
+}
+
+<!-- begin page-header -->
+<h1 class="page-header">
+    <i class="fas fa-award"></i> Official NTSA Certificate
+    <span class="label @(Model.CertGenerated ? "label-success" : "label-warning")">@(Model.CertGenerated ? "GENERATED" : "PENDING")</span>
+    <small>@Model.CertNo &middot; Policy @(Model.PolicyNumber ?? "not yet assigned")</small>
+</h1>
+<!-- end page-header -->
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="panel panel-inverse">
+            <div class="panel-heading">
+                <div class="panel-heading-btn">
+                    <a asp-action="Details" asp-route-id="@Model.PurchaseId" class="btn btn-xs btn-icon btn-circle btn-default"><i class="fa fa-arrow-left"></i></a>
+                </div>
+                <h4 class="panel-title">NTSA get_certificate payload</h4>
+            </div>
+            <div class="panel-body">
+                <div class="alert alert-warning fade show">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    This is the raw response NTSA returned for the official certificate request. It is stored on the <code>VehicleCertificateDocuments</code> row for record-keeping; the printable policy certificate (the internal HTML one every paid purchase gets) is the "View certificate" page.
+                </div>
+                <pre style="max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word;">@(Model.CertData ?? "—")</pre>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-inverse">
+            <div class="panel-heading">
+                <h4 class="panel-title">Document details</h4>
+            </div>
+            <div class="panel-body">
+                <table class="table table-condensed">
+                    <tbody>
+                        <tr><td class="text-muted" style="width:140px;">Certificate no.</td><td style="font-family:monospace;">@(Model.CertNo ?? "—")</td></tr>
+                        <tr><td class="text-muted">Transaction ref</td><td style="font-family:monospace;">@(Model.TransactionNo ?? "—")</td></tr>
+                        <tr><td class="text-muted">Status</td><td>@(string.IsNullOrWhiteSpace(Model.CertStatus) ? (Model.CertGenerated ? "GENERATED" : "PENDING") : Model.CertStatus)</td></tr>
+                        <tr><td class="text-muted">Notification email</td><td>@(Model.Email ?? "—")</td></tr>
+                        <tr><td class="text-muted">Download URL</td><td>@(Model.CertDownloadUrl ?? "—")</td></tr>
+                        <tr><td class="text-muted">Purchase</td><td><a asp-action="Details" asp-route-id="@Model.PurchaseId">#@Model.PurchaseId</a></td></tr>
+                        <tr><td class="text-muted">Saved on</td><td>@Model.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -7,7 +7,8 @@
 
 ALTER TABLE Purchases
     ADD COLUMN certificate_status VARCHAR(20) NOT NULL DEFAULT 'NOT_GENERATED' AFTER payment_status,
-    ADD COLUMN cert_generated_on DATETIME NULL AFTER certificate_status;
+    ADD COLUMN cert_generated_on DATETIME NULL AFTER certificate_status,
+    ADD COLUMN certificate_number VARCHAR(50) NULL AFTER cert_generated_on;
 
 DROP PROCEDURE IF EXISTS usp_Purchase_GetTimeline;
 DELIMITER $$
@@ -36,6 +37,7 @@ BEGIN
                 'payment_status', p.payment_status,
                 'status', p.status,
                 'certificate_status', p.certificate_status,
+                'certificate_number', p.certificate_number,
                 'cert_generated_on', CASE WHEN p.cert_generated_on IS NOT NULL THEN DATE_FORMAT(p.cert_generated_on, '%Y-%m-%d %H:%i:%s') ELSE NULL END,
                 'account_number', CASE
                     WHEN v.reg_no IS NOT NULL THEN CONCAT(COALESCE(v.reg_no, 'VEH'), '#', LPAD(p.purchase_id, 3, '0'))
@@ -187,10 +189,15 @@ CREATE PROCEDURE usp_Purchase_CompleteCert(
 BEGIN
     DECLARE v_payment_status VARCHAR(20);
     DECLARE v_cert_status VARCHAR(20);
+    DECLARE v_cert_number VARCHAR(50);
+    DECLARE v_product_code VARCHAR(30);
     DECLARE v_actor_type VARCHAR(20);
 
-    SELECT payment_status, certificate_status INTO v_payment_status, v_cert_status
-    FROM Purchases WHERE purchase_id = p_purchase_id;
+    SELECT p.payment_status, p.certificate_status, p.certificate_number, pr.code
+    INTO v_payment_status, v_cert_status, v_cert_number, v_product_code
+    FROM Purchases p
+    LEFT JOIN Products pr ON pr.product_id = p.product_id
+    WHERE p.purchase_id = p_purchase_id;
 
     IF v_payment_status IS NULL THEN
         SET o_result_code = 2;
@@ -200,32 +207,59 @@ BEGIN
         SET o_result_message = CONCAT('Certificate cannot be generated - payment is ', v_payment_status, '. Mark the payment as paid first.');
     ELSEIF v_cert_status = 'GENERATED' THEN
         SET o_result_code = 1;
-        SET o_result_message = 'Certificate has already been generated for this purchase.';
+        SET o_result_message = CONCAT('Certificate already generated.', IF(v_cert_number IS NOT NULL, CONCAT(' Certificate no: ', v_cert_number), ''));
     ELSE
-        -- AuditLog.actor_type is CHECK-constrained to USER/CLIENT/CHANNEL_SERVICE
-        -- (chk_audit_actor_type). A background service has no login identity, so
-        -- normalize any unrecognised caller to USER - same idea as the API's own
-        -- CurrentRoleCode->actor_type mapping, just defensive against direct
-        -- background-service invocation.
         IF p_actor_type IN ('USER','CLIENT','CHANNEL_SERVICE') THEN
             SET v_actor_type = p_actor_type;
         ELSE
             SET v_actor_type = 'USER';
         END IF;
 
+        IF v_cert_number IS NULL THEN
+            SET v_cert_number = CONCAT(UPPER(COALESCE(v_product_code, 'POL')), '-', LPAD(p_purchase_id, 6, '0'), '-', DATE_FORMAT(NOW(), '%y%m'));
+        END IF;
+
         UPDATE Purchases
         SET certificate_status = 'GENERATED',
-            cert_generated_on = NOW()
+            cert_generated_on = NOW(),
+            certificate_number = COALESCE(certificate_number, v_cert_number)
         WHERE purchase_id = p_purchase_id;
 
         INSERT INTO AuditLog (actor_type, actor_id, action, entity, entity_id, old_value, new_value, created_on)
         VALUES (v_actor_type, p_actor_id, 'COMPLETE', 'Purchases', p_purchase_id,
                 JSON_OBJECT('certificate_status', v_cert_status),
-                JSON_OBJECT('certificate_status', 'GENERATED'),
+                JSON_OBJECT('certificate_status', 'GENERATED', 'certificate_number', v_cert_number),
                 NOW());
 
         SET o_result_code = 0;
-        SET o_result_message = 'Payment received successfully - your certificate will be emailed to you shortly.';
+        SET o_result_message = CONCAT('Certificate generated. Certificate no: ', v_cert_number);
     END IF;
+END$$
+DELIMITER ;
+
+-- ============================================================
+-- usp_Purchase_FindPendingCertCompletion - the take-over / background
+-- service's poll query: every purchase whose payment is confirmed PAID
+-- but whose certificate hasn't been generated yet (and is still an ACTIVE
+-- policy). The worker loops these purchase_ids into
+-- usp_Purchase_CompleteCert, in the same way a staff "retry cert" click
+-- calls it synchronously - one shared completion routine, two triggers.
+-- ============================================================
+DROP PROCEDURE IF EXISTS usp_Purchase_FindPendingCertCompletion;
+DELIMITER $$
+CREATE PROCEDURE usp_Purchase_FindPendingCertCompletion(
+    OUT o_result_code INT,
+    OUT o_result_message VARCHAR(500)
+)
+BEGIN
+    SELECT purchase_id
+    FROM Purchases
+    WHERE payment_status = 'PAID'
+      AND certificate_status = 'NOT_GENERATED'
+      AND status = 'ACTIVE'
+    ORDER BY purchase_id ASC;
+
+    SET o_result_code = 0;
+    SET o_result_message = 'Success';
 END$$
 DELIMITER ;

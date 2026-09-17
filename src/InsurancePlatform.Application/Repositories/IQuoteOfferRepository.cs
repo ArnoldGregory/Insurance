@@ -24,4 +24,14 @@ public interface IQuoteOfferRepository
     Task<StoredProcResult> DeleteAsync(long quoteOfferId, long actorId);
 
     Task<StoredProcResult<QuoteOffer?>> GetByIdAsync(long quoteOfferId);
+
+    /// <summary>
+    /// Wraps usp_QuoteOfferRider_Replace - replaces an offer's whole add-on
+    /// set in one call (old set is soft-deleted). riders with a blank name
+    /// are dropped server-side; an empty list clears the offer's add-ons.
+    /// </summary>
+    Task<StoredProcResult> ReplaceRidersAsync(long quoteOfferId, List<QuoteOfferRider> riders, long actorId);
+
+    /// <summary>Wraps usp_QuoteOfferRider_GetByOffer - the ACTIVE add-on set for an offer (empty when it has none).</summary>
+    Task<StoredProcResult<List<QuoteOfferRider>>> GetRidersByOfferAsync(long quoteOfferId);
 }

@@ -2,7 +2,9 @@ using System.Reflection;
 using System.Text;
 using InsurancePlatform.Api.Logging;
 using InsurancePlatform.Api.Middleware;
+using InsurancePlatform.Api.Services;
 using InsurancePlatform.Application.Auth;
+using InsurancePlatform.Application.Certificates;
 using InsurancePlatform.Application.Clients;
 using InsurancePlatform.Application.Integrations;
 using InsurancePlatform.Application.Notifications;
@@ -125,11 +127,17 @@ try
         });
     });
 
+    // Singleton, not scoped: ILoggerManager is a stateless NLog wrapper (see
+    // LoggerManager), and the PurchaseCertCompletionWorker BackgroundService
+    // is registered as a singleton hosted service - a singleton can only
+    // consume singletons, so scoped here would fail DI validation. Singleton
+    // is a superset lifetime, so controllers/services keep working after the
+    // change. CorrelationContext below stays scoped (per-request ref).
+    builder.Services.AddSingleton<ILoggerManager, LoggerManager>();
+
     // Scoped = one instance per HTTP request. CorrelationContext holds this
-    // request's ref; LoggerManager is the concrete ILoggerManager everything
-    // else in the app (services, repositories) will ask for by interface.
+    // request's ref.
     builder.Services.AddScoped<CorrelationContext>();
-    builder.Services.AddScoped<ILoggerManager, LoggerManager>();
 
     // The Data layer's plumbing: one executor per request, talking to MySQL
     // via the connection string read from appsettings.json.
@@ -189,6 +197,18 @@ try
     // depends on this for POST /api/payments/stk-push.
     builder.Services.AddScoped<IMpesaStkPushService, MpesaStkPushService>();
 
+    // NTSA/D-MVIC official motor certificate issuance - the Dmvic section of
+    // appsettings.json drives request type / certificate type / contacts and
+    // the on/off switch; the per-underwriter NTSA member id lives on
+    // Underwriters.dmvic_code. PurchaseCertificationService is the single
+    // completion path all three certificate triggers (M-Pesa callback, retry
+    // button, background worker) funnel through, so the official-cert step
+    // (best-effort, falls back to the internal HTML certificate) stays in one
+    // place.
+    builder.Services.Configure<DmvicOptions>(builder.Configuration.GetSection("Dmvic"));
+    builder.Services.AddScoped<IDmvicCertificateService, DmvicCertificateService>();
+    builder.Services.AddScoped<IPurchaseCertificationService, PurchaseCertificationService>();
+
     // Authentication module wiring - every interface here follows the same
     // pattern as everything above: Application/Domain define the contract,
     // Data or Infrastructure supply the concrete class.
@@ -225,6 +245,20 @@ try
     // Motor pricing, Quotes and Commissions together in one transaction.
     builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
     builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+
+    // Certificate take-over worker - polls for PAID-but-not-generated
+    // purchases and completes their certificates through the same
+    // usp_Purchase_CompleteCert the retry button calls synchronously.
+    // Switched off by default (Production/Development both disable it
+    // explicitly in appsettings) - flip PurchaseCompletionWorker:Enabled
+    // to true on the environment that should self-complete after M-Pesa
+    // callbacks resolve payments.
+    builder.Services.Configure<PurchaseCompletionWorkerOptions>(
+        builder.Configuration.GetSection("PurchaseCompletionWorker"));
+    if (builder.Configuration.GetValue<bool>("PurchaseCompletionWorker:Enabled"))
+    {
+        builder.Services.AddHostedService<PurchaseCertCompletionWorker>();
+    }
 
     // Commissions - rates/overrides (what % an agent earns) and the
     // earnings ledger/withdrawal flow (an agent's actual money).

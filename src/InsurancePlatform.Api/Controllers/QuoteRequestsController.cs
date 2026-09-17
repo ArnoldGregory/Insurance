@@ -874,6 +874,94 @@ public class QuoteRequestsController : BaseApiController
         return Success(result.ResultMessage);
     }
 
+    /// <summary>
+    /// Replaces an offer's whole add-on/rider set in one call - the old set
+    /// is soft-deleted server-side (usp_QuoteOfferRider_Replace). Back office
+    /// only. Same root-addressed-by-quote_offer_id shape as UpdateOffer;
+    /// rows with a blank Name are dropped, an empty Riders list clears.
+    /// </summary>
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [Authorize(Roles = BackofficeRoles)]
+    [HttpPut("/api/quote-offers/{quoteOfferId}/riders")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReplaceOfferRiders(long quoteOfferId, [FromBody] UpdateQuoteOfferRidersRequest request)
+    {
+        var riders = (request?.Riders ?? new())
+            .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+            .Select(r => new QuoteOfferRider
+            {
+                Name = r.Name.Trim(),
+                Amount = r.Amount,
+                Note = string.IsNullOrWhiteSpace(r.Note) ? null : r.Note.Trim()
+            })
+            .ToList();
+
+        var result = await _quoteOfferRepository.ReplaceRidersAsync(quoteOfferId, riders, CurrentUserId);
+
+        if (!result.IsSuccess)
+        {
+            return BusinessFailure(result.ResultMessage);
+        }
+
+        _logger.LogInfo($"Quote offer add-ons replaced: quote_offer_id={quoteOfferId}, count={riders.Count}, by user_id={CurrentUserId}.");
+
+        // Same as edit-offer: after a successful save, re-send the comparison
+        // email so the client sees the updated add-ons alongside the offers.
+        // Best-effort inside SendOffersComparisonEmailAsync itself.
+        var offerResult = await _quoteOfferRepository.GetByIdAsync(quoteOfferId);
+        if (offerResult.IsSuccess && offerResult.Data is not null)
+        {
+            await SendOffersComparisonEmailAsync(offerResult.Data.QuoteRequestId);
+        }
+
+        return Success(result.ResultMessage);
+    }
+
+    /// <summary>
+    /// The add-on/rider set for one offer. Same ownership rules as GetOffers
+    /// (Client-role callers must own the parent quote request's client, so
+    /// the website's compare view can read them; staff/channel-service pass
+    /// through) - the offer must belong to the quote request addressed.
+    /// </summary>
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [HttpGet("{id}/offers/{quoteOfferId}/riders")]
+    [ProducesResponseType(typeof(ApiResponse<List<QuoteOfferRider>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOfferRiders(long id, long quoteOfferId)
+    {
+        var parentResult = await _quoteRequestRepository.GetByIdAsync(id);
+
+        if (!parentResult.IsSuccess || parentResult.Data is null)
+        {
+            return BusinessFailure(parentResult.ResultMessage);
+        }
+
+        if (!await CallerOwnsClientRecordAsync(parentResult.Data.ClientId))
+        {
+            return BusinessFailure("Quote request not found.");
+        }
+
+        var offersResult = await _quoteOfferRepository.GetListByRequestAsync(id);
+
+        if (!offersResult.IsSuccess || offersResult.Data is null)
+        {
+            return BusinessFailure("Offers not found for this quote request.");
+        }
+
+        if (!offersResult.Data.Any(o => o.QuoteOfferId == quoteOfferId))
+        {
+            return BusinessFailure("Offer not found on this quote request.");
+        }
+
+        var result = await _quoteOfferRepository.GetRidersByOfferAsync(quoteOfferId);
+
+        if (!result.IsSuccess)
+        {
+            return BusinessFailure(result.ResultMessage);
+        }
+
+        return Success(result.Data, result.ResultMessage);
+    }
+
     private IActionResult CreateResult(StoredProcResult<QuoteRequestCreateResult?> result, string productCode)
     {
         if (!result.IsSuccess)
@@ -1126,6 +1214,17 @@ public class QuoteRequestsController : BaseApiController
                     UnderwriterName = offer.UnderwriterName,
                     PremiumAmount = offer.PremiumAmount
                 };
+
+                // Best-effort: the offer's add-ons ride along as a plain
+                // list on the email body - if reading them fails the rest
+                // of the email still goes out (just without that line).
+                var ridersResult = await _quoteOfferRepository.GetRidersByOfferAsync(offer.QuoteOfferId);
+                if (ridersResult.IsSuccess && ridersResult.Data is not null && ridersResult.Data.Count > 0)
+                {
+                    attachment.AddOns = ridersResult.Data
+                        .Select(r => new QuoteOfferEmailRider { Name = r.Name, Amount = r.Amount, Note = r.Note })
+                        .ToList();
+                }
 
                 if (!string.IsNullOrWhiteSpace(offer.DocumentPath))
                 {

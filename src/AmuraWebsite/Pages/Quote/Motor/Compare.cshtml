@@ -1,0 +1,139 @@
+@page
+@model AmuraWebsite.Pages.Quote.Motor.CompareModel
+@{
+    ViewData["Title"] = "Motor Insurance — Compare Prices";
+    bool isComprehensive = Model.State.CoverType == "COMPREHENSIVE";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-8 reveal">
+                <div class="contact-card">
+                    <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Step 2 of 3: Compare Prices</h3>
+                    <p class="text-muted small mb-1">
+                        @Model.State.Make @Model.State.Model (@Model.State.RegNo) — pick the cover that fits.
+                    </p>
+                    @if (isComprehensive)
+                    {
+                        <p class="text-muted small mb-3">
+                            Comprehensive cover, vehicle value KES @Model.State.VehicleValue.ToString("N0"). Prices below are the annual premium.
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-3">Third Party Only cover.</p>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+                    }
+
+                    <form method="post" novalidate>
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        @if (isComprehensive)
+                        {
+                            @foreach (var option in Model.State.ComprehensiveQuote!.Options.OrderBy(p => p.TotalPremium))
+                            {
+                                var isPreselected = Model.State.SelectedUnderwriterId == option.UnderwriterId && Model.State.SelectedPrice.HasValue;
+                                var displayedPrice = isPreselected ? Model.State.SelectedPrice!.Value : option.TotalPremium;
+                                <label class="d-block mb-3" style="border:1px solid var(--line-on-light); border-radius: var(--radius-md); padding: 1.25rem; cursor:pointer;">
+                                    <div class="d-flex justify-content-between align-items-start flex-wrap">
+                                        <div>
+                                            <input type="radio" name="Input.UnderwriterId" value="@option.UnderwriterId" class="form-check-input me-2" @(isPreselected ? "checked" : "") />
+                                            <strong>@option.UnderwriterName</strong>
+                                        </div>
+                                        <div style="font-size:1.4rem; font-weight:700; color: var(--gold-2);">
+                                            KES @displayedPrice.ToString("N0")
+                                        </div>
+                                    </div>
+                                    <div class="text-muted small mb-2">
+                                        Base premium KES @option.BasePremium.ToString("N0") &middot; Rate @option.RatePercent.ToString("0.####")%
+                                        @if (isPreselected && Model.State.SelectedPrice!.Value > option.TotalPremium)
+                                        {
+                                            <span class="text-success"> &middot; includes your selected benefits</span>
+                                        }
+                                    </div>
+
+                                    @{
+                                        var benefits = Model.State.ComprehensiveQuote.BenefitsByUnderwriter.TryGetValue(option.UnderwriterId.ToString(), out var uwBenefits)
+                                            ? uwBenefits : new List<AmuraWebsite.Services.ComprehensiveBenefitDto>();
+                                        var included = benefits.Where(b => b.IsIncludedInBase).ToList();
+                                        var addons = benefits.Where(b => !b.IsIncludedInBase).ToList();
+                                        var limits = Model.State.ComprehensiveQuote.LiabilityLimitsByUnderwriter.TryGetValue(option.UnderwriterId.ToString(), out var uwLimits)
+                                            ? uwLimits : new List<AmuraWebsite.Services.ComprehensiveLiabilityLimitDto>();
+                                    }
+
+                                    @if (included.Count > 0)
+                                    {
+                                        <div class="small mb-1"><strong>Included in base:</strong>
+                                            @foreach (var b in included)
+                                            {
+                                                <span class="badge bg-success-subtle text-success-emphasis me-1">@b.BenefitName</span>
+                                            }
+                                        </div>
+                                    }
+                                    @if (addons.Count > 0)
+                                    {
+                                        <div class="small mb-1"><strong>Optional add-ons:</strong>
+                                            @foreach (var b in addons)
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary-emphasis me-1">
+                                                    @b.BenefitName@(b.DefaultPrice > 0 ? " (+KES " + b.DefaultPrice.ToString("N0") + ")" : "")
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    @if (limits.Count > 0)
+                                    {
+                                        <details class="small text-muted mt-1">
+                                            <summary>Coverage limits</summary>
+                                            <ul class="mb-0 ps-3 mt-1">
+                                                @foreach (var l in limits)
+                                                {
+                                                    <li><strong>@l.LimitName:</strong> @l.LimitValue</li>
+                                                }
+                                            </ul>
+                                        </details>
+                                    }
+                                </label>
+                            }
+                        }
+                        else
+                        {
+                            <div class="row g-3">
+                                @foreach (var option in Model.State.PriceOptions.OrderBy(p => p.Price))
+                                {
+                                    <div class="col-md-6">
+                                        <label class="d-block" style="border:1px solid var(--line-on-light); border-radius: var(--radius-md); padding: 1.25rem; cursor:pointer;">
+                                            <input type="radio" name="Input.UnderwriterId" value="@option.UnderwriterId" class="form-check-input me-2" />
+                                            <strong>@option.UnderwriterName</strong>
+                                            <div style="font-size:1.4rem; font-weight:700; color: var(--gold-2); margin-top:0.4rem;">
+                                                KES @option.Price.ToString("N0")
+                                            </div>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-quote btn-lg mt-4">Continue to Payment &rarr;</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-4 reveal">
+                <span class="eyebrow">Your vehicle</span>
+                <h2 class="mt-3 mb-3" style="font-size:1.3rem; font-weight:600;">@Model.State.Make @Model.State.Model</h2>
+                <p class="text-muted mb-1">Reg: @Model.State.RegNo</p>
+                @if (isComprehensive)
+                {
+                    <p class="text-muted mb-1">Value: KES @Model.State.VehicleValue.ToString("N0")</p>
+                }
+                <p class="text-muted">Client: @Model.State.FullName</p>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,271 @@
+@page
+@model AmuraWebsite.Pages.Quote.MedicalIndividualModel
+@{
+    ViewData["Title"] = "Medical Quote — Individual & Family";
+    ViewData["Description"] = "Get a quote for individual or family medical cover from Amura Insurance Agency.";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-8 reveal">
+                <div class="contact-card">
+
+                    @if (Model.Submitted)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Thanks — your quote request has been received@(string.IsNullOrEmpty(Model.ReferenceNumber) ? "." : $" (ref. {Model.ReferenceNumber}).") We'll be in touch shortly.
+                        </div>
+                    }
+
+                    <form method="post" novalidate id="medIndForm">
+                        <input type="hidden" asp-for="FormToken" />
+                        <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
+                            <label for="Input_Website">Leave this field blank</label>
+                            <input asp-for="Input.Website" tabindex="-1" autocomplete="off" />
+                        </div>
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Section 1: Your Information</h3>
+                        <p class="text-muted small mb-3">Tell us who this cover is for.</p>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label asp-for="Input.FirstName" class="form-label">First name</label>
+                                <input asp-for="Input.FirstName" class="form-control" placeholder="Jane" />
+                                <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Input.LastName" class="form-label">Last name</label>
+                                <input asp-for="Input.LastName" class="form-control" placeholder="Wanjiku" />
+                                <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Input.OtherNames" class="form-label">Other names (optional)</label>
+                                <input asp-for="Input.OtherNames" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.IdNo" class="form-label">National ID / Passport number</label>
+                                <input asp-for="Input.IdNo" class="form-control" placeholder="e.g. 33333333" />
+                                <span asp-validation-for="Input.IdNo" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.MobileNumber" class="form-label">Mobile number</label>
+                                <input asp-for="Input.MobileNumber" class="form-control" placeholder="07xx xxx xxx" />
+                                <span asp-validation-for="Input.MobileNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Email" class="form-label">Email</label>
+                                <input asp-for="Input.Email" class="form-control" placeholder="jane@example.com" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.DateOfBirth" class="form-label">Your date of birth</label>
+                                <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                                <span asp-validation-for="Input.DateOfBirth" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Section 2: Coverage Preferences</h3>
+                        <p class="text-muted small mb-3">Helps us shortlist the right plan before we call you back.</p>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.InpatientLimit" class="form-label">Inpatient limit</label>
+                                <select asp-for="Input.InpatientLimit" class="form-select">
+                                    <option value="500000">KES 500,000</option>
+                                    <option value="1000000">KES 1,000,000</option>
+                                    <option value="2000000">KES 2,000,000</option>
+                                    <option value="3000000">KES 3,000,000</option>
+                                    <option value="5000000">KES 5,000,000</option>
+                                    <option value="not_sure">Not sure — advise me</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Section 3: Optional Benefits</h3>
+                        <p class="text-muted small mb-3">Toggle on anything you'd like added — details appear once switched on.</p>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="Input.OutpatientEnabled" class="form-check-input" id="outpatientToggle" role="switch" />
+                                <label class="form-check-label" asp-for="Input.OutpatientEnabled">Outpatient cover</label>
+                            </div>
+                            <div id="outpatientDetail" class="mt-2" style="display:none; max-width: 320px;">
+                                <label asp-for="Input.OutpatientLimit" class="form-label small">Outpatient limit</label>
+                                <select asp-for="Input.OutpatientLimit" class="form-select form-select-sm">
+                                    <option value="">— Select —</option>
+                                    <option value="50000">KES 50,000</option>
+                                    <option value="100000">KES 100,000</option>
+                                    <option value="150000">KES 150,000</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="Input.DentalEnabled" class="form-check-input" id="dentalToggle" role="switch" />
+                                <label class="form-check-label" asp-for="Input.DentalEnabled">Dental &amp; optical cover</label>
+                            </div>
+                            <div id="dentalDetail" class="mt-2" style="display:none; max-width: 320px;">
+                                <label asp-for="Input.DentalLimit" class="form-label small">Dental &amp; optical limit</label>
+                                <select asp-for="Input.DentalLimit" class="form-select form-select-sm">
+                                    <option value="">— Select —</option>
+                                    <option value="20000">KES 20,000</option>
+                                    <option value="40000">KES 40,000</option>
+                                    <option value="60000">KES 60,000</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="Input.MaternityEnabled" class="form-check-input" role="switch" />
+                                <label class="form-check-label" asp-for="Input.MaternityEnabled">Maternity cover</label>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Section 4: Dependants to Cover</h3>
+                        <p class="text-muted small mb-3">Optional — add a spouse and/or as many children as you need. A new row appears automatically once you set one.</p>
+
+                        <div id="dependentRows">
+                            @for (var i = 0; i < Model.Input.Dependents.Count; i++)
+                            {
+                                var prefix = $"Input.Dependents[{i}]";
+                                var dep = Model.Input.Dependents[i];
+                                <div class="dep-row row g-2 mb-2 align-items-end" data-index="@i">
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Relationship</label>
+                                        <select name="@($"{prefix}.Relationship")" class="form-select form-select-sm dep-relationship">
+                                            <option value="None" selected="@(dep.Relationship == "None")">— Not used —</option>
+                                            <option value="Spouse" selected="@(dep.Relationship == "Spouse")">Spouse</option>
+                                            <option value="Child" selected="@(dep.Relationship == "Child")">Child</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Full name</label>
+                                        <input name="@($"{prefix}.FullName")" value="@dep.FullName" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Date of birth</label>
+                                        <input name="@($"{prefix}.DateOfBirth")" value="@(dep.DateOfBirth?.ToString("yyyy-MM-dd"))" type="date" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        @if (i > 0)
+                                        {
+                                            <button type="button" class="btn btn-outline-secondary btn-sm dep-remove-btn">Remove</button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <button type="submit" class="btn btn-quote btn-lg mt-4">Get my quote</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-4 reveal">
+                <span class="eyebrow">What's covered</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">Individual &amp; family medical</h2>
+                <p class="text-muted">Inpatient and outpatient cover, with options to add dental, optical and maternity depending on the plan you choose.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    (function () {
+        // --- Optional benefits: reveal the limit dropdown only when toggled on ---
+        function wireToggle(toggleId, detailId) {
+            var toggle = document.getElementById(toggleId);
+            var detail = document.getElementById(detailId);
+            if (!toggle || !detail) return;
+            function sync() { detail.style.display = toggle.checked ? '' : 'none'; }
+            toggle.addEventListener('change', sync);
+            sync();
+        }
+        wireToggle('outpatientToggle', 'outpatientDetail');
+        wireToggle('dentalToggle', 'dentalDetail');
+
+        // --- Dependants: unlimited, auto-appending rows ---
+        var container = document.getElementById('dependentRows');
+
+        function rowHtml(index) {
+            return '' +
+                '<div class="dep-row row g-2 mb-2 align-items-end" data-index="' + index + '">' +
+                '  <div class="col-md-3">' +
+                '    <label class="form-label small">Relationship</label>' +
+                '    <select name="Input.Dependents[' + index + '].Relationship" class="form-select form-select-sm dep-relationship">' +
+                '      <option value="None">— Not used —</option>' +
+                '      <option value="Spouse">Spouse</option>' +
+                '      <option value="Child">Child</option>' +
+                '    </select>' +
+                '  </div>' +
+                '  <div class="col-md-4">' +
+                '    <label class="form-label small">Full name</label>' +
+                '    <input name="Input.Dependents[' + index + '].FullName" class="form-control form-control-sm" />' +
+                '  </div>' +
+                '  <div class="col-md-3">' +
+                '    <label class="form-label small">Date of birth</label>' +
+                '    <input name="Input.Dependents[' + index + '].DateOfBirth" type="date" class="form-control form-control-sm" />' +
+                '  </div>' +
+                '  <div class="col-md-2">' +
+                '    <button type="button" class="btn btn-outline-secondary btn-sm dep-remove-btn">Remove</button>' +
+                '  </div>' +
+                '</div>';
+        }
+
+        function wireRow(row) {
+            var select = row.querySelector('.dep-relationship');
+            select.addEventListener('change', function () {
+                if (select.value !== 'None') {
+                    var isLastRow = row === container.lastElementChild;
+                    if (isLastRow) {
+                        appendRow();
+                    }
+                }
+            });
+            var removeBtn = row.querySelector('.dep-remove-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function () {
+                    row.remove();
+                    reindexRows();
+                });
+            }
+        }
+
+        function appendRow() {
+            var index = container.children.length;
+            var wrapper = document.createElement('div');
+            wrapper.innerHTML = rowHtml(index);
+            var newRow = wrapper.firstElementChild;
+            container.appendChild(newRow);
+            wireRow(newRow);
+        }
+
+        function reindexRows() {
+            var rows = Array.prototype.slice.call(container.querySelectorAll('.dep-row'));
+            rows.forEach(function (row, i) {
+                row.setAttribute('data-index', i);
+                row.querySelectorAll('[name]').forEach(function (el) {
+                    el.name = el.name.replace(/Dependents\[\d+\]/, 'Dependents[' + i + ']');
+                });
+                // Only the first row is protected from removal.
+                var removeBtn = row.querySelector('.dep-remove-btn');
+                if (removeBtn) {
+                    removeBtn.style.display = i === 0 ? 'none' : '';
+                }
+            });
+        }
+
+        Array.prototype.slice.call(container.querySelectorAll('.dep-row')).forEach(wireRow);
+        reindexRows();
+    })();
+</script>

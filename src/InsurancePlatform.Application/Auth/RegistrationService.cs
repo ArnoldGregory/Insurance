@@ -89,11 +89,9 @@ public class RegistrationService : IRegistrationService
         }
 
         var externalRefNumber = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
-        var sent = sendingByEmail
-            ? await _otpSender.SendOtpEmailAsync(input.Email!, input.FullName, otpCode, externalRefNumber)
-            : await _otpSender.SendOtpSmsAsync(input.Phone, otpCode, externalRefNumber);
+        var sent = await DeliverOtpAsync(input, otpCode, externalRefNumber);
 
-        if (!sent)
+        if (sent is null)
         {
             _logger.LogError($"Registration OTP created (otp_id={otpCreateResult.Data}) but gateway delivery failed for id_no={input.IdNo}.");
             if (!bool.TryParse(_configuration["Notifications:AllowOtpDeliveryFailure"], out var allowWithoutDelivery) || !allowWithoutDelivery)
@@ -102,7 +100,7 @@ public class RegistrationService : IRegistrationService
             }
         }
 
-        _logger.LogInfo($"Registration OTP sent for id_no={input.IdNo} (user_id={ids.UserId}, client_id={ids.ClientId}) via {(sendingByEmail ? "email" : "sms")}.");
+        _logger.LogInfo($"Registration OTP sent for id_no={input.IdNo} (user_id={ids.UserId}, client_id={ids.ClientId}) via {sent ?? "none"}.");
         return new AuthResult { Success = true, Message = "Account created. Verification code sent - verify to activate your account." };
     }
 
@@ -175,5 +173,40 @@ public class RegistrationService : IRegistrationService
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(otpCode));
         return Convert.ToHexString(bytes);
+    }
+
+    /// <summary>
+    /// Same email-first-then-SMS fallback as AuthService.DeliverOtpAsync -
+    /// SCAPI's EMAIL_OTP_BIMA is broken (error_code 99 on every send, see
+    /// SCAPI_EMAIL_ISSUE.md), so registration must not hard-fail when the
+    /// account has an email: the same OTP goes to the phone instead. Returns
+    /// "email", "sms", or null when both channels failed.
+    /// </summary>
+    private async Task<string?> DeliverOtpAsync(
+        ClientRegistrationInput input, string otpCode, string externalRefNumber)
+    {
+        if (!string.IsNullOrWhiteSpace(input.Email))
+        {
+            var emailed = await _otpSender.SendOtpEmailAsync(
+                input.Email!, input.FullName, otpCode, externalRefNumber);
+            if (emailed)
+            {
+                return "email";
+            }
+
+            _logger.LogWarn($"Registration OTP email delivery failed for id_no={input.IdNo}; falling back to SMS.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Phone))
+        {
+            var smsSent = await _otpSender.SendOtpSmsAsync(
+                input.Phone, otpCode, externalRefNumber);
+            if (smsSent)
+            {
+                return "sms";
+            }
+        }
+
+        return null;
     }
 }

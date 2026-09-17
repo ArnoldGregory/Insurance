@@ -266,6 +266,12 @@
                                            asp-route-underwriterId="@offer.UnderwriterId"
                                            asp-route-premiumAmount="@offer.PremiumAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                            class="btn btn-default btn-xs"><i class="fa fa-pencil-alt"></i> Edit</a>
+                                        <a asp-action="EditRiders"
+                                           asp-route-quoteOfferId="@offer.QuoteOfferId"
+                                           asp-route-quoteRequestId="@offer.QuoteRequestId"
+                                           asp-route-underwriterName="@offer.UnderwriterName"
+                                           asp-route-premiumAmount="@offer.PremiumAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           class="btn btn-primary btn-xs" title="Manage this offer's structured add-ons"><i class="fa fa-list"></i> Add-ons</a>
                                         <form asp-action="DeleteOffer" method="post" data-confirm="Delete this offer? This can't be undone." style="margin:0;">
                                             <input type="hidden" name="quoteOfferId" value="@offer.QuoteOfferId" />
                                             <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />

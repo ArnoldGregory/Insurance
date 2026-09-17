@@ -73,3 +73,21 @@ public class UpdateQuoteOfferBatchRequest
     public long QuoteRequestId { get; set; }
     public List<QuoteOfferBatchUpdateItem> Offers { get; set; } = new();
 }
+
+/// <summary>One structured add-on/rider line on the PUT riders endpoint.</summary>
+public class QuoteOfferRiderItemRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal? Amount { get; set; }
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// Replaces an offer's whole add-on set in one call - the old set is
+/// soft-deleted server-side. Send an empty Riders list to clear add-ons.
+/// Rows with a blank name are dropped.
+/// </summary>
+public class UpdateQuoteOfferRidersRequest
+{
+    public List<QuoteOfferRiderItemRequest> Riders { get; set; } = new();
+}

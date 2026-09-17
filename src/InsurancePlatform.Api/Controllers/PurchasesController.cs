@@ -1,6 +1,7 @@
 using InsurancePlatform.Api.Contracts.Common;
 using InsurancePlatform.Api.Contracts.Purchases;
 using InsurancePlatform.Api.Logging;
+using InsurancePlatform.Application.Certificates;
 using InsurancePlatform.Application.Repositories;
 using InsurancePlatform.Domain.Common;
 using InsurancePlatform.Domain.Entities;
@@ -25,12 +26,14 @@ namespace InsurancePlatform.Api.Controllers;
 public class PurchasesController : BaseApiController
 {
     private readonly IPurchaseRepository _purchaseRepository;
+    private readonly IPurchaseCertificationService _certificationService;
     private readonly IClientRepository _clientRepository;
     private readonly ILoggerManager _logger;
     private readonly string _paybillNumber;
 
     public PurchasesController(
         IPurchaseRepository purchaseRepository,
+        IPurchaseCertificationService certificationService,
         IClientRepository clientRepository,
         ILoggerManager logger,
         IConfiguration configuration,
@@ -38,6 +41,7 @@ public class PurchasesController : BaseApiController
         : base(correlationContext)
     {
         _purchaseRepository = purchaseRepository;
+        _certificationService = certificationService;
         _clientRepository = clientRepository;
         _logger = logger;
         // Fixed environment setting (appsettings.json Mpesa:BusinessShortCode),
@@ -111,6 +115,46 @@ public class PurchasesController : BaseApiController
         }
 
         return Success(result.Data, result.ResultMessage);
+    }
+
+    /// <summary>
+    /// Returns the stored official NTSA certificate document for a purchase -
+    /// the raw get_certificate response captured when the D-MVIC certificate
+    /// was issued (its download/printable payload is reconstructed from that
+    /// JSON by the certificate viewer). Same ownership/role scoping as
+    /// GetById: a Client sees only their own documents, staff see the whole
+    /// platform's. A "No official NTSA certificate document for this
+    /// purchase." business failure means the purchase only has an internal
+    /// generated certificate (best-effort D-MVIC ran but didn't persist one).
+    /// </summary>
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [HttpGet("{id}/ntsa-certificate")]
+    [ProducesResponseType(typeof(ApiResponse<VehicleCertificateDocument?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNtsaCertificateDocument(long id)
+    {
+        var purchase = await _purchaseRepository.GetByIdAsync(id);
+
+        if (!purchase.IsSuccess || purchase.Data is null)
+        {
+            return BusinessFailure(purchase.ResultMessage);
+        }
+
+        if (!await CallerOwnsClientRecordAsync(purchase.Data.ClientId))
+        {
+            return BusinessFailure("Purchase not found.");
+        }
+
+        var document = await _purchaseRepository.GetVehicleCertificateDocumentAsync(id);
+
+        if (!document.IsSuccess || document.Data is null)
+        {
+            return BusinessFailure(
+                document.Data is null
+                    ? "No official NTSA certificate document for this purchase."
+                    : document.ResultMessage);
+        }
+
+        return Success(document.Data, document.ResultMessage);
     }
 
     /// <summary>Lists/searches purchases - an Agent sees only purchases they personally executed.</summary>
@@ -309,8 +353,10 @@ public class PurchasesController : BaseApiController
     /// Completes a fully-paid purchase - the shared completion routine (the
     /// exact code path the background take-over service invokes once a
     /// payment is confirmed, and that a user retry would also call). Marks
-    /// certificate_status = GENERATED and returns the "payment received -
-    /// your certificate will be emailed to you shortly" confirmation.
+    /// certificate_status = GENERATED, returns the "payment received -
+    /// your certificate will be emailed to you shortly" confirmation, and
+    /// runs the best-effort NTSA official-certificate issuance (fallback to
+    /// the internal certificate on failure).
     /// </summary>
     /// <response code="200">Always 200 - check Success in the body.</response>
     [Authorize]
@@ -325,7 +371,7 @@ public class PurchasesController : BaseApiController
             _ => "USER"
         };
 
-        var result = await _purchaseRepository.CompleteCertAsync(id, actorType, CurrentUserId);
+        var result = await _certificationService.CompleteAndIssueAsync(id, actorType, CurrentUserId);
 
         if (!result.IsSuccess)
         {

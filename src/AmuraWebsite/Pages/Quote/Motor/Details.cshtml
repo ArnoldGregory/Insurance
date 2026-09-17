@@ -1,0 +1,233 @@
+@page
+@model AmuraWebsite.Pages.Quote.Motor.DetailsModel
+@{
+    ViewData["Title"] = "Motor Insurance — Vehicle Details";
+    ViewData["Description"] = "Buy motor insurance from Amura Insurance Agency — compare live prices and pay online.";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-8 reveal">
+                <div class="contact-card">
+                    <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Step 1 of 3: Your Details &amp; Vehicle</h3>
+                    <p class="text-muted small mb-3">We'll use this to pull live prices from our underwriter partners.</p>
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+                    }
+
+                    @if (Model.IsConfigured)
+                    {
+                        <form method="post" novalidate>
+                            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                            <input type="hidden" asp-for="PreselectedUnderwriterId" />
+                            <input type="hidden" asp-for="PreselectedPrice" />
+
+                            <h4 style="font-size:1rem; font-weight:700;">Your Information</h4>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Input.FullName" class="form-label">Full name</label>
+                                    <input asp-for="Input.FullName" class="form-control" />
+                                    <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.IdNo" class="form-label">National ID / Passport number</label>
+                                    <input asp-for="Input.IdNo" class="form-control" />
+                                    <span asp-validation-for="Input.IdNo" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.Dob" class="form-label">Date of birth</label>
+                                    <input asp-for="Input.Dob" class="form-control" type="date" />
+                                    <span asp-validation-for="Input.Dob" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.Phone" class="form-label">Phone (M-Pesa number)</label>
+                                    <input asp-for="Input.Phone" class="form-control" placeholder="07xx xxx xxx" />
+                                    <span asp-validation-for="Input.Phone" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.Email" class="form-label">Email</label>
+                                    <input asp-for="Input.Email" class="form-control" />
+                                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.KraPin" class="form-label">KRA PIN (optional)</label>
+                                    <input asp-for="Input.KraPin" class="form-control" />
+                                </div>
+                                <div class="col-12">
+                                    <label asp-for="Input.Address" class="form-label">Address (optional)</label>
+                                    <input asp-for="Input.Address" class="form-control" />
+                                </div>
+                            </div>
+
+                            <h4 style="font-size:1rem; font-weight:700;">Vehicle Information</h4>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Input.Make" class="form-label">Make</label>
+                                    <input asp-for="Input.Make" class="form-control" placeholder="e.g. Toyota" />
+                                    <span asp-validation-for="Input.Make" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Input.Model" class="form-label">Model</label>
+                                    <input asp-for="Input.Model" class="form-control" placeholder="e.g. Vitz" />
+                                    <span asp-validation-for="Input.Model" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.RegNo" class="form-label">Registration number</label>
+                                    <input asp-for="Input.RegNo" class="form-control" placeholder="KDA 123A" />
+                                    <span asp-validation-for="Input.RegNo" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.ChassisNo" class="form-label">Chassis number</label>
+                                    <input asp-for="Input.ChassisNo" class="form-control" />
+                                    <span asp-validation-for="Input.ChassisNo" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.EngineNo" class="form-label">Engine number</label>
+                                    <input asp-for="Input.EngineNo" class="form-control" />
+                                    <span asp-validation-for="Input.EngineNo" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="Input.YearOfManufacture" class="form-label">Year</label>
+                                    <input asp-for="Input.YearOfManufacture" class="form-control" type="number" min="1980" max="2027" />
+                                    <span asp-validation-for="Input.YearOfManufacture" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="Input.VehicleType" class="form-label">Vehicle type</label>
+                                    <select asp-for="Input.VehicleType" class="form-select">
+                                        <option value="PRIVATE">Private</option>
+                                        <option value="COMMERCIAL">Commercial</option>
+                                        <option value="PSV-BUS">PSV — Bus</option>
+                                        <option value="PSV-VAN">PSV — Van/Matatu</option>
+                                        <option value="MOTORCYCLE">Motorcycle</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="Input.BodyType" class="form-label">Body type</label>
+                                    <select asp-for="Input.BodyType" class="form-select">
+                                        <option value="SALOON">Saloon</option>
+                                        <option value="SUV">SUV</option>
+                                        <option value="HATCHBACK">Hatchback</option>
+                                        <option value="PICKUP">Pickup</option>
+                                        <option value="VAN">Van</option>
+                                        <option value="BUS">Bus</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="Input.FuelType" class="form-label">Fuel type</label>
+                                    <select asp-for="Input.FuelType" class="form-select">
+                                        <option value="PETROL">Petrol</option>
+                                        <option value="DIESEL">Diesel</option>
+                                        <option value="HYBRID">Hybrid</option>
+                                        <option value="ELECTRIC">Electric</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.CubicCapacity" class="form-label">Cubic capacity (cc)</label>
+                                    <input asp-for="Input.CubicCapacity" class="form-control" placeholder="e.g. 1500" />
+                                    <span asp-validation-for="Input.CubicCapacity" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.Color" class="form-label">Color</label>
+                                    <input asp-for="Input.Color" class="form-control" />
+                                    <span asp-validation-for="Input.Color" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.Logbook" class="form-label">Logbook number</label>
+                                    <input asp-for="Input.Logbook" class="form-control" />
+                                    <span asp-validation-for="Input.Logbook" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <h4 style="font-size:1rem; font-weight:700;">Cover Details</h4>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label">Cover type</label>
+                                    <div class="d-flex flex-column flex-md-row gap-2">
+                                        <label class="d-flex align-items-center flex-grow-1" style="border:1px solid var(--line-on-light); border-radius: var(--radius-md); padding: 0.9rem 1.1rem; cursor:pointer;">
+                                            <input asp-for="Input.CoverType" type="radio" value="TPO" class="form-check-input me-2" />
+                                            <span>
+                                                <strong>Third Party Only (TPO)</strong>
+                                                <span class="d-block text-muted small">Covers damage you cause to others — the most affordable option.</span>
+                                            </span>
+                                        </label>
+                                        <label class="d-flex align-items-center flex-grow-1" style="border:1px solid var(--line-on-light); border-radius: var(--radius-md); padding: 0.9rem 1.1rem; cursor:pointer;">
+                                            <input asp-for="Input.CoverType" type="radio" value="COMPREHENSIVE" class="form-check-input me-2" />
+                                            <span>
+                                                <strong>Comprehensive</strong>
+                                                <span class="d-block text-muted small">Full cover including your own vehicle, plus optional add-on benefits.</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label asp-for="Input.VehicleClassId" class="form-label">Vehicle class</label>
+                                    <select asp-for="Input.VehicleClassId" class="form-select">
+                                        <option value="">— Select —</option>
+                                        @foreach (var vc in Model.VehicleClasses)
+                                        {
+                                            <option value="@vc.VehicleClassId">@vc.Name</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Input.VehicleClassId" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.PeriodId" class="form-label">Cover period</label>
+                                    <select asp-for="Input.PeriodId" class="form-select">
+                                        <option value="">— Select —</option>
+                                        @foreach (var p in Model.Periods)
+                                        {
+                                            <option value="@p.PeriodId">@p.Name</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Input.PeriodId" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Input.CarryCapacity" class="form-label">Licensed to carry</label>
+                                    <input asp-for="Input.CarryCapacity" class="form-control" type="number" min="1" max="100" />
+                                    <span class="text-muted small">Use 1 for a private car.</span>
+                                </div>
+                                <div class="col-md-6 vehicle-value-field" style="display:none;">
+                                    <label asp-for="Input.VehicleValue" class="form-label">Vehicle value (KES)</label>
+                                    <input asp-for="Input.VehicleValue" class="form-control" type="number" min="10000" step="1000" />
+                                    <span asp-validation-for="Input.VehicleValue" class="text-danger small"></span>
+                                    <span class="text-muted small">Required for a comprehensive quote.</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-quote btn-lg mt-4">Compare Prices &rarr;</button>
+                        </form>
+
+                        <script>
+                                (function () {
+                                    var radios = document.querySelectorAll('input[name="Input.CoverType"]');
+                                    function sync() {
+                                        var selected = document.querySelector('input[name="Input.CoverType"]:checked');
+                                        var show = !!selected && selected.value === 'COMPREHENSIVE';
+                                        document.querySelector('.vehicle-value-field').style.display = show ? 'block' : 'none';
+                                        var field = document.getElementById('Input_VehicleValue');
+                                        if (field) { field.required = show; }
+                                    }
+                                    radios.forEach(function (el) {
+                                        el.addEventListener('change', sync);
+                                    });
+                                    sync();
+                                })();
+                            </script>
+                    }
+                </div>
+            </div>
+
+            <div class="col-lg-4 reveal">
+                <span class="eyebrow">How this works</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">Buy motor cover online</h2>
+                <p class="text-muted">We'll compare live prices from our underwriter partners, let you pick the one that fits, then take payment by M-Pesa — no waiting for a callback.</p>
+            </div>
+        </div>
+    </div>
+</section>

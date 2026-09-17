@@ -18,6 +18,26 @@ public interface IPurchaseRepository
 
     Task<StoredProcResult<Purchase?>> GetByIdAsync(long purchaseId);
 
+    /// <summary>
+    /// Wraps usp_Purchase_GetDmvicData - everything the NTSA/D-MVIC
+    /// issuance call needs for a purchase (client, vehicle, underwriter
+    /// member id) in one row. LEFT JOINs mean vehicle/client fields come
+    /// back null for non-Motor purchases so the caller can skip cleanly.
+    /// </summary>
+    Task<StoredProcResult<PurchaseDmvicData?>> GetDmvicDataAsync(long purchaseId);
+
+    /// <summary>
+    /// Wraps usp_Purchase_SaveDmvicResult - stamps the purchase with the
+    /// NTSA certificate number + transaction no and records the official
+    /// certificate document row.
+    /// </summary>
+    Task<StoredProcResult> SaveDmvicResultAsync(
+        long purchaseId, string? ntsaCertificateNo, string? ntsaTransactionNo,
+        string? email, string? certDownloadUrl, string? certData);
+
+    /// <summary>Wraps usp_Purchase_GetVehicleCertificateDocument - the latest official certificate document row for a purchase.</summary>
+    Task<StoredProcResult<VehicleCertificateDocument?>> GetVehicleCertificateDocumentAsync(long purchaseId);
+
     // paymentStatus filters on Purchases.payment_status (PENDING/PAID) -
     // separate from status, which is the policy's own lifecycle
     // (ACTIVE/EXPIRED/CANCELLED). Pass paymentStatus="PENDING" for the
@@ -66,4 +86,14 @@ public interface IPurchaseRepository
 
     /// <summary>Wraps usp_Purchase_GetTopAgents - top 10 agents by policies sold. Always platform-wide.</summary>
     Task<StoredProcResult<List<TopAgentSummary>>> GetTopAgentsAsync();
+
+    /// <summary>
+    /// Wraps usp_Purchase_FindPendingCertCompletion - every purchase whose
+    /// payment is confirmed PAID but whose certificate hasn't been generated
+    /// yet. This is what the background take-over worker polls: each returned
+    /// purchase_id is looped into CompleteCertAsync, exactly like a staff
+    /// "retry cert" click calls it synchronously - one shared completion
+    /// routine, two triggers.
+    /// </summary>
+    Task<StoredProcResult<List<long>>> FindPendingCertCompletionAsync();
 }

@@ -22,6 +22,27 @@ public class Purchase
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedOn { get; set; }
 
+    public string CertificateStatus { get; set; } = string.Empty;
+    public DateTime? CertificateGeneratedOn { get; set; }
+    public string? CertificateNumber { get; set; }
+
+    /// <summary>NTSA/D-MVIC official certificate number (actualCNo from the issuance response) - null until DMVIC issue succeeds.</summary>
+    public string? NtsaCertificateNo { get; set; }
+
+    public string? NtsaTransactionNo { get; set; }
+    public DateTime? NtsaIssuedOn { get; set; }
+
+    public string? ClientName { get; set; }
+    public string? ClientIdNo { get; set; }
+    public string? ClientPhone { get; set; }
+    public string? ClientEmail { get; set; }
+    public string? ProductName { get; set; }
+
+    /// <summary>Vehicle identity (Vehicles via VehiclePurchaseSnapshot join) - null for non-Motor purchases.</summary>
+    public string? VehicleRegNo { get; set; }
+    public string? VehicleMake { get; set; }
+    public string? VehicleModel { get; set; }
+
     /// <summary>Null for every non-Motor purchase - populated from usp_Purchase_GetById's second result set.</summary>
     public VehiclePurchaseSnapshot? VehicleSnapshot { get; set; }
 }
@@ -134,4 +155,59 @@ public class VehiclePurchaseSnapshot
     public string? AntiTheft { get; set; }
     public string? Risk { get; set; }
     public decimal? Amount { get; set; }
+}
+
+/// <summary>
+/// usp_Purchase_GetDmvicData's row shape - everything the NTSA/D-MVIC
+/// issuance call needs about a purchase, joined from the purchase itself,
+/// the client, the vehicle snapshot and the underwriter. Vehicle/client
+/// fields are null for non-Motor purchases (LEFT JOINs), so the caller can
+/// skip cleanly instead of the proc erroring.
+/// </summary>
+public class PurchaseDmvicData
+{
+    public long PurchaseId { get; set; }
+    public string? PolicyNumber { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public decimal PremiumAmount { get; set; }
+    public string? CertificateNumber { get; set; }
+    public string? NtsaCertificateNo { get; set; }
+    public string? NtsaTransactionNo { get; set; }
+
+    public string? Policyholder { get; set; }
+    public string? ClientPhone { get; set; }
+    public string? ClientEmail { get; set; }
+    public string? KraPin { get; set; }
+
+    public string? RegNo { get; set; }
+    public string? Make { get; set; }
+    public string? Model { get; set; }
+    public string? ChassisNo { get; set; }
+    public string? EngineNo { get; set; }
+    public int? YearOfManufacture { get; set; }
+    public string? PBodyType { get; set; }
+    public string? VehicleType { get; set; }
+
+    public decimal? VehicleValue { get; set; }
+    public long? LicensedToCarry { get; set; }
+
+    public string? MemberCompanyId { get; set; }
+    public string? UnderwriterName { get; set; }
+}
+
+/// <summary>usp_Purchase_GetVehicleCertificateDocument's row shape - the latest official NTSA document record for a purchase.</summary>
+public class VehicleCertificateDocument
+{
+    public long CertDocId { get; set; }
+    public long PurchaseId { get; set; }
+    public string? TransactionNo { get; set; }
+    public string? CertNo { get; set; }
+    public string? Email { get; set; }
+    public string? CertDownloadUrl { get; set; }
+    public string? CertData { get; set; }
+    public bool CertGenerated { get; set; }
+    public string? CertStatus { get; set; }
+    public string? PolicyNumber { get; set; }
+    public DateTime CreatedOn { get; set; }
 }

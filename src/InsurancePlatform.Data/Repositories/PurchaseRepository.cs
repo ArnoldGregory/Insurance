@@ -92,6 +92,43 @@ public class PurchaseRepository : IPurchaseRepository
             (purchase, snapshots) => purchase.VehicleSnapshot = snapshots.Count > 0 ? snapshots[0] : null);
     }
 
+    public Task<StoredProcResult<PurchaseDmvicData?>> GetDmvicDataAsync(long purchaseId)
+    {
+        var parameters = new List<MySqlParameter> { new("p_purchase_id", purchaseId) };
+
+        // usp_Purchase_GetDmvicData returns at most one row (the purchase
+        // row with LEFT-JOINed vehicle defaults) - plain
+        // ExecuteQuerySingleAsync is exactly the right call shape. When the
+        // purchase doesn't exist the proc returns a non-zero result code
+        // without emitting a result set, which surfaces as Data == null.
+        return _executor.ExecuteQuerySingleAsync("usp_Purchase_GetDmvicData", parameters, MapDmvicDataRow);
+    }
+
+    public Task<StoredProcResult> SaveDmvicResultAsync(
+        long purchaseId, string? ntsaCertificateNo, string? ntsaTransactionNo,
+        string? email, string? certDownloadUrl, string? certData)
+    {
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_purchase_id", purchaseId),
+            new("p_ntsa_certificate_no", (object?)ntsaCertificateNo ?? DBNull.Value),
+            new("p_ntsa_transaction_no", (object?)ntsaTransactionNo ?? DBNull.Value),
+            new("p_email", (object?)email ?? DBNull.Value),
+            new("p_cert_download_url", (object?)certDownloadUrl ?? DBNull.Value),
+            new("p_cert_data", (object?)certData ?? DBNull.Value)
+        };
+
+        return _executor.ExecuteAsync("usp_Purchase_SaveDmvicResult", parameters);
+    }
+
+    public Task<StoredProcResult<VehicleCertificateDocument?>> GetVehicleCertificateDocumentAsync(long purchaseId)
+    {
+        var parameters = new List<MySqlParameter> { new("p_purchase_id", purchaseId) };
+
+        return _executor.ExecuteQuerySingleAsync(
+            "usp_Purchase_GetVehicleCertificateDocument", parameters, MapVehicleCertificateDocumentRow);
+    }
+
     public async Task<StoredProcResult<PurchaseListPage>> GetListAsync(
         long? clientId, long? purchasedByUserId, long? productId, long? underwriterId, string? status,
         string? paymentStatus, DateTime? dateFrom, DateTime? dateTo, int pageNumber, int pageSize)
@@ -197,7 +234,21 @@ public class PurchaseRepository : IPurchaseRepository
             PolicyNumber = reader.IsDBNull(reader.GetOrdinal("policy_number")) ? null : reader.GetString("policy_number"),
             PaymentStatus = reader.GetString("payment_status"),
             Status = reader.GetString("status"),
-            CreatedOn = reader.GetDateTime("created_on")
+            CreatedOn = reader.GetDateTime("created_on"),
+            CertificateStatus = reader.IsDBNull(reader.GetOrdinal("certificate_status")) ? string.Empty : reader.GetString("certificate_status"),
+            CertificateGeneratedOn = reader.IsDBNull(reader.GetOrdinal("cert_generated_on")) ? null : reader.GetDateTime("cert_generated_on"),
+            CertificateNumber = reader.IsDBNull(reader.GetOrdinal("certificate_number")) ? null : reader.GetString("certificate_number"),
+            NtsaCertificateNo = reader.IsDBNull(reader.GetOrdinal("ntsa_certificate_no")) ? null : reader.GetString("ntsa_certificate_no"),
+            NtsaTransactionNo = reader.IsDBNull(reader.GetOrdinal("ntsa_transaction_no")) ? null : reader.GetString("ntsa_transaction_no"),
+            NtsaIssuedOn = reader.IsDBNull(reader.GetOrdinal("ntsa_issued_on")) ? null : reader.GetDateTime("ntsa_issued_on"),
+            ClientName = reader.IsDBNull(reader.GetOrdinal("client_name")) ? null : reader.GetString("client_name"),
+            ClientIdNo = reader.IsDBNull(reader.GetOrdinal("client_id_no")) ? null : reader.GetString("client_id_no"),
+            ClientPhone = reader.IsDBNull(reader.GetOrdinal("client_phone")) ? null : reader.GetString("client_phone"),
+            ClientEmail = reader.IsDBNull(reader.GetOrdinal("client_email")) ? null : reader.GetString("client_email"),
+            ProductName = reader.IsDBNull(reader.GetOrdinal("product_name")) ? null : reader.GetString("product_name"),
+            VehicleRegNo = reader.IsDBNull(reader.GetOrdinal("vehicle_reg_no")) ? null : reader.GetString("vehicle_reg_no"),
+            VehicleMake = reader.IsDBNull(reader.GetOrdinal("vehicle_make")) ? null : reader.GetString("vehicle_make"),
+            VehicleModel = reader.IsDBNull(reader.GetOrdinal("vehicle_model")) ? null : reader.GetString("vehicle_model")
         };
     }
 
@@ -213,6 +264,55 @@ public class PurchaseRepository : IPurchaseRepository
             AntiTheft = reader.IsDBNull(reader.GetOrdinal("antitheft")) ? null : reader.GetString("antitheft"),
             Risk = reader.IsDBNull(reader.GetOrdinal("risk")) ? null : reader.GetString("risk"),
             Amount = reader.IsDBNull(reader.GetOrdinal("amount")) ? null : reader.GetDecimal("amount")
+        };
+    }
+
+    private static PurchaseDmvicData? MapDmvicDataRow(MySqlDataReader reader)
+    {
+        return new PurchaseDmvicData
+        {
+            PurchaseId = reader.GetInt64("purchase_id"),
+            PolicyNumber = reader.IsDBNull(reader.GetOrdinal("policy_number")) ? null : reader.GetString("policy_number"),
+            StartDate = reader.GetDateTime("start_date"),
+            EndDate = reader.GetDateTime("end_date"),
+            PremiumAmount = reader.GetDecimal("premium_amount"),
+            CertificateNumber = reader.IsDBNull(reader.GetOrdinal("certificate_number")) ? null : reader.GetString("certificate_number"),
+            NtsaCertificateNo = reader.IsDBNull(reader.GetOrdinal("ntsa_certificate_no")) ? null : reader.GetString("ntsa_certificate_no"),
+            NtsaTransactionNo = reader.IsDBNull(reader.GetOrdinal("ntsa_transaction_no")) ? null : reader.GetString("ntsa_transaction_no"),
+            Policyholder = reader.IsDBNull(reader.GetOrdinal("policyholder")) ? null : reader.GetString("policyholder"),
+            ClientPhone = reader.IsDBNull(reader.GetOrdinal("client_phone")) ? null : reader.GetString("client_phone"),
+            ClientEmail = reader.IsDBNull(reader.GetOrdinal("client_email")) ? null : reader.GetString("client_email"),
+            KraPin = reader.IsDBNull(reader.GetOrdinal("kra_pin")) ? null : reader.GetString("kra_pin"),
+            RegNo = reader.IsDBNull(reader.GetOrdinal("reg_no")) ? null : reader.GetString("reg_no"),
+            Make = reader.IsDBNull(reader.GetOrdinal("make")) ? null : reader.GetString("make"),
+            Model = reader.IsDBNull(reader.GetOrdinal("model")) ? null : reader.GetString("model"),
+            ChassisNo = reader.IsDBNull(reader.GetOrdinal("chassis_no")) ? null : reader.GetString("chassis_no"),
+            EngineNo = reader.IsDBNull(reader.GetOrdinal("engine_no")) ? null : reader.GetString("engine_no"),
+            YearOfManufacture = reader.IsDBNull(reader.GetOrdinal("yearofmanufacture")) ? null : reader.GetInt32("yearofmanufacture"),
+            PBodyType = reader.IsDBNull(reader.GetOrdinal("p_bodytype")) ? null : reader.GetString("p_bodytype"),
+            VehicleType = reader.IsDBNull(reader.GetOrdinal("vehicle_type")) ? null : reader.GetString("vehicle_type"),
+            VehicleValue = reader.IsDBNull(reader.GetOrdinal("vehicle_value")) ? null : reader.GetDecimal("vehicle_value"),
+            LicensedToCarry = reader.IsDBNull(reader.GetOrdinal("licensedtocarry")) ? null : reader.GetInt64("licensedtocarry"),
+            MemberCompanyId = reader.IsDBNull(reader.GetOrdinal("member_company_id")) ? null : reader.GetString("member_company_id"),
+            UnderwriterName = reader.IsDBNull(reader.GetOrdinal("underwriter_name")) ? null : reader.GetString("underwriter_name")
+        };
+    }
+
+    private static VehicleCertificateDocument MapVehicleCertificateDocumentRow(MySqlDataReader reader)
+    {
+        return new VehicleCertificateDocument
+        {
+            CertDocId = reader.GetInt64("cert_doc_id"),
+            PurchaseId = reader.GetInt64("purchase_id"),
+            TransactionNo = reader.IsDBNull(reader.GetOrdinal("transaction_no")) ? null : reader.GetString("transaction_no"),
+            CertNo = reader.IsDBNull(reader.GetOrdinal("cert_no")) ? null : reader.GetString("cert_no"),
+            Email = reader.IsDBNull(reader.GetOrdinal("email")) ? null : reader.GetString("email"),
+            CertDownloadUrl = reader.IsDBNull(reader.GetOrdinal("cert_download_url")) ? null : reader.GetString("cert_download_url"),
+            CertData = reader.IsDBNull(reader.GetOrdinal("cert_data")) ? null : reader.GetString("cert_data"),
+            CertGenerated = reader.GetBoolean("cert_generated"),
+            CertStatus = reader.IsDBNull(reader.GetOrdinal("cert_status")) ? null : reader.GetString("cert_status"),
+            PolicyNumber = reader.IsDBNull(reader.GetOrdinal("policy_number")) ? null : reader.GetString("policy_number"),
+            CreatedOn = reader.GetDateTime("created_on")
         };
     }
 
@@ -262,6 +362,15 @@ public class PurchaseRepository : IPurchaseRepository
     public Task<StoredProcResult<List<MonthlyTrendPoint>>> GetMonthlyTrendAsync()
     {
         return _executor.ExecuteQueryAsync("usp_Purchase_GetMonthlyTrend", new List<MySqlParameter>(), MapMonthlyTrendRow);
+    }
+
+    public Task<StoredProcResult<List<long>>> FindPendingCertCompletionAsync()
+    {
+        // usp_Purchase_FindPendingCertCompletion takes no IN params - the
+        // worker scope is platform-wide by design (any PAID-but-not-generated
+        // purchase gets picked up regardless of who sold it).
+        return _executor.ExecuteQueryAsync(
+            "usp_Purchase_FindPendingCertCompletion", new List<MySqlParameter>(), reader => reader.GetInt64("purchase_id"));
     }
 
     public Task<StoredProcResult<List<TopAgentSummary>>> GetTopAgentsAsync()

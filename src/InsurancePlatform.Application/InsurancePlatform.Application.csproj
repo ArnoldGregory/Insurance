@@ -10,6 +10,12 @@
          so it needs this referenced explicitly to know what IConfiguration is.
          OtpNotificationSender uses it to read the email logo URL. -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <!-- DmvicCertificateService/PurchaseCertificationService bind the "Dmvic"
+         appsettings section into DmvicOptions via GetSection(...).Get<T>() -
+         the .Get<T>() configuration extension lives in this binder package
+         (DmvicOptions returned by Get<T> has the section's property keys
+         mapped onto it, exactly like options-binder classes do). -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

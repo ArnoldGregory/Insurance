@@ -1,5 +1,13 @@
 namespace InsurancePlatform.Application.Notifications;
 
+/// <summary>One structured add-on/rider line carried into the comparison email.</summary>
+public class QuoteOfferEmailRider
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal? Amount { get; set; }
+    public string? Note { get; set; }
+}
+
 /// <summary>
 /// One attachment for the offers-comparison email - the underwriter quote
 /// document.
@@ -18,6 +26,9 @@ public class QuoteOfferEmailAttachment
 {
     public string UnderwriterName { get; set; } = string.Empty;
     public decimal PremiumAmount { get; set; }
+
+    /// <summary>The offer's structured add-on/rider lines; empty when it has none.</summary>
+    public List<QuoteOfferEmailRider> AddOns { get; set; } = new();
 
     /// <summary>Null if this particular offer has no supporting document.</summary>
     public string? DocumentFileName { get; set; }

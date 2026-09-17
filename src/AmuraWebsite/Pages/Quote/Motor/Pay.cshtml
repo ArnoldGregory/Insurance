@@ -1,0 +1,55 @@
+@page
+@model AmuraWebsite.Pages.Quote.Motor.PayModel
+@{
+    ViewData["Title"] = "Motor Insurance — Payment";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-8 reveal">
+                <div class="contact-card">
+                    <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Step 3 of 3: Payment</h3>
+                    <p class="text-muted small mb-3">
+                        @Model.State.SelectedUnderwriterName — KES @(Model.State.SelectedPrice?.ToString("N0")) for @Model.State.Make @Model.State.Model (@Model.State.RegNo)
+                    </p>
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+                    }
+
+                    @if (Model.PushJustSent)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            A payment prompt has been sent to <strong>@Model.State.Phone</strong>. Enter your M-Pesa PIN on your
+                            phone to complete the purchase. Your policy number is <strong>@Model.State.PolicyNumber</strong> —
+                            keep this for your records.
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="border:1px solid var(--line-on-light); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <p class="mb-1"><strong>Paybill:</strong> @Model.State.PaybillNumber</p>
+                            <p class="mb-1"><strong>Account number:</strong> @Model.State.AccountNumber</p>
+                            <p class="mb-0"><strong>Amount:</strong> KES @(Model.State.SelectedPrice?.ToString("N0"))</p>
+                        </div>
+
+                        <form method="post">
+                            <button type="submit" class="btn btn-quote btn-lg">Send Payment Prompt to @Model.State.Phone</button>
+                        </form>
+                        <p class="text-muted small mt-3">
+                            Prefer to pay manually? You can also pay directly using the paybill and account number above.
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <div class="col-lg-4 reveal">
+                <span class="eyebrow">Almost done</span>
+                <h2 class="mt-3 mb-3" style="font-size:1.3rem; font-weight:600;">One payment away</h2>
+                <p class="text-muted">Once payment is confirmed, your cover is active and your policy documents will be sent to @Model.State.Email.</p>
+            </div>
+        </div>
+    </div>
+</section>

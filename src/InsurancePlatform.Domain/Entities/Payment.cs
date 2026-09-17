@@ -26,3 +26,19 @@ public class PaymentDashboardSummary
     /// <summary>Sum of SUCCESS payments only - PENDING/FAILED never contributed real money.</summary>
     public decimal TotalCollected { get; set; }
 }
+
+/// <summary>
+/// usp_Payment_ResolveByGatewayReference / ResolveByTransactionReference's
+/// OUT params - the resolved payment id plus the purchase id it belongs to.
+/// The callback handler needs o_purchase_id so it can immediately proceed to
+/// usp_Purchase_CompleteCert once a payment resolves to SUCCESS, instead of
+/// making a second round-trip to look the purchase up by payment.
+/// </summary>
+public class PaymentResolveResult
+{
+    public long? PaymentId { get; set; }
+    public long? PurchaseId { get; set; }
+
+    /// <summary>1 when the resolve found an already-terminal payment and did nothing (Safaricom retry) - check before treating SUCCESS/FAILED as "this attempt changed something".</summary>
+    public bool NotProcessed { get; set; }
+}

@@ -61,6 +61,41 @@ public class PurchaseDetail
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedOn { get; set; }
     public VehiclePurchaseSnapshotItem? VehicleSnapshot { get; set; }
+
+    public string CertificateStatus { get; set; } = string.Empty;
+    public DateTime? CertificateGeneratedOn { get; set; }
+    public string? CertificateNumber { get; set; }
+
+    // Official NTSA certificate issuance result (DMVIC via SCAPI) - filled
+    // on the purchase row after the best-effort official issuance runs.
+    public string? NtsaCertificateNo { get; set; }
+    public string? NtsaTransactionNo { get; set; }
+    public DateTime? NtsaIssuedOn { get; set; }
+
+    public string? ClientName { get; set; }
+    public string? ClientIdNo { get; set; }
+    public string? ClientPhone { get; set; }
+    public string? ClientEmail { get; set; }
+    public string? ProductName { get; set; }
+    public string? VehicleRegNo { get; set; }
+    public string? VehicleMake { get; set; }
+    public string? VehicleModel { get; set; }
+}
+
+/// <summary>Mirrors InsurancePlatform.Domain.Entities.VehicleCertificateDocument - the stored official NTSA document row returned by GET /api/purchases/{id}/ntsa-certificate.</summary>
+public class VehicleCertificateDocumentModel
+{
+    public long CertDocId { get; set; }
+    public long PurchaseId { get; set; }
+    public string? TransactionNo { get; set; }
+    public string? CertNo { get; set; }
+    public string? Email { get; set; }
+    public string? CertDownloadUrl { get; set; }
+    public string? CertData { get; set; }
+    public bool CertGenerated { get; set; }
+    public string? CertStatus { get; set; }
+    public string? PolicyNumber { get; set; }
+    public DateTime CreatedOn { get; set; }
 }
 
 public class PurchaseIndexViewModel
@@ -118,6 +153,9 @@ public class PurchaseSummaryModel
     public string ProductCode { get; set; } = string.Empty;
     public string UnderwriterName { get; set; } = string.Empty;
     public string CreatedByName { get; set; } = string.Empty;
+    public string CertificateStatus { get; set; } = string.Empty;
+    public string? CertificateNumber { get; set; }
+    public DateTime? CertificateGeneratedOn { get; set; }
 }
 
 public class PurchaseTimelineEventModel
