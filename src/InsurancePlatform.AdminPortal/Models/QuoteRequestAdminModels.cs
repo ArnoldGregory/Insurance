@@ -28,6 +28,15 @@ public class QuoteRequestItem
     public long? AssignedBackofficeUserId { get; set; }
     public DateTime CreatedOn { get; set; }
 
+    /// <summary>Total non-deleted offers (all statuses) - from the API's list endpoint, used for the work-queue badges.</summary>
+    public long OfferCount { get; set; }
+
+    /// <summary>Offers still in ACTIVE status - from the API's list endpoint.</summary>
+    public long ActiveOfferCount { get; set; }
+
+    /// <summary>Total add-on lines across this request's offers - from the API's list endpoint.</summary>
+    public long RiderCount { get; set; }
+
     /// <summary>
     /// NOT part of the API response - filled in by QuoteRequestsController
     /// after the fact, by matching AssignedBackofficeUserId against the

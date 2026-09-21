@@ -31,6 +31,26 @@ public class ComprehensiveQuoteModel : PageModel
     {
     }
 
+    // Live preview used by the price input: returns the compare options as a
+    // partial so the dropdown/cards appear while the user types the price.
+    public async Task<IActionResult> OnGetPreviewAsync(decimal vehicleValue)
+    {
+        Input.VehicleValue = vehicleValue;
+
+        if (!_client.IsConfigured)
+        {
+            return Partial("_ComprehensiveCompareOptions", this);
+        }
+
+        Quote = await _client.GetComprehensiveCompareAsync(vehicleValue);
+        if (Quote is null)
+        {
+            ErrorMessage = "We couldn't get a comprehensive quote for that vehicle value right now. Please try again shortly, or contact us directly.";
+        }
+
+        return Partial("_ComprehensiveCompareOptions", this);
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid)

@@ -89,6 +89,7 @@
                     <th>Ref No</th>
                     <th>Product</th>
                     <th>Status</th>
+                    <th>Offers &amp; add-ons</th>
                     <th>Channel</th>
                     <th>Assigned to</th>
                     <th>Created</th>
@@ -110,6 +111,20 @@
                         <td>@(q.RefNo ?? $"#{q.QuoteRequestId}")</td>
                         <td>@q.ProductCode</td>
                         <td><span class="label @badgeClass">@q.Status</span></td>
+                        <td>
+                            @if (q.OfferCount > 0)
+                            {
+                                <span class="label label-info" title="Offers on this request (incl. @q.ActiveOfferCount active)"><i class="fa fa-file-invoice"></i> @q.OfferCount</span>
+                            }
+                            @if (q.RiderCount > 0)
+                            {
+                                <span class="label label-primary" title="Structured add-ons across this request's offers"><i class="fa fa-list"></i> @q.RiderCount</span>
+                            }
+                            @if (q.OfferCount == 0 && q.RiderCount == 0)
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
                         <td>@q.Channel</td>
                         <td>@(q.AssignedToName ?? "Unassigned")</td>
                         <td>@q.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td>

@@ -26,6 +26,15 @@ public class QuoteRequest
     public string Status { get; set; } = string.Empty;
     public long? AssignedBackofficeUserId { get; set; }
     public DateTime CreatedOn { get; set; }
+
+    /// <summary>Total non-deleted offers (all statuses) - filled by usp_QuoteRequest_GetList for the work-queue badges.</summary>
+    public long OfferCount { get; set; }
+
+    /// <summary>Offers still in ACTIVE status - filled by usp_QuoteRequest_GetList.</summary>
+    public long ActiveOfferCount { get; set; }
+
+    /// <summary>Total add-on lines across this request's offers - filled by usp_QuoteRequest_GetList.</summary>
+    public long RiderCount { get; set; }
 }
 
 /// <summary>Returned by every usp_QuoteRequest&lt;Type&gt;_Create proc - the new row's id plus its generated ref_no, handed straight back so a client-facing caller can show "Your reference: MI-7F3K2A" immediately without a follow-up GetById call.</summary>

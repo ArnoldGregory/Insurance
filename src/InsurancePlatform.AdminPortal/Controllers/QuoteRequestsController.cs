@@ -366,6 +366,30 @@ public class QuoteRequestsController : Controller
         return RedirectToAction(nameof(Details), new { id = quoteRequestId });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectOffer(long quoteOfferId, long quoteRequestId)
+    {
+        var result = await _apiClient.PostAsync<object>($"/api/quote-offers/{quoteOfferId}/reject", new { });
+
+        TempData["StatusMessage"] = result.Success ? "Offer marked REJECTED." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+
+        return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExpireOffer(long quoteOfferId, long quoteRequestId)
+    {
+        var result = await _apiClient.PostAsync<object>($"/api/quote-offers/{quoteOfferId}/expire", new { });
+
+        TempData["StatusMessage"] = result.Success ? "Offer marked EXPIRED." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+
+        return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+    }
+
     /// <summary>
     /// Add-ons editor GET. Same "no single-offer endpoint" reasoning as
     /// EditOffer: the offer's own fields travel here as query parameters

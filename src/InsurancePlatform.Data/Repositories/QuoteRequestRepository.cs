@@ -287,8 +287,27 @@ public class QuoteRequestRepository : IQuoteRequestRepository
             Channel = reader.GetString("channel"),
             Status = reader.GetString("status"),
             AssignedBackofficeUserId = reader.IsDBNull(reader.GetOrdinal("assigned_backoffice_user_id")) ? null : reader.GetInt64("assigned_backoffice_user_id"),
-            CreatedOn = reader.GetDateTime("created_on")
+            CreatedOn = reader.GetDateTime("created_on"),
+            OfferCount = GetCountColumn(reader, "offers_count"),
+            ActiveOfferCount = GetCountColumn(reader, "active_offers_count"),
+            RiderCount = GetCountColumn(reader, "rider_count")
         };
+    }
+
+    // The three count columns are only selected by usp_QuoteRequest_GetList -
+    // usp_QuoteRequest_GetById doesn't return them but reuses the same MapRow,
+    // so treat a missing column as 0 rather than letting GetOrdinal throw.
+    private static long GetCountColumn(MySqlDataReader reader, string name)
+    {
+        try
+        {
+            var ordinal = reader.GetOrdinal(name);
+            return reader.IsDBNull(ordinal) ? 0 : reader.GetInt64(ordinal);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return 0;
+        }
     }
 
     private static QuoteRequestMedicalIndividualDetail MapMedicalIndividualDetailRow(MySqlDataReader reader)

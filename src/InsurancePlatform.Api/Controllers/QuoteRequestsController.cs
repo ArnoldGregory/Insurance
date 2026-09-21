@@ -874,6 +874,42 @@ public class QuoteRequestsController : BaseApiController
         return Success(result.ResultMessage);
     }
 
+    /// <summary>Rejects an ACTIVE offer - marks it REJECTED (kept on the row, no longer selectable). Drops the parent request back to IN_PROGRESS if that was the last ACTIVE one.</summary>
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [Authorize(Roles = BackofficeRoles)]
+    [HttpPost("/api/quote-offers/{quoteOfferId}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RejectOffer(long quoteOfferId)
+    {
+        var result = await _quoteOfferRepository.RejectAsync(quoteOfferId, CurrentUserId);
+
+        if (!result.IsSuccess)
+        {
+            return BusinessFailure(result.ResultMessage);
+        }
+
+        _logger.LogInfo($"Quote offer rejected: quote_offer_id={quoteOfferId}, by user_id={CurrentUserId}.");
+        return Success(result.ResultMessage);
+    }
+
+    /// <summary>Expires an ACTIVE offer - marks it EXPIRED (kept on the row, no longer selectable). Drops the parent request back to IN_PROGRESS if that was the last ACTIVE one.</summary>
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [Authorize(Roles = BackofficeRoles)]
+    [HttpPost("/api/quote-offers/{quoteOfferId}/expire")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExpireOffer(long quoteOfferId)
+    {
+        var result = await _quoteOfferRepository.ExpireAsync(quoteOfferId, CurrentUserId);
+
+        if (!result.IsSuccess)
+        {
+            return BusinessFailure(result.ResultMessage);
+        }
+
+        _logger.LogInfo($"Quote offer expired: quote_offer_id={quoteOfferId}, by user_id={CurrentUserId}.");
+        return Success(result.ResultMessage);
+    }
+
     /// <summary>
     /// Replaces an offer's whole add-on/rider set in one call - the old set
     /// is soft-deleted server-side (usp_QuoteOfferRider_Replace). Back office

@@ -277,6 +277,16 @@
                                             <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />
                                             <button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i> Delete</button>
                                         </form>
+                                        <form asp-action="RejectOffer" method="post" data-confirm="Mark this offer REJECTED? The client will no longer be able to select it." style="margin:0;">
+                                            <input type="hidden" name="quoteOfferId" value="@offer.QuoteOfferId" />
+                                            <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />
+                                            <button type="submit" class="btn btn-warning btn-xs"><i class="fa fa-times-circle"></i> Reject</button>
+                                        </form>
+                                        <form asp-action="ExpireOffer" method="post" data-confirm="Mark this offer EXPIRED? The client will no longer be able to select it." style="margin:0;">
+                                            <input type="hidden" name="quoteOfferId" value="@offer.QuoteOfferId" />
+                                            <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />
+                                            <button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-hourglass-end"></i> Expire</button>
+                                        </form>
                                     </div>
                                 }
                             </td>

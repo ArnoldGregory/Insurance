@@ -23,6 +23,12 @@ public interface IQuoteOfferRepository
     /// <summary>Wraps usp_QuoteOffer_Delete (soft delete). Only ACTIVE offers can be deleted.</summary>
     Task<StoredProcResult> DeleteAsync(long quoteOfferId, long actorId);
 
+    /// <summary>Wraps usp_QuoteOffer_Reject - marks one ACTIVE offer REJECTED (kept on the row, not deleted); stops being selectable.</summary>
+    Task<StoredProcResult> RejectAsync(long quoteOfferId, long actorId);
+
+    /// <summary>Wraps usp_QuoteOffer_Expire - marks one ACTIVE offer EXPIRED; stops being selectable.</summary>
+    Task<StoredProcResult> ExpireAsync(long quoteOfferId, long actorId);
+
     Task<StoredProcResult<QuoteOffer?>> GetByIdAsync(long quoteOfferId);
 
     /// <summary>

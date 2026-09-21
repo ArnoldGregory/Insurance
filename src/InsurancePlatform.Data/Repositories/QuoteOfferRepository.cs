@@ -85,6 +85,28 @@ public class QuoteOfferRepository : IQuoteOfferRepository
         return _executor.ExecuteAsync("usp_QuoteOffer_Delete", parameters);
     }
 
+    public Task<StoredProcResult> RejectAsync(long quoteOfferId, long actorId)
+    {
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_quote_offer_id", quoteOfferId),
+            new("p_actor_id", actorId)
+        };
+
+        return _executor.ExecuteAsync("usp_QuoteOffer_Reject", parameters);
+    }
+
+    public Task<StoredProcResult> ExpireAsync(long quoteOfferId, long actorId)
+    {
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_quote_offer_id", quoteOfferId),
+            new("p_actor_id", actorId)
+        };
+
+        return _executor.ExecuteAsync("usp_QuoteOffer_Expire", parameters);
+    }
+
     public Task<StoredProcResult<QuoteOffer?>> GetByIdAsync(long quoteOfferId)
     {
         var parameters = new List<MySqlParameter> { new("p_quote_offer_id", quoteOfferId) };
