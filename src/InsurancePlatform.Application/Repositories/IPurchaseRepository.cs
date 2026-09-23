@@ -38,6 +38,15 @@ public interface IPurchaseRepository
     /// <summary>Wraps usp_Purchase_GetVehicleCertificateDocument - the latest official certificate document row for a purchase.</summary>
     Task<StoredProcResult<VehicleCertificateDocument?>> GetVehicleCertificateDocumentAsync(long purchaseId);
 
+    /// <summary>
+    /// Wraps usp_Purchase_LookupClientCertificate - resolves a purchase from
+    /// policy number + the buyer's phone number for the website's
+    /// self-service certificate page. Returns null when no purchase matches
+    /// BOTH; an unknown policy and a wrong phone are deliberately
+    /// indistinguishable so the endpoint can't be probed for policy numbers.
+    /// </summary>
+    Task<StoredProcResult<long?>> LookupCertificatePurchaseIdAsync(string policyNumber, string phone);
+
     // paymentStatus filters on Purchases.payment_status (PENDING/PAID) -
     // separate from status, which is the policy's own lifecycle
     // (ACTIVE/EXPIRED/CANCELLED). Pass paymentStatus="PENDING" for the

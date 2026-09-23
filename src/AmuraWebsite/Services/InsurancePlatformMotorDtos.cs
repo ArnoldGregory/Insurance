@@ -97,6 +97,43 @@ public sealed class CreatePurchaseResponseData
     public string? PaybillNumber { get; set; }
 }
 
+// --- Certificate / purchase retrieval (website self-service "Get your certificate") ---
+public sealed class ClientCertificateDto
+{
+    public int PurchaseId { get; set; }
+    public string? PolicyNumber { get; set; }
+    public string PaymentStatus { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string CertificateStatus { get; set; } = string.Empty;
+    public DateTime? CertificateGeneratedOn { get; set; }
+    public string? CertificateNumber { get; set; }
+    public string? NtsaCertificateNo { get; set; }
+    public string? NtsaTransactionNo { get; set; }
+    public DateTime? NtsaIssuedOn { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public decimal PremiumAmount { get; set; }
+    public string? ProductName { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public string? UnderwriterName { get; set; }
+    public string? ClientName { get; set; }
+    public string? ClientIdNo { get; set; }
+    public string? ClientPhone { get; set; }
+    public string? ClientEmail { get; set; }
+    public string? VehicleRegNo { get; set; }
+    public string? VehicleMake { get; set; }
+    public string? VehicleModel { get; set; }
+
+    /// <summary>Motor-only nested snapshot (vehicle value, licensed-to-carry) - null for non-Motor purchases.</summary>
+    public ClientCertificateSnapshotDto? VehicleSnapshot { get; set; }
+}
+
+public sealed class ClientCertificateSnapshotDto
+{
+    public decimal? VehicleValue { get; set; }
+    public long? LicensedToCarry { get; set; }
+}
+
 // --- Payment ---
 public sealed class StkPushResponseData
 {

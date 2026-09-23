@@ -51,4 +51,10 @@ public interface IMotorPurchaseClient
 
     Task<StkPushResponseData?> InitiatePaymentAsync(
         int purchaseId, decimal amount, string phoneNumber, string accountReference, CancellationToken ct = default);
+
+    /// <summary>Full purchase (with certificate fields) for the self-service certificate page - failures return null.</summary>
+    Task<ClientCertificateDto?> GetPurchaseCertificateAsync(long purchaseId, CancellationToken ct = default);
+
+    /// <summary>Resolves a purchase from policy number + phone for a return visitor with no session - null means "no match" (or a failed call).</summary>
+    Task<ClientCertificateDto?> LookupCertificateAsync(string policyNumber, string phone, CancellationToken ct = default);
 }

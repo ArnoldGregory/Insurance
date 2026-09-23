@@ -175,6 +175,17 @@ public sealed class MotorPurchaseClient : IMotorPurchaseClient
         return await PostAsync<StkPushResponseData>("/api/payments/stk-push", payload, ct);
     }
 
+    public Task<ClientCertificateDto?> GetPurchaseCertificateAsync(long purchaseId, CancellationToken ct = default)
+    {
+        return GetAsync<ClientCertificateDto>($"/api/purchases/{purchaseId}", ct);
+    }
+
+    public Task<ClientCertificateDto?> LookupCertificateAsync(string policyNumber, string phone, CancellationToken ct = default)
+    {
+        var path = $"/api/purchases/certificate-lookup?policyNumber={Uri.EscapeDataString(policyNumber)}&phone={Uri.EscapeDataString(phone)}";
+        return GetAsync<ClientCertificateDto>(path, ct);
+    }
+
     // ---- shared plumbing ----
 
     private async Task<T?> GetAsync<T>(string path, CancellationToken ct) where T : class

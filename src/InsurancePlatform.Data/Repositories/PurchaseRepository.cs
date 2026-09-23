@@ -129,6 +129,37 @@ public class PurchaseRepository : IPurchaseRepository
             "usp_Purchase_GetVehicleCertificateDocument", parameters, MapVehicleCertificateDocumentRow);
     }
 
+    public async Task<StoredProcResult<long?>> LookupCertificatePurchaseIdAsync(string policyNumber, string phone)
+    {
+        var purchaseIdParam = new MySqlParameter("o_purchase_id", MySqlDbType.Int64)
+        {
+            Direction = ParameterDirection.Output,
+            Value = DBNull.Value
+        };
+
+        var parameters = new List<MySqlParameter>
+        {
+            new("p_policy_number", policyNumber),
+            new("p_phone", phone),
+            purchaseIdParam
+        };
+
+        var result = await _executor.ExecuteAsync("usp_Purchase_LookupClientCertificate", parameters);
+
+        long? purchaseId = null;
+        if (result.IsSuccess && purchaseIdParam.Value is not null && purchaseIdParam.Value is not DBNull)
+        {
+            purchaseId = Convert.ToInt64(purchaseIdParam.Value);
+        }
+
+        return new StoredProcResult<long?>
+        {
+            ResultCode = result.ResultCode,
+            ResultMessage = result.ResultMessage,
+            Data = purchaseId
+        };
+    }
+
     public async Task<StoredProcResult<PurchaseListPage>> GetListAsync(
         long? clientId, long? purchasedByUserId, long? productId, long? underwriterId, string? status,
         string? paymentStatus, DateTime? dateFrom, DateTime? dateTo, int pageNumber, int pageSize)

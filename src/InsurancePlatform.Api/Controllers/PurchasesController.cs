@@ -157,6 +157,43 @@ public class PurchasesController : BaseApiController
         return Success(document.Data, document.ResultMessage);
     }
 
+    /// <summary>
+    /// Resolves a purchase for the website's self-service certificate page
+    /// from nothing but the policy number + the buyer's phone number (no
+    /// login or browser session needed - the stored proc's phone match is
+    /// the only guard, and it deliberately reports the same generic
+    /// "not found" for an unknown policy and a wrong phone). Returns the
+    /// full purchase so the site can render whatever state it is in
+    /// (payment pending, certificate generating, or generated) exactly
+    /// like the back office does.
+    /// </summary>
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [HttpGet("certificate-lookup")]
+    [ProducesResponseType(typeof(ApiResponse<Purchase>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> LookupClientCertificate([FromQuery] string policyNumber, [FromQuery] string phone)
+    {
+        if (string.IsNullOrWhiteSpace(policyNumber) || string.IsNullOrWhiteSpace(phone))
+        {
+            return BusinessFailure("Policy number and phone number are both required.");
+        }
+
+        var lookup = await _purchaseRepository.LookupCertificatePurchaseIdAsync(policyNumber.Trim(), phone.Trim());
+
+        if (!lookup.IsSuccess || lookup.Data is null || lookup.Data <= 0)
+        {
+            return BusinessFailure("No certificate found for that policy number and phone number.");
+        }
+
+        var purchase = await _purchaseRepository.GetByIdAsync(lookup.Data.Value);
+
+        if (!purchase.IsSuccess || purchase.Data is null)
+        {
+            return BusinessFailure(purchase.ResultMessage);
+        }
+
+        return Success(purchase.Data, purchase.ResultMessage);
+    }
+
     /// <summary>Lists/searches purchases - an Agent sees only purchases they personally executed.</summary>
     // Same scoping shape as ClientsController.GetList: Agent is
     // self-scoped by their own JWT, AgentAdmin/SupportAgent/SuperAdmin see
