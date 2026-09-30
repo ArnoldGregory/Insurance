@@ -83,7 +83,14 @@
     </div>
 </section>
 
-<section class="section section-cream">
+@{
+    ViewData["MapHeading"] = "Send your CV, or come say hello in person.";
+    ViewData["MapSectionClass"] = "section-cream";
+}
+
+<partial name="_OfficeMap" />
+
+<section class="section">
     <div class="container text-center">
         <h2 style="font-size:clamp(1.6rem,3vw,2.2rem); font-weight:600;">Don't see a perfect fit?</h2>
         <p class="mt-2 mb-4">We're always looking for great people. Send us your CV anyway — we'll keep it on file for future openings.</p>

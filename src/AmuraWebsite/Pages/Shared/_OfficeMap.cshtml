@@ -1,0 +1,51 @@
+@{
+    ViewData["MapTitle"] = ViewData["MapTitle"] ?? "Find us";
+}
+
+<!-- ========================= OFFICE / MAP ========================= -->
+<section class="section @(ViewData["MapSectionClass"] as string ?? "section-cream")" id="find-us">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-5 reveal">
+                <span class="eyebrow">Visit us</span>
+                <h2 class="mt-3 mb-4" style="font-size:clamp(1.7rem,3vw,2.2rem); font-weight:600;">
+                    @(ViewData["MapHeading"] as string ?? "Find us in the heart of Nairobi.")
+                </h2>
+
+                <div class="contact-info-item">
+                    <div class="dot">&#128205;</div>
+                    <div>
+                        <strong>Office</strong>
+                        <div class="text-muted">Jubilee Exchange, 1st Floor<br />Nairobi City Centre, Kenya</div>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="dot">&#9742;</div>
+                    <div>
+                        <strong>Phone</strong>
+                        <div class="text-muted"><a href="tel:+254723242389">+254 723 242 389</a></div>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="dot">@@</div>
+                    <div>
+                        <strong>Email</strong>
+                        <div class="text-muted"><a href="mailto:info@amurainsurance.com">info@amurainsurance.com</a></div>
+                    </div>
+                </div>
+
+                <p class="mb-0 small" style="color: var(--slate);">
+                    Walk-ins welcome during business hours &mdash; or call ahead and we'll have someone free to help.
+                </p>
+            </div>
+            <div class="col-lg-7 reveal">
+                <div class="map-embed">
+                    <iframe src="https://maps.google.com/maps?q=Jubilee+Exchange+Nairobi&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                            width="100%" height="420" style="border:0;" allowfullscreen loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                            title="Amura Insurance Agency &mdash; Jubilee Exchange, 1st Floor, Nairobi"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
