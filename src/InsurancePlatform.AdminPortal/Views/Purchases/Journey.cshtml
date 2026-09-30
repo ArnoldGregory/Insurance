@@ -1,4 +1,44 @@
 @model PurchaseJourneyViewModel
+@functions {
+    private static class JsonDictHelpers
+    {
+        public static Dictionary<string, object?>? TryParseObject(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            try
+            {
+                var o = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(s);
+                return o is { Count: > 0 } ? o : null;
+            }
+            catch { return null; }
+        }
+
+        public static string? FmtValue(object? v)
+        {
+            if (v is null) return null;
+            if (v is System.Text.Json.JsonElement je)
+            {
+                return je.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.String => je.GetString(),
+                    System.Text.Json.JsonValueKind.True => "true",
+                    System.Text.Json.JsonValueKind.False => "false",
+                    System.Text.Json.JsonValueKind.Null => null,
+                    _ => je.GetRawText()
+                };
+            }
+            return v.ToString();
+        }
+
+        public static string ToTitle(string key)
+        {
+            var s = key.Replace('_', ' ').Trim();
+            if (string.IsNullOrEmpty(s)) return key;
+            s = s[0].ToString().ToUpperInvariant() + s[1..];
+            return s;
+        }
+    }
+}
 @{
     ViewData["Title"] = $"Purchase Journey - {Model.Summary?.PolicyNumber ?? Model.PurchaseId.ToString()}";
     ViewData["FullWidth"] = true;
@@ -305,6 +345,10 @@
                 {
                     "PURCHASE_SUMMARY" => ("green", "fa-check", "Purchase Created"),
                     "MPESA" => ("blue", "fa-mobile-alt", "M-Pesa Payment"),
+                    "PAYMENT_PENDING" => ("orange", "fa-hourglass-half", "Payment Pending"),
+                    "PAYMENT_SUCCESS" => ("green", "fa-check-circle", "Payment Successful"),
+                    "PAYMENT_PAID" => ("green", "fa-check-circle", "Payment Successful"),
+                    "PAYMENT_FAILED" => ("red", "fa-times-circle", "Payment Failed"),
                     "PENDING" => ("orange", "fa-hourglass-half", "Payment Pending"),
                     "SUCCESS" => ("green", "fa-check-circle", "Payment Successful"),
                     "FAILED" => ("red", "fa-times-circle", "Payment Failed"),
@@ -319,6 +363,7 @@
                 };
 
                 var eventData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(ev.EventDataJson) ?? new();
+                if (ev.EventType == "CREATE" && (eventData.GetString("entity") == "Purchases" || eventData.GetString("entity") == "Payments")) { continue; }
 
                 <div class="pj-tl-item">
                     <div class="pj-tl-dot @dotClass"><i class="fas @iconClass"></i></div>
@@ -354,7 +399,7 @@
                                         </div>
                                     </div>
                                 }
-                                else if (ev.EventType is "MPESA" or "PENDING" or "SUCCESS" or "FAILED")
+                                else if (ev.EventType == "MPESA" || ev.EventType.StartsWith("PAYMENT_") || ev.EventType is "PENDING" or "SUCCESS" or "FAILED")
                                 {
                                     <div class="pj-tl-body-row">
                                         <div class="pj-tl-body-item">
@@ -373,11 +418,11 @@
                                             <span class="pj-tl-body-label">Transaction Ref</span>
                                             <span class="pj-tl-body-value" style="font-family:monospace;">@((eventData.GetString("transaction_reference")))</span>
                                         </div>
-                                        @if (ev.EventType is "SUCCESS" or "FAILED")
+                                        @if (ev.EventType.Contains("SUCCESS") || ev.EventType.Contains("FAILED"))
                                         {
                                             <div class="pj-tl-body-item">
                                                 <span class="pj-tl-body-label">Status</span>
-                                                <span class="pj-tl-badge @(ev.EventType == "SUCCESS" ? "success" : "error")">@(eventData.GetString("status"))</span>
+                                                <span class="pj-tl-badge @(ev.EventType.Contains("FAILED") ? "error" : "success")">@(eventData.GetString("status"))</span>
                                             </div>
                                         }
                                     </div>
@@ -428,14 +473,24 @@
                                         </div>
                                         @if (eventData.ContainsKey("new_value") || eventData.ContainsKey("old_value"))
                                         {
-                                            <div class="pj-tl-body-item">
-                                                <span class="pj-tl-body-label">From</span>
-                                                <span class="pj-tl-body-value">@((eventData.GetString("old_value")))</span>
-                                            </div>
-                                            <div class="pj-tl-body-item">
-                                                <span class="pj-tl-body-label">To</span>
-                                                <span class="pj-tl-body-value">@((eventData.GetString("new_value")))</span>
-                                            </div>
+                                            var oldObj = JsonDictHelpers.TryParseObject(eventData.GetString("old_value"));
+                                            var newObj = JsonDictHelpers.TryParseObject(eventData.GetString("new_value"));
+                                            var allKeys = newObj != null
+                                                ? newObj.Keys.Union(oldObj?.Keys ?? Enumerable.Empty<string>())
+                                                : (oldObj?.Keys ?? Enumerable.Empty<string>());
+                                            foreach (var key in allKeys)
+                                            {
+                                                var keyLabel = JsonDictHelpers.ToTitle(key);
+                                                var fromV = oldObj != null && oldObj.TryGetValue(key, out var fv) ? JsonDictHelpers.FmtValue(fv) : null;
+                                                var toV = newObj != null && newObj.TryGetValue(key, out var tv) ? JsonDictHelpers.FmtValue(tv) : null;
+                                                if (fromV == toV) continue;
+                                                <div style="margin-top:4px;">
+                                                    <span class="pj-tl-body-label" style="min-width:150px;display:inline-block;vertical-align:top;">@keyLabel</span>
+                                                    <span style="color:#9ca3af;word-break:break-word;">@(fromV ?? "—")</span>
+                                                    <span style="color:#6b7280;margin:0 4px;">→</span>
+                                                    <span style="font-weight:600;word-break:break-word;">@(toV ?? "—")</span>
+                                                </div>
+                                            }
                                         }
                                     </div>
                                 }
@@ -458,9 +513,15 @@
                                 }
                                 else
                                 {
-                                    <div style="font-size:12px;color:#6b7280;font-family:monospace;word-break:break-all;">
-                                        @ev.EventDataJson
-                                    </div>
+                                    @foreach (var kv in eventData)
+                                    {
+                                        var val = JsonDictHelpers.FmtValue(kv.Value);
+                                        if (string.IsNullOrEmpty(val)) continue;
+                                        <div style="margin-top:4px;">
+                                            <span class="pj-tl-body-label" style="min-width:150px;display:inline-block;vertical-align:top;">@JsonDictHelpers.ToTitle(kv.Key)</span>
+                                            <span style="font-weight:600;word-break:break-word;">@val</span>
+                                        </div>
+                                    }
                                 }
                             }
                         </div>
