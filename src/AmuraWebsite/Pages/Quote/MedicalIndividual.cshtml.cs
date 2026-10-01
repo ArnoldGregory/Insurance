@@ -38,6 +38,11 @@ public class MedicalIndividualModel : PageModel
             ModelState.AddModelError(string.Empty, "Only one spouse can be listed per quote.");
         }
 
+        if (Input.DateOfBirth.HasValue && Input.DateOfBirth > DateTime.Today.AddYears(-18))
+        {
+            ModelState.AddModelError(nameof(Input.DateOfBirth), "Medical insurance is available to people aged 18 and above only.");
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();

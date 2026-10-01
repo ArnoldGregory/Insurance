@@ -755,6 +755,39 @@ proc_label: BEGIN
 END $$
 
 -- ---------------------------------------------------------------------
+-- usp_QuoteOffer_GetById
+-- Single-offer read used by QuoteOfferRepository.GetByIdAsync - the
+-- edit-offer flow (UpdateOffer) and the add-on replacement flow
+-- (ReplaceOfferRiders) both re-send the offers-comparison email after
+-- saving, and both pull the parent quote_request_id through this read.
+-- Same SELECT shape as usp_QuoteOffer_GetListByRequest so the shared
+-- MapRow mapper works unchanged.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS usp_QuoteOffer_GetById $$
+CREATE PROCEDURE usp_QuoteOffer_GetById (
+    IN  p_quote_offer_id BIGINT UNSIGNED,
+    OUT o_result_code    INT,
+    OUT o_result_message VARCHAR(500)
+)
+proc_label: BEGIN
+    IF p_quote_offer_id IS NULL THEN
+        SET o_result_code = 1;
+        SET o_result_message = 'quote_offer_id is required.';
+        LEAVE proc_label;
+    END IF;
+
+    SELECT qo.quote_offer_id, qo.quote_request_id, qo.underwriter_id, u.name AS underwriter_name,
+           qo.premium_amount, qo.document_path, qo.uploaded_by_user_id, qo.uploaded_on, qo.status
+      FROM QuoteOffers qo
+      JOIN Underwriters u ON u.underwriter_id = qo.underwriter_id
+     WHERE qo.quote_offer_id = p_quote_offer_id AND qo.isdeleted = 0
+     LIMIT 1;
+
+    SET o_result_code = 0;
+    SET o_result_message = 'Success';
+END $$
+
+-- ---------------------------------------------------------------------
 -- usp_QuoteOffer_Update
 -- Back office corrects a mistyped premium/underwriter, or swaps in a
 -- replacement document, on an offer that hasn't been acted on yet.

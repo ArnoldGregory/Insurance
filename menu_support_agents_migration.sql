@@ -13,15 +13,21 @@ LIMIT 1;
 SELECT @actor AS resolved_superadmin_user_id,
        IF(@actor IS NULL, 'STOP: no SuperAdmin user found.', 'OK - continuing.') AS status;
 
--- Staff group = menu_id 32 (already seeded).
-SET @staff_id = 32;
+-- Staff group (resolved by label so the migration is not tied to a
+-- specific numeric menu_id that only holds on a particular database).
+SET @staff_id = NULL;
+SELECT menu_id INTO @staff_id FROM Menus WHERE label = 'Staff' AND parent_menu_id IS NULL LIMIT 1;
+
+SELECT @staff_id AS resolved_staff_menu_id,
+       IF(@staff_id IS NULL, 'STOP: no Staff menu found - run seed_menus_full_tree.sql first.', 'OK - continuing.') AS status;
 
 -- Guarded create (no-op if it already exists) - plain INSERT keeps this
 -- re-runnable without the duplicate rows a raw CALL of usp_Menu_Create
 -- would produce.
 INSERT INTO Menus (parent_menu_id, label, icon, url, sort_order, is_active, created_by, created_on)
 SELECT @staff_id, 'Support Agents', 'fa-headset', '/Staff/SupportAgents', 30, 1, @actor, NOW()
-WHERE NOT EXISTS (
+WHERE @staff_id IS NOT NULL
+  AND NOT EXISTS (
     SELECT 1 FROM Menus WHERE parent_menu_id = @staff_id AND label = 'Support Agents'
 );
 

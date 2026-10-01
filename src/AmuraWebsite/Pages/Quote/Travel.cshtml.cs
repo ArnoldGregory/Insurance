@@ -35,6 +35,11 @@ public class TravelModel : PageModel
             ModelState.AddModelError(nameof(Input.ReturnDate), "Return date can't be before the departure date.");
         }
 
+        if (Input.DateOfBirth.HasValue && Input.DateOfBirth > DateTime.Today.AddYears(-18))
+        {
+            ModelState.AddModelError(nameof(Input.DateOfBirth), "Travel insurance is available to people aged 18 and above only.");
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();

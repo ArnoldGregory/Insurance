@@ -204,12 +204,12 @@ CREATE TABLE PolicyLevels (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO PolicyLevels (policy_level_id, name, created_by) VALUES
-    (1, 'Class A - PSV Unmarked', 1),
-    (2, 'Type B - Commercial Vehicle', 1),
-    (3, 'Type C - Private Car', 1),
-    (4, 'Type D - Motor Cycle', 1),
-    (5, 'Type A - Taxi', 1),
-    (6, 'Type D - PSV', 1);
+    (1, 'Class A - PSV Unmarked', NULL),
+    (2, 'Type B - Commercial Vehicle', NULL),
+    (3, 'Type C - Private Car', NULL),
+    (4, 'Type D - Motor Cycle', NULL),
+    (5, 'Type A - Taxi', NULL),
+    (6, 'Type D - PSV', NULL);
 
 CREATE TABLE Underwriters (
     underwriter_id   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

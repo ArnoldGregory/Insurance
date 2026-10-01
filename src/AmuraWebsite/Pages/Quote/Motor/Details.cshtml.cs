@@ -62,6 +62,11 @@ public class DetailsModel : PageModel
     {
         await LoadCatalogAsync();
 
+        if (Input.Dob.HasValue && Input.Dob > DateTime.Today.AddYears(-18))
+        {
+            ModelState.AddModelError(nameof(Input.Dob), "Motor insurance is available to people aged 18 and above only.");
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();

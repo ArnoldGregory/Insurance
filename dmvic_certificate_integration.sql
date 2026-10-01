@@ -14,7 +14,7 @@
 
 USE insurance_platform;
 
-UPDATE Underwriters SET dmvic_code = '49' WHERE underwriter_id = 4;
+UPDATE Underwriters SET dmvic_code = '49' WHERE name = 'Definite Assurance';
 
 SET @col_exists := (
     SELECT COUNT(*) FROM information_schema.COLUMNS
