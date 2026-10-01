@@ -127,6 +127,19 @@ public class QuoteRequestsController : Controller
             offer.DocumentUrl = BuildDocumentUrl(offer.QuoteOfferId);
         }
 
+        // Add-on counts, one request per offer. Best-effort and sequential: a
+        // failure here only means the badge reads 0, so the offers table and
+        // the Add-ons buttons must still render.
+        foreach (var offer in offers)
+        {
+            var ridersResult = await _apiClient.GetAsync<List<QuoteOfferRiderItem>>(
+                $"/api/quoterequests/{id}/offers/{offer.QuoteOfferId}/riders");
+
+            offer.RiderCount = ridersResult.Success && ridersResult.Data is not null
+                ? ridersResult.Data.Count
+                : 0;
+        }
+
         var vm = new QuoteRequestDetailViewModel
         {
             Request = parentResult.Data,

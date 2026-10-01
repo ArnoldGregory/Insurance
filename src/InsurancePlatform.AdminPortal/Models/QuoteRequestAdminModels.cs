@@ -75,6 +75,13 @@ public class QuoteOfferItem
     /// is null (no document uploaded for this offer).
     /// </summary>
     public string? DocumentUrl { get; set; }
+
+    /// <summary>
+    /// NOT part of the API response - the add-on count for this offer, loaded
+    /// by QuoteRequestsController so the offers table can show how many
+    /// add-ons each offer already carries without opening every one.
+    /// </summary>
+    public int RiderCount { get; set; }
 }
 
 /// <summary>Minimal mirror of InsurancePlatform.Domain.Entities.UnderwriterSummary - just what the "add offer" form's underwriter picker needs.</summary>

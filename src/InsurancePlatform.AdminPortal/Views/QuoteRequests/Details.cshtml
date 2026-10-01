@@ -61,6 +61,11 @@
     // Whether the "Edit selected" batch-edit button/checkboxes/modal should
     // render at all - there's nothing to select if no offer is ACTIVE.
     var hasActiveOffers = Model.Offers.Any(o => o.Status == "ACTIVE");
+
+    // Add-ons (riders) belong to an individual offer, not to the quote request.
+    // They can only be added once an offer exists, which is why an assigned
+    // request with no offers shows nothing to manage here.
+    var riderTotal = Model.Offers.Sum(o => o.RiderCount);
 }
 @section PageStyles {
     <link href="~/assets/static/plugins/select2/dist/css/select2.min.css" rel="stylesheet" />
@@ -193,12 +198,32 @@
                 }
             </div>
         }
-        <h4 class="panel-title">Offers</h4>
+        <h4 class="panel-title">
+                Offers@(riderTotal > 0 ? $" &middot; {riderTotal} add-on{(riderTotal == 1 ? "" : "s")}" : "")
+            </h4>
     </div>
     <div class="panel-body">
         @if (Model.Offers.Count == 0)
         {
-            <p class="text-muted">No offers uploaded yet.</p>
+            <p class="text-muted">
+                No offers uploaded yet.
+                @if (Model.UnderwriterOptions.Count > 0 && canAddOffer)
+                {
+                    <br />
+                    <span class="text-muted">
+                        Add an offer first - add-ons are recorded against a specific
+                        insurer's offer, so there is nothing to attach them to until one exists.
+                    </span>
+                }
+                else
+                {
+                    <br />
+                    <span class="text-muted">
+                        Add-ons are recorded against a specific insurer's offer, so they
+                        appear here once an offer has been added.
+                    </span>
+                }
+            </p>
         }
         else
         {
@@ -209,7 +234,7 @@
                         {
                             <th style="width:30px;"><input type="checkbox" id="offerSelectAllCheckbox" title="Select all editable offers" /></th>
                         }
-                        <th>Underwriter</th><th>Premium</th><th>Status</th><th>Document</th><th>Uploaded</th><th style="width:150px;"></th>
+                        <th>Underwriter</th><th>Premium</th><th>Status</th><th>Add-ons</th><th>Document</th><th>Uploaded</th><th style="width:150px;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -239,6 +264,16 @@
                             <td>@offer.UnderwriterName</td>
                             <td>@offer.PremiumAmount.ToString("N2")</td>
                             <td><span class="label @offerBadge">@offer.Status</span></td>
+                            <td>
+                                @if (offer.RiderCount > 0)
+                                {
+                                    <span class="label label-primary" title="Add-ons saved against this offer"><i class="fa fa-list"></i> @offer.RiderCount</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
                             <td>
                                 @if (offer.DocumentUrl is not null)
                                 {
