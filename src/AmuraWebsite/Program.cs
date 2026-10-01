@@ -39,7 +39,44 @@ builder.Services.AddHttpClient<IMotorPurchaseClient, MotorPurchaseClient>((sp, c
 });
 builder.Services.AddSingleton<MotorSessionStore>();
 
+// Which API are we actually talking to? Every quote submitted through this
+// site becomes a real row in that API's database, so the target is logged
+// loudly at startup - a misconfigured BaseUrl otherwise stays invisible
+// until someone notices test data in production.
+var platformOptions = builder.Configuration
+    .GetSection(InsurancePlatformOptions.SectionName)
+    .Get<InsurancePlatformOptions>() ?? new InsurancePlatformOptions();
+
+var apiBaseUrl = platformOptions.BaseUrl ?? string.Empty;
+var apiUri = Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var parsed) ? parsed : null;
+var isLiveApi = apiUri is not null
+    && apiUri.Host.Contains("riziki.app", StringComparison.OrdinalIgnoreCase);
+
+// Refuse to boot against the live API outside Production unless explicitly
+// allowed. Local testing writes real quote rows, and Development/Testing
+// should never do that by accident. Production keeps its normal behaviour so
+// deployment is unaffected.
+var allowLive = string.Equals(
+    builder.Configuration["InsurancePlatform:AllowLiveApi"], "true", StringComparison.OrdinalIgnoreCase);
+
+if (isLiveApi && !builder.Environment.IsProduction() && !allowLive)
+{
+    throw new InvalidOperationException(
+        $"Refusing to start: BaseUrl '{apiBaseUrl}' points at the LIVE production API, " +
+        "but the environment is not Production. Local runs write real quote data to the " +
+        "live database. Set InsurancePlatform__BaseUrl to a local API (e.g. " +
+        "http://localhost:5044), or set InsurancePlatform__AllowLiveApi=true if this is " +
+        "intentional.");
+}
+
 var app = builder.Build();
+
+var startupLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+startupLog.LogWarning(
+    "AmuraWebsite starting in {Environment} against API {BaseUrl}{LiveNote}",
+    app.Environment.EnvironmentName,
+    string.IsNullOrWhiteSpace(apiBaseUrl) ? "(not configured)" : apiBaseUrl,
+    isLiveApi ? "  *** THIS IS THE LIVE PRODUCTION API ***" : string.Empty);
 
 // Behind nginx (reverse proxy) in production — trust the X-Forwarded-*
 // headers so HTTPS redirection, HSTS, and client IP all work correctly. 
