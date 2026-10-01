@@ -57,8 +57,10 @@ CREATE TABLE IF NOT EXISTS ComprehensiveBenefit (
 --    seeding is independent of numeric auto-increment IDs)
 -- ================================================================
 
-DELETE FROM ComprehensiveRateBand;
-
+-- Seed is INSERT-if-missing, never a wipe. A bare DELETE here used to discard
+-- every rate band the admin portal had edited (usp_ComprehensiveRateBand_Upsert
+-- in comprehensive_benefits_limits_migration.sql) and reset band_id values that
+-- other rows may reference. Re-running this file must not destroy tuned rates.
 INSERT INTO ComprehensiveRateBand (underwriter_id, value_min, value_max, rate_percent, min_premium, effective_from)
 SELECT u.underwriter_id, b.value_min, b.value_max, b.rate_percent, b.min_premium, CURDATE()
 FROM Underwriters u
@@ -92,13 +94,20 @@ JOIN (
            ROW('KENYA_ORIENT', 2000001, 999999999, 3.00, 35000)
 ) AS b(uw_code, value_min, value_max, rate_percent, min_premium)
   ON b.uw_code = u.code
-WHERE u.code IN ('MONARCH','MUA','HERITAGE','PACIS','OLDMUTUAL','KENINDIA','KENYA_ORIENT');
+WHERE u.code IN ('MONARCH','MUA','HERITAGE','PACIS','OLDMUTUAL','KENINDIA','KENYA_ORIENT')
+  AND NOT EXISTS (
+      SELECT 1 FROM ComprehensiveRateBand rb
+       WHERE rb.underwriter_id = u.underwriter_id
+         AND rb.value_min = b.value_min
+         AND rb.value_max = b.value_max
+  );
 
 -- 4. SEED OPTIONAL BENEFITS (same set for all underwriters)
 -- ================================================================
 
-DELETE FROM ComprehensiveBenefit;
-
+-- Same insert-if-missing rule as the rate bands: a bare DELETE here discarded
+-- benefit edits made through usp_ComprehensiveBenefit_Upsert, including the
+-- display_order column added by comprehensive_benefits_limits_migration.sql.
 INSERT INTO ComprehensiveBenefit (underwriter_id, benefit_code, benefit_name, default_price, is_included_in_base, description)
 SELECT u.underwriter_id, b.benefit_code, b.benefit_name, b.default_price, b.is_included_in_base, b.description
 FROM Underwriters u
@@ -110,7 +119,12 @@ JOIN (
            ROW('TPPD_UPGRADE', 'TPPD Upgrade', 7500, 0, 'Third Party Property Damage upgrade'),
            ROW('YOUNG_NOVICE', 'Young/Novice Driver Cover', 5000, 0, 'Additional cover for young/novice drivers')
 ) AS b(benefit_code, benefit_name, default_price, is_included_in_base, description) ON 1=1
-WHERE u.code IN ('MONARCH','MUA','HERITAGE','PACIS','OLDMUTUAL','KENINDIA','KENYA_ORIENT');
+WHERE u.code IN ('MONARCH','MUA','HERITAGE','PACIS','OLDMUTUAL','KENINDIA','KENYA_ORIENT')
+  AND NOT EXISTS (
+      SELECT 1 FROM ComprehensiveBenefit cb
+       WHERE cb.underwriter_id = u.underwriter_id
+         AND cb.benefit_code = b.benefit_code
+  );
 
 -- 5. STORED PROCEDURES
 -- ================================================================
