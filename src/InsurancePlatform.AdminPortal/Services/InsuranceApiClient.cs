@@ -218,7 +218,7 @@ public class InsuranceApiClient : IInsuranceApiClient
 
         request.Content = content;
 
-        var response = await _httpClient.SendAsync(request);
+        var response = await SendWithRetryAsync(request);
         return await ReadResponseAsync<T>(response);
     }
 
@@ -255,7 +255,7 @@ public class InsuranceApiClient : IInsuranceApiClient
 
         request.Content = content;
 
-        var response = await _httpClient.SendAsync(request);
+        var response = await SendWithRetryAsync(request);
         return await ReadResponseAsync<T>(response);
     }
 
@@ -286,6 +286,44 @@ public class InsuranceApiClient : IInsuranceApiClient
     {
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add("X-Channel", Channel);
+    }
+
+    // Sends the request, retrying a couple of times when the API simply isn't
+    // accepting connections yet. Without this, any moment the API is restarting
+    // (a rebuild, or the watchdog bringing it back) surfaces to the user as
+    // "Unable to reach the server. Please try again in a few minutes" - an
+    // HttpRequestException from AccountController that reads like an outage but
+    // is really just a blip of a second or two.
+    //
+    // Only TRANSPORT failures are retried (connection refused / DNS / socket),
+    // and only for idempotent-in-practice calls. An HTTP response that arrives
+    // - including 5xx - is returned to the caller untouched, so a real API
+    // error or a wrong password is never retried or hidden.
+    private async Task<HttpResponseMessage> SendWithRetryAsync(HttpRequestMessage request)
+    {
+        const int maxAttempts = 3;
+        const int delayMs = 400;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await _httpClient.SendAsync(request);
+            }
+            catch (HttpRequestException) when (attempt < maxAttempts)
+            {
+                await Task.Delay(delayMs);
+            }
+            catch (TaskCanceledException) when (attempt < maxAttempts && !request.Headers.Contains("X-Retried"))
+            {
+                // A TaskCanceledException here is a client-side timeout with no
+                // response. Marked so the retry isn't mistaken for a caller-
+                // cancelled request; SendAsync leaves the flag in place for the
+                // lifetime of this HttpRequestMessage.
+                request.Headers.Add("X-Retried", "1");
+                await Task.Delay(delayMs);
+            }
+        }
     }
 
     // Every InsurancePlatform.Api controller returns HTTP 200 with
