@@ -21,6 +21,7 @@ using InsurancePlatform.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using MySqlConnector;
 using NLog;
 using NLog.Web;
 
@@ -399,6 +400,54 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    // Fail fast if the database is unreachable. Without this check the API
+    // starts normally, then every request fails with a generic "unexpected
+    // error" - which is far harder to diagnose than a startup message that
+    // names the host, port and database.
+    var startupConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException(
+            "Connection string 'DefaultConnection' is not configured in appsettings.json.");
+
+    var connectionInfo = new MySqlConnectionStringBuilder(startupConnectionString);
+    try
+    {
+        await using var probe = new MySqlConnection(startupConnectionString);
+        await probe.OpenAsync();
+        nlogLogger.Info($"Database reachable: {connectionInfo.Server}:{connectionInfo.Port}/{connectionInfo.Database}.");
+    }
+    catch (Exception ex)
+    {
+        throw new InvalidOperationException(
+            $"Cannot reach the MySQL database at {connectionInfo.Server}:{connectionInfo.Port} " +
+            $"(database '{connectionInfo.Database}'). Is the MySQL service running? " +
+            "Check the DefaultConnection string in appsettings.json. " +
+            $"Underlying error: {ex.Message}", ex);
+    }
+
+    // Liveness/readiness probe. Used by the Admin Portal and Website at
+    // startup (so a missing API is reported by name instead of surfacing
+    // later as "Unable to reach the server"), and useful on its own as a
+    // "is this API actually usable" check - it returns 200 only when the
+    // database answers too, not merely when Kestrel is listening.
+    app.MapGet("/health", async () =>
+    {
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+        try
+        {
+            await using var connection = new MySqlConnection(connectionString);
+            await connection.OpenAsync();
+            await using var command = new MySqlCommand("SELECT 1", connection);
+            await command.ExecuteScalarAsync();
+            return Results.Ok(new { status = "healthy", database = "reachable" });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(
+                new { status = "unhealthy", database = "unreachable", error = ex.Message },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+    });
 
     app.Run();
 }

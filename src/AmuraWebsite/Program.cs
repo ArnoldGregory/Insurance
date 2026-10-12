@@ -78,6 +78,38 @@ startupLog.LogWarning(
     string.IsNullOrWhiteSpace(apiBaseUrl) ? "(not configured)" : apiBaseUrl,
     isLiveApi ? "  *** THIS IS THE LIVE PRODUCTION API ***" : string.Empty);
 
+// Startup dependency check: is the API actually reachable? Quote submission
+// and the motor purchase flow all go through it, and without this check a
+// missing API only shows up later as a failed form post with no explanation.
+// The site deliberately stays up so the pages still render and this message
+// is visible in the log.
+if (!string.IsNullOrWhiteSpace(apiBaseUrl))
+{
+    try
+    {
+        using var probeClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        var healthUrl = new Uri(new Uri(apiBaseUrl), "health");
+        var healthResponse = await probeClient.GetAsync(healthUrl);
+        if (healthResponse.IsSuccessStatusCode)
+        {
+            startupLog.LogInformation("API reachable at {BaseUrl}.", apiBaseUrl);
+        }
+        else
+        {
+            startupLog.LogWarning(
+                "API at {BaseUrl} is running but reported {Status} for /health - its database is probably down.",
+                apiBaseUrl, (int)healthResponse.StatusCode);
+        }
+    }
+    catch (Exception ex)
+    {
+        startupLog.LogWarning(
+            "Cannot reach the API at {BaseUrl}. Quote submission and purchases will fail until it is " +
+            "running. Start InsurancePlatform.Api. Error: {Message}",
+            apiBaseUrl, ex.Message);
+    }
+}
+
 // Behind nginx (reverse proxy) in production — trust the X-Forwarded-*
 // headers so HTTPS redirection, HSTS, and client IP all work correctly. 
 app.UseForwardedHeaders(new ForwardedHeadersOptions

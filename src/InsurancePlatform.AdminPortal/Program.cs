@@ -92,6 +92,39 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// Startup dependency check: is the API actually reachable? Without this, a
+// missing API only shows up later as "Unable to reach the server. Please try
+// again in a few minutes" on the login screen, with nothing saying why.
+//
+// The portal deliberately does NOT exit when the API is down - you still want
+// the pages to load so you can read this message. It goes to the log, which
+// appears in Visual Studio's Output/Debug console.
+var startupLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+try
+{
+    using var probeClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+    var healthUrl = new Uri(new Uri(apiBaseUrl), "health");
+    var response = await probeClient.GetAsync(healthUrl);
+    if (response.IsSuccessStatusCode)
+    {
+        startupLog.LogInformation("API reachable at {Url}.", apiBaseUrl);
+    }
+    else
+    {
+        startupLog.LogWarning(
+            "API at {Url} is running but reported {Status} for /health - its database is probably down.",
+            apiBaseUrl, (int)response.StatusCode);
+    }
+}
+catch (Exception ex)
+{
+    startupLog.LogWarning(
+        "Cannot reach the API at {Url}. Login and every data screen will fail until it is running. " +
+        "Start InsurancePlatform.Api - in Visual Studio, right-click the solution > Configure Startup " +
+        "Projects > Multiple startup projects, and enable Api + AdminPortal + AmuraWebsite. Error: {Message}",
+        apiBaseUrl, ex.Message);
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
