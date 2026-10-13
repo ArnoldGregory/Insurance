@@ -28,17 +28,20 @@ public class PaymentsController : BaseApiController
 {
     private readonly IPaymentRepository _paymentRepository;
     private readonly IMpesaStkPushService _stkPushService;
+    private readonly IMpesaC2BService _c2bService;
     private readonly ILoggerManager _logger;
 
     public PaymentsController(
         IPaymentRepository paymentRepository,
         IMpesaStkPushService stkPushService,
+        IMpesaC2BService c2bService,
         ILoggerManager logger,
         CorrelationContext correlationContext)
         : base(correlationContext)
     {
         _paymentRepository = paymentRepository;
         _stkPushService = stkPushService;
+        _c2bService = c2bService;
         _logger = logger;
     }
 
@@ -146,6 +149,31 @@ public class PaymentsController : BaseApiController
         return Success(
             new { PaymentId = paymentId, PushSent = true, pushResult.MerchantRequestId, pushResult.CheckoutRequestId },
             pushResult.Message);
+    }
+
+    /// <summary>One-off: registers the Paybill's C2B validation/confirmation URLs with Daraja via SCAPI, so manual Paybill payments reach the C2B confirmation webhook.</summary>
+    // This is configuration, not a per-purchase action - it only needs to be
+    // called when the short code or its callback URL changes. The URL that
+    // Daraja actually calls is read by SCAPI from the short code's own DB
+    // row, not from this request, so pointing payments at this API is a
+    // scapi-DB change (mpesa_business_shortcode.mpesa_call_back_url), not a
+    // code change. SuperAdmin-only since it reconfigures a live Paybill.
+    /// <response code="200">Always 200 - check Success in the body.</response>
+    [Authorize(Roles = RoleCodes.SuperAdmin)]
+    [HttpPost("register-c2b-urls")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RegisterC2BUrls([FromBody] RegisterC2BUrlsRequest? request)
+    {
+        var result = await _c2bService.RegisterUrlsAsync(request?.ResponseType ?? "Completed");
+
+        if (!result.Success)
+        {
+            _logger.LogWarn($"C2B URL registration failed: {result.Message}");
+            return BusinessFailure(result.Message);
+        }
+
+        _logger.LogInfo("C2B Paybill URLs registered with Daraja.");
+        return Success(result.Message);
     }
 
     /// <summary>Confirms or fails a payment - on SUCCESS also flips the purchase's payment_status to PAID.</summary>

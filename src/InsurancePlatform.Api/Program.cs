@@ -198,6 +198,11 @@ try
     // depends on this for POST /api/payments/stk-push.
     builder.Services.AddScoped<IMpesaStkPushService, MpesaStkPushService>();
 
+    // MpesaC2BService (Application) - same gateway client, composes the
+    // DARAJA_REGISTER_URLS message used by POST /api/payments/register-c2b-urls
+    // to register the Paybill's C2B URLs with Daraja (one-off setup).
+    builder.Services.AddScoped<IMpesaC2BService, MpesaC2BService>();
+
     // NTSA/D-MVIC official motor certificate issuance - the Dmvic section of
     // appsettings.json drives request type / certificate type / contacts and
     // the on/off switch; the per-underwriter NTSA member id lives on

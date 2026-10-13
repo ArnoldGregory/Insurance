@@ -31,3 +31,12 @@ public class InitiateStkPushRequest
     public string PhoneNumber { get; set; } = string.Empty;
     public string AccountReference { get; set; } = string.Empty;
 }
+
+/// <summary>One-off registration of the Paybill's C2B URLs with Daraja (see IMpesaC2BService).</summary>
+// ResponseType is Daraja's own "Completed" (accept and record) or
+// "Cancelled" - Completed is the only sane value for a live Paybill, so
+// it's the default when this is left out.
+public class RegisterC2BUrlsRequest
+{
+    public string? ResponseType { get; set; }
+}
