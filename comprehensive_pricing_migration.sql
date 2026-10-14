@@ -179,10 +179,11 @@ BEGIN
         benefit_name,
         default_price,
         is_included_in_base,
-        description
+        description,
+        display_order
     FROM ComprehensiveBenefit
     WHERE underwriter_id = p_underwriter_id
       AND is_active = 1
-    ORDER BY is_included_in_base DESC, benefit_name ASC;
+    ORDER BY display_order ASC, benefit_name ASC;
 END //
 DELIMITER ;

@@ -68,7 +68,7 @@ public class MpesaStkPushService : IMpesaStkPushService
             return new StkPushResult
             {
                 Success = true,
-                Message = "Payment received successfully. Kindly check your phone to key in your PIN to finish payment.",
+                Message = "Payment request sent. Kindly check your phone and enter your M-Pesa PIN to complete the payment.",
                 MerchantRequestId = gj["MerchantRequestID"]?.ToString(),
                 CheckoutRequestId = gj["CheckoutRequestID"]?.ToString()
             };

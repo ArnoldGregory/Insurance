@@ -736,7 +736,7 @@ proc_label: BEGIN
     END IF;
 
     SELECT payment_id, purchase_id, amount, method, payer_phone, transaction_reference,
-           status, initiated_on, completed_on
+           gateway_reference, status, initiated_on, completed_on
     FROM Payments
     WHERE purchase_id = p_purchase_id
     ORDER BY initiated_on DESC;

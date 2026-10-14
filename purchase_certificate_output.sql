@@ -56,6 +56,7 @@ proc_label: BEGIN
            per.name AS period_name, pu.start_date, pu.end_date, pu.policy_number,
            pu.payment_status, pu.status, pu.created_on,
            pu.certificate_status, pu.cert_generated_on, pu.certificate_number,
+           pu.ntsa_certificate_no, pu.ntsa_transaction_no, pu.ntsa_issued_on,
            v.reg_no AS vehicle_reg_no, v.make AS vehicle_make, v.model AS vehicle_model
     FROM Purchases pu
     JOIN Products pr ON pr.product_id = pu.product_id
