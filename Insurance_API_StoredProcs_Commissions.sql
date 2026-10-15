@@ -349,6 +349,12 @@ END $$
 -- immediately (withdrawal_id set) so they can't be double-claimed by a
 -- second request before this one resolves; status stays ACCRUED until
 -- actually PAID, and REJECTED releases the reservation.
+--
+-- Concurrency: takes a per-agent named lock (GET_LOCK 'cw_agent_<id>') for
+-- the whole read-modify-write so two devices/sessions for the SAME agent
+-- cannot both read the balance and double-spend (the historical negative-
+-- balance bug). The balance is (re)computed under the lock. A minimum
+-- withdrawal amount is enforced here (v_min_withdrawal).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS usp_CommissionWithdrawal_Request $$
 CREATE PROCEDURE usp_CommissionWithdrawal_Request (
@@ -359,17 +365,40 @@ CREATE PROCEDURE usp_CommissionWithdrawal_Request (
     OUT o_amount         DECIMAL(18,2)
 )
 proc_label: BEGIN
+    -- Minimum an agent may withdraw in a single request. Change this one
+    -- constant to move the floor for everyone (policy lives in the DB).
+    DECLARE v_min_withdrawal DECIMAL(18,2) DEFAULT 30.00;
+    DECLARE v_lock_name      VARCHAR(64);
+    DECLARE v_lock_acquired  INT DEFAULT 0;
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
+        IF v_lock_acquired = 1 THEN
+            DO RELEASE_LOCK(v_lock_name);
+        END IF;
         ROLLBACK;
         SET o_result_code = 99;
         SET o_result_message = 'Unexpected error — transaction rolled back.';
         RESIGNAL;
     END;
 
+    SET o_withdrawal_id = NULL;
+    SET o_amount        = 0;
+
     IF p_agent_user_id IS NULL THEN
         SET o_result_code = 1;
         SET o_result_message = 'agent_user_id is required.';
+        LEAVE proc_label;
+    END IF;
+
+    SET v_lock_name = CONCAT('cw_agent_', p_agent_user_id);
+
+    -- Serialize every withdrawal request for this agent across all
+    -- sessions/devices. 0 = timed out, NULL = error.
+    SELECT GET_LOCK(v_lock_name, 10) INTO v_lock_acquired;
+    IF v_lock_acquired <> 1 THEN
+        SET o_result_code = 5;
+        SET o_result_message = 'Another withdrawal for this agent is already in progress. Please try again.';
         LEAVE proc_label;
     END IF;
 
@@ -382,8 +411,17 @@ proc_label: BEGIN
 
     IF o_amount IS NULL OR o_amount <= 0 THEN
         ROLLBACK;
+        DO RELEASE_LOCK(v_lock_name);
         SET o_result_code = 4;
         SET o_result_message = 'No available commission balance to withdraw.';
+        LEAVE proc_label;
+    END IF;
+
+    IF o_amount < v_min_withdrawal THEN
+        ROLLBACK;
+        DO RELEASE_LOCK(v_lock_name);
+        SET o_result_code = 6;
+        SET o_result_message = CONCAT('The minimum withdrawal amount is ', FORMAT(v_min_withdrawal, 2), '.');
         LEAVE proc_label;
     END IF;
 
@@ -401,6 +439,9 @@ proc_label: BEGIN
             NULL, JSON_OBJECT('agent_user_id', p_agent_user_id, 'amount', o_amount), NOW());
 
     COMMIT;
+
+    DO RELEASE_LOCK(v_lock_name);
+
     SET o_result_code = 0;
     SET o_result_message = 'Success';
 END $$
@@ -443,21 +484,28 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
-    SELECT status INTO v_old_status FROM CommissionWithdrawals WHERE withdrawal_id = p_withdrawal_id;
+    START TRANSACTION;
+
+    -- Lock the row so two admins processing the same request at the same
+    -- time cannot both pass the "already finalized" check below.
+    SELECT status INTO v_old_status
+    FROM CommissionWithdrawals
+    WHERE withdrawal_id = p_withdrawal_id
+    FOR UPDATE;
 
     IF v_old_status IS NULL THEN
+        ROLLBACK;
         SET o_result_code = 2;
         SET o_result_message = 'Withdrawal request not found.';
         LEAVE proc_label;
     END IF;
 
     IF v_old_status IN ('PAID','REJECTED') THEN
+        ROLLBACK;
         SET o_result_code = 4;
         SET o_result_message = 'This withdrawal has already been finalized.';
         LEAVE proc_label;
     END IF;
-
-    START TRANSACTION;
 
     UPDATE CommissionWithdrawals
     SET status = p_status, processed_by_user_id = p_actor_id, processed_on = NOW()
