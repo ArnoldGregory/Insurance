@@ -85,7 +85,17 @@ public class DmvicCertificateService : IDmvicCertificateService
         }
 
         var externalRef = DateTime.Now.ToString("yyyyMMddHHmmssfff");
-        var (requestType, typeOfCertificate) = ResolveIssuanceType(data.VehicleType);
+
+        if (!_options.TryResolveVehicleType(data.VehicleType, out var requestType, out var typeOfCertificate))
+        {
+            _logger.LogWarn(
+                $"D-MVIC purchase_id={purchaseId}: vehicle class '{data.VehicleType}' has no NTSA certificate-type mapping - skipping issuance rather than issuing the wrong certificate.");
+            return new DmvicIssueResult
+            {
+                Issued = false,
+                Message = $"Vehicle class '{data.VehicleType}' has no NTSA certificate-type mapping."
+            };
+        }
 
         _logger.LogInfo(
             $"D-MVIC purchase_id={purchaseId}: issuing via {requestType}/{typeOfCertificate} for vehicle {data.RegNo}, ref={externalRef}.");
@@ -181,22 +191,6 @@ public class DmvicCertificateService : IDmvicCertificateService
         var reason = ExtractErrorReason(output);
         _logger.LogWarn($"D-MVIC purchase_id={purchaseId}: NTSA issuance rejected (ref={externalRef}): {reason}");
         return new DmvicIssueResult { Issued = false, Message = reason };
-    }
-
-    private (string RequestType, string TypeOfCertificate) ResolveIssuanceType(string? vehicleType)
-    {
-        var key = vehicleType?.Trim().ToUpperInvariant() ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(key) &&
-            _options.VehicleTypeMap.TryGetValue(key, out var mapping))
-        {
-            var parts = mapping.Split('|', 2, StringSplitOptions.TrimEntries);
-            if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
-            {
-                return (parts[0], parts[1]);
-            }
-        }
-
-        return (_options.RequestType, _options.TypeOfCertificate);
     }
 
     private JsonObject BuildIssuanceBody(PurchaseDmvicData data, string requestType, string typeOfCertificate, string externalRef)

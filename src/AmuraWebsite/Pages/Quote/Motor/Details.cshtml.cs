@@ -92,10 +92,16 @@ public class DetailsModel : PageModel
             return Page();
         }
 
-        // 2. Register the vehicle.
+        // 2. Register the vehicle. Stamp the selected vehicle-class name onto
+        // the vehicle (mirrors the admin wizard) so the NTSA/D-MVIC
+        // certificate type can be derived from it later; fall back to the
+        // free-text vehicle type when no class was selected.
+        var selectedClass = VehicleClasses.Find(c => c.VehicleClassId == Input.VehicleClassId);
+        var registeredVehicleType = selectedClass?.Name ?? Input.VehicleType;
+
         var vehicleId = await _client.RegisterVehicleAsync(
             clientId.Value, Input.Make, Input.Model, Input.RegNo, Input.ChassisNo, Input.EngineNo,
-            Input.YearOfManufacture, Input.VehicleType, Input.BodyType, Input.FuelType,
+            Input.YearOfManufacture, registeredVehicleType, Input.BodyType, Input.FuelType,
             Input.CubicCapacity, Input.Color, Input.Logbook);
 
         if (vehicleId is null)
