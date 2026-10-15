@@ -323,6 +323,7 @@ public class PurchaseRepository : IPurchaseRepository
             PBodyType = reader.IsDBNull(reader.GetOrdinal("p_bodytype")) ? null : reader.GetString("p_bodytype"),
             VehicleType = reader.IsDBNull(reader.GetOrdinal("vehicle_type")) ? null : reader.GetString("vehicle_type"),
             VehicleValue = reader.IsDBNull(reader.GetOrdinal("vehicle_value")) ? null : reader.GetDecimal("vehicle_value"),
+            Tonnage = reader.IsDBNull(reader.GetOrdinal("tonnage")) ? null : reader.GetDecimal("tonnage"),
             LicensedToCarry = reader.IsDBNull(reader.GetOrdinal("licensedtocarry")) ? null : reader.GetInt64("licensedtocarry"),
             MemberCompanyId = reader.IsDBNull(reader.GetOrdinal("member_company_id")) ? null : reader.GetString("member_company_id"),
             UnderwriterName = reader.IsDBNull(reader.GetOrdinal("underwriter_name")) ? null : reader.GetString("underwriter_name")

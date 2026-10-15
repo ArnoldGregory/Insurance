@@ -125,7 +125,7 @@ proc_label: BEGIN
            c.full_name AS policyholder, c.phone AS client_phone, c.email AS client_email, c.kra_pin,
            v.reg_no, v.make, v.model, v.chassis_no, v.engine_no, v.yearofmanufacture,
            v.p_bodytype, v.vehicle_type,
-           vsp.vehicle_value, vsp.licensedtocarry,
+           vsp.vehicle_value, vsp.tonnage, vsp.licensedtocarry,
            u.dmvic_code AS member_company_id, u.name AS underwriter_name
     FROM Purchases p
     JOIN Underwriters u ON u.underwriter_id = p.underwriter_id

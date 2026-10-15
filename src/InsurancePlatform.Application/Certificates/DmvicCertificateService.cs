@@ -90,7 +90,25 @@ public class DmvicCertificateService : IDmvicCertificateService
         _logger.LogInfo(
             $"D-MVIC purchase_id={purchaseId}: issuing via {requestType}/{typeOfCertificate} for vehicle {data.RegNo}, ref={externalRef}.");
 
-        var body = BuildIssuanceBody(data, typeOfCertificate, externalRef);
+        var body = BuildIssuanceBody(data, requestType, typeOfCertificate, externalRef);
+
+        if (_options.CheckDoubleIssuance)
+        {
+            var doubleIssuance = await CheckDoubleIssuanceAsync(data, purchaseId, externalRef);
+            if (doubleIssuance is not null)
+            {
+                return doubleIssuance;
+            }
+        }
+
+        if (_options.ValidateBeforeIssue)
+        {
+            var validateResult = await ValidateAsync(data, purchaseId, requestType, typeOfCertificate, externalRef);
+            if (validateResult is not null)
+            {
+                return validateResult;
+            }
+        }
 
         var issuanceResponse = await _gatewayClient.InvokeAsync(
             new ScapiMessageRoute
@@ -181,7 +199,7 @@ public class DmvicCertificateService : IDmvicCertificateService
         return (_options.RequestType, _options.TypeOfCertificate);
     }
 
-    private JsonObject BuildIssuanceBody(PurchaseDmvicData data, string typeOfCertificate, string externalRef)
+    private JsonObject BuildIssuanceBody(PurchaseDmvicData data, string requestType, string typeOfCertificate, string externalRef)
     {
         var phoneNumber = string.IsNullOrWhiteSpace(_options.NotificationPhoneNumber)
             ? data.ClientPhone ?? string.Empty
@@ -193,29 +211,170 @@ public class DmvicCertificateService : IDmvicCertificateService
             ? vehicleValue.ToString("F2")
             : data.PremiumAmount.ToString("F2");
 
-        return new JsonObject
+        // NTSA expects a different field set per certificate type (mirrors
+        // BIMADLINE's DMVICManager.IssueCertificate):
+        //   a -> TypeOfCertificate (PSV / Taxi)
+        //   b -> VehicleType + Tonnage, NO TypeOfCertificate (Commercial)
+        //   c -> TypeOfCertificate only (Private Car) - unchanged from before
+        //   d -> TypeOfCertificate + Tonnage (PSV / Motor Cycle)
+        // Everything except type_b keeps the original TypeOfCertificate field
+        // so the already-working private-car flow is byte-for-byte the same;
+        // type_b/d only gain the extra fields NTSA needs for commercial cover.
+        var certType = ResolveCertificateTypeLetter(requestType);
+
+        var body = new JsonObject
         {
-            ["Membercompanyid"] = data.MemberCompanyId,
-            ["TypeOfCertificate"] = typeOfCertificate,
-            ["Typeofcover"] = _options.TypeOfCover,
-            ["Policyholder"] = data.Policyholder ?? string.Empty,
-            ["policynumber"] = data.PolicyNumber ?? string.Empty,
-            ["Commencingdate"] = data.StartDate.ToString("yyyy-MM-dd"),
-            ["Expiringdate"] = data.EndDate.ToString("yyyy-MM-dd"),
-            ["Registrationnumber"] = data.RegNo,
-            ["Chassisnumber"] = data.ChassisNo ?? string.Empty,
-            ["Phonenumber"] = NormalizeKenyanPhoneNumber(phoneNumber),
-            ["Bodytype"] = data.PBodyType ?? string.Empty,
-            ["Licensedtocarry"] = data.LicensedToCarry?.ToString() ?? string.Empty,
-            ["Vehiclemake"] = data.Make ?? string.Empty,
-            ["Vehiclemodel"] = data.Model ?? string.Empty,
-            ["Enginenumber"] = data.EngineNo ?? string.Empty,
-            ["Email"] = email,
-            ["SumInsured"] = sumInsured,
-            ["InsuredPIN"] = data.KraPin ?? string.Empty,
-            ["Yearofmanufacture"] = data.YearOfManufacture?.ToString() ?? string.Empty,
-            ["HudumaNumber"] = string.Empty
+            ["Membercompanyid"] = data.MemberCompanyId
         };
+
+        if (certType == "b")
+        {
+            body["VehicleType"] = typeOfCertificate;
+        }
+        else
+        {
+            body["TypeOfCertificate"] = typeOfCertificate;
+        }
+
+        body["Typeofcover"] = _options.TypeOfCover;
+        body["Policyholder"] = data.Policyholder ?? string.Empty;
+        body["policynumber"] = data.PolicyNumber ?? string.Empty;
+        body["Commencingdate"] = data.StartDate.ToString("yyyy-MM-dd");
+        body["Expiringdate"] = data.EndDate.ToString("yyyy-MM-dd");
+        body["Registrationnumber"] = data.RegNo;
+        body["Chassisnumber"] = data.ChassisNo ?? string.Empty;
+        body["Phonenumber"] = NormalizeKenyanPhoneNumber(phoneNumber);
+        body["Bodytype"] = data.PBodyType ?? string.Empty;
+
+        if (certType is "b" or "d")
+        {
+            body["Tonnage"] = data.Tonnage?.ToString("0.##") ?? string.Empty;
+        }
+
+        body["Licensedtocarry"] = data.LicensedToCarry?.ToString() ?? string.Empty;
+        body["Vehiclemake"] = data.Make ?? string.Empty;
+        body["Vehiclemodel"] = data.Model ?? string.Empty;
+        body["Enginenumber"] = data.EngineNo ?? string.Empty;
+        body["Email"] = email;
+        body["SumInsured"] = sumInsured;
+        body["InsuredPIN"] = data.KraPin ?? string.Empty;
+        body["Yearofmanufacture"] = data.YearOfManufacture?.ToString() ?? string.Empty;
+        body["HudumaNumber"] = string.Empty;
+
+        return body;
+    }
+
+    /// <summary>
+    /// Extracts the certificate-type letter from a DMVIC request_type, e.g.
+    /// "issuance_type_b_cert" / "validate_type_b_cert" -> "b". Falls back to
+    /// "c" (the private-car set) when the request type is unrecognised.
+    /// </summary>
+    private static string ResolveCertificateTypeLetter(string requestType)
+    {
+        var parts = requestType.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 4 && parts[^1].Equals("cert", StringComparison.OrdinalIgnoreCase))
+        {
+            return parts[^2].ToLowerInvariant();
+        }
+
+        return "c";
+    }
+
+    /// <summary>
+    /// Maps an issuance request_type to its pre-check variant, e.g.
+    /// "issuance_type_c_cert" -> "validate_type_c_cert".
+    /// </summary>
+    private static string BuildValidateRequestType(string requestType)
+        => requestType.StartsWith("issuance", StringComparison.OrdinalIgnoreCase)
+            ? "validate" + requestType["issuance".Length..]
+            : requestType;
+
+    /// <summary>
+    /// Runs NTSA's validate_double_insurance. Returns null when issuance may
+    /// proceed, or a failed DmvicIssueResult when the vehicle already has cover.
+    /// </summary>
+    private async Task<DmvicIssueResult?> CheckDoubleIssuanceAsync(PurchaseDmvicData data, long purchaseId, string externalRef)
+    {
+        try
+        {
+            var response = await _gatewayClient.InvokeAsync(
+                new ScapiMessageRoute
+                {
+                    Interface = InterfaceName,
+                    RequestType = "validate_double_insurance",
+                    ExternalRefNumber = externalRef
+                },
+                new JsonObject
+                {
+                    ["policystartdate"] = data.StartDate.ToString("dd/MM/yyyy"),
+                    ["policyenddate"] = data.EndDate.ToString("dd/MM/yyyy"),
+                    ["vehicleregistrationnumber"] = data.RegNo ?? string.Empty,
+                    ["chassisnumber"] = data.ChassisNo ?? string.Empty
+                });
+
+            var output = (response?["error_desc"] as JsonObject)?["output"] as JsonObject;
+            if (output is null)
+            {
+                _logger.LogWarn($"D-MVIC purchase_id={purchaseId}: validate_double_insurance returned no usable output - proceeding with issuance.");
+                return null;
+            }
+
+            if (output["success"]?.ToString() is "true" or "True")
+            {
+                var cover = (output["callbackObj"] as JsonObject)?["DoubleInsurance"] as JsonArray;
+                var firstCover = cover?.OfType<JsonObject>().FirstOrDefault();
+                var company = firstCover?["MemberCompanyName"]?.ToString();
+                var endDate = firstCover?["CoverEndDate"]?.ToString();
+                var message = string.IsNullOrWhiteSpace(company)
+                    ? "The vehicle already has an active insurance cover."
+                    : $"The vehicle has an active cover with {company}, expiring on {endDate}.";
+                _logger.LogWarn($"D-MVIC purchase_id={purchaseId}: double insurance detected - {message}");
+                return new DmvicIssueResult { Issued = false, Message = message };
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"D-MVIC purchase_id={purchaseId}: validate_double_insurance failed; proceeding with issuance.", ex);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Runs NTSA's validate_type_*_cert pre-check. Returns null when issuance
+    /// may proceed, or a failed DmvicIssueResult when NTSA rejects the data.
+    /// </summary>
+    private async Task<DmvicIssueResult?> ValidateAsync(PurchaseDmvicData data, long purchaseId, string requestType, string typeOfCertificate, string externalRef)
+    {
+        var validateRequestType = BuildValidateRequestType(requestType);
+        var validateBody = BuildIssuanceBody(data, validateRequestType, typeOfCertificate, externalRef);
+
+        var response = await _gatewayClient.InvokeAsync(
+            new ScapiMessageRoute
+            {
+                Interface = InterfaceName,
+                RequestType = validateRequestType,
+                ExternalRefNumber = externalRef
+            },
+            validateBody);
+
+        var output = (response?["error_desc"] as JsonObject)?["output"] as JsonObject;
+        if (output is null)
+        {
+            var flat = response is null ? "Gateway returned no response for D-MVIC validation." : ExtractFlatError(response);
+            _logger.LogWarn($"D-MVIC purchase_id={purchaseId}: {validateRequestType} returned no usable output: {flat}");
+            return new DmvicIssueResult { Issued = false, Message = flat };
+        }
+
+        if (output["success"]?.ToString() is "true" or "True")
+        {
+            return null;
+        }
+
+        var reason = ExtractErrorReason(output);
+        _logger.LogWarn($"D-MVIC purchase_id={purchaseId}: {validateRequestType} rejected (ref={externalRef}): {reason}");
+        return new DmvicIssueResult { Issued = false, Message = reason };
     }
 
     private async Task<string?> FetchCertificateAsync(long purchaseId, string certNo, string externalRef)

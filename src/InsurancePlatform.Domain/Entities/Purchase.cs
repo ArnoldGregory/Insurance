@@ -190,6 +190,7 @@ public class PurchaseDmvicData
     public string? VehicleType { get; set; }
 
     public decimal? VehicleValue { get; set; }
+    public decimal? Tonnage { get; set; }
     public long? LicensedToCarry { get; set; }
 
     public string? MemberCompanyId { get; set; }

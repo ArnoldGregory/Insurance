@@ -28,6 +28,21 @@ public sealed class DmvicOptions
     public string NotificationPhoneNumber { get; set; } = string.Empty;
 
     /// <summary>
+    /// When true, calls NTSA's validate_type_*_cert pre-check before issuing
+    /// and only proceeds if it reports success (mirrors BIMADLINE). Off by
+    /// default because issuance works without it; enable to get richer
+    /// pre-issuance validation errors.
+    /// </summary>
+    public bool ValidateBeforeIssue { get; set; }
+
+    /// <summary>
+    /// When true, runs validate_double_insurance before issuing and refuses
+    /// to certify a vehicle NTSA reports as already covered (mirrors
+    /// BIMADLINE's DoubleIssuanceCheck). Off by default.
+    /// </summary>
+    public bool CheckDoubleIssuance { get; set; }
+
+    /// <summary>
     /// Optional per-vehicle-type override map: uppercase vehicle_type (e.g.
     /// "COMMERCIAL") -> "&lt;request_type&gt;|&lt;type_of_certificate&gt;".
     /// Vehicle types not listed use RequestType/TypeOfCertificate above.
