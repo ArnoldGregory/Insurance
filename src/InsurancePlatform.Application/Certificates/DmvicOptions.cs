@@ -18,8 +18,13 @@ public sealed class DmvicOptions
     /// <summary>NTSA "TypeOfCertificate" value for the configured request_type (e.g. "Private Car" for issuance_type_c_cert).</summary>
     public string TypeOfCertificate { get; set; } = "Private Car";
 
-    /// <summary>NTSA "Typeofcover" value (BIMADLINE's insurance_category id - 1 = Third Party Only (TPO), 3 = Comprehensive).</summary>
-    public string TypeOfCover { get; set; } = "3";
+    /// <summary>
+    /// NTSA "Typeofcover" value. BIMADLINE sends insurance_category.category_code
+    /// (not the row id): 100 = Comprehensive, 200 = Third Party Only. Defaults to
+    /// Comprehensive. A TPO product would need its own value (200) - the purchase
+    /// payload does not currently carry the cover type, so this is config-driven.
+    /// </summary>
+    public string TypeOfCover { get; set; } = "100";
 
     /// <summary>Email NTSA sends the issued certificate to. Leave blank to pass the notification email config on the server.</summary>
     public string NotificationEmail { get; set; } = string.Empty;

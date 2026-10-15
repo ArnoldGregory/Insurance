@@ -205,15 +205,14 @@ public class DmvicCertificateService : IDmvicCertificateService
             ? vehicleValue.ToString("F2")
             : data.PremiumAmount.ToString("F2");
 
-        // NTSA expects a different field set per certificate type (mirrors
-        // BIMADLINE's DMVICManager.IssueCertificate):
-        //   a -> TypeOfCertificate (PSV / Taxi)
-        //   b -> VehicleType + Tonnage, NO TypeOfCertificate (Commercial)
-        //   c -> TypeOfCertificate only (Private Car) - unchanged from before
-        //   d -> TypeOfCertificate + Tonnage (PSV / Motor Cycle)
-        // Everything except type_b keeps the original TypeOfCertificate field
-        // so the already-working private-car flow is byte-for-byte the same;
-        // type_b/d only gain the extra fields NTSA needs for commercial cover.
+        // NTSA expects a different field set per certificate type. This mirrors
+        // BIMADLINE's DMVICManager.IssueCertificate message_body EXACTLY (it is
+        // the live, working caller - our benchmark):
+        //   a -> TypeOfCertificate + Licensedtocarry      (PSV / Taxi)
+        //   b -> VehicleType + Tonnage + Licensedtocarry  (Commercial)
+        //   c -> neither of those (Private Car) - TypeOfCertificate,
+        //        Tonnage and Licensedtocarry are all OMITTED by BIMADLINE
+        //   d -> TypeOfCertificate + Tonnage + Licensedtocarry (PSV / Motor Cycle)
         var certType = ResolveCertificateTypeLetter(requestType);
 
         var body = new JsonObject
@@ -225,7 +224,7 @@ public class DmvicCertificateService : IDmvicCertificateService
         {
             body["VehicleType"] = typeOfCertificate;
         }
-        else
+        else if (certType != "c")
         {
             body["TypeOfCertificate"] = typeOfCertificate;
         }
@@ -245,7 +244,11 @@ public class DmvicCertificateService : IDmvicCertificateService
             body["Tonnage"] = data.Tonnage?.ToString("0.##") ?? string.Empty;
         }
 
-        body["Licensedtocarry"] = data.LicensedToCarry?.ToString() ?? string.Empty;
+        if (certType != "c")
+        {
+            body["Licensedtocarry"] = data.LicensedToCarry?.ToString() ?? string.Empty;
+        }
+
         body["Vehiclemake"] = data.Make ?? string.Empty;
         body["Vehiclemodel"] = data.Model ?? string.Empty;
         body["Enginenumber"] = data.EngineNo ?? string.Empty;

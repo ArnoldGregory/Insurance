@@ -68,4 +68,12 @@ public class DmvicVehicleTypeMappingTests
         Assert.Equal("issuance_type_a_cert", requestType);
         Assert.Equal("99", certificate);
     }
+
+    [Fact]
+    public void TypeOfCover_Default_IsNtsaComprehensiveCategoryCode()
+    {
+        var options = new DmvicOptions();
+
+        Assert.Equal("100", options.TypeOfCover);
+    }
 }
