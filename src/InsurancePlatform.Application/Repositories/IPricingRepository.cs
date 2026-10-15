@@ -11,8 +11,8 @@ namespace InsurancePlatform.Application.Repositories;
 public interface IPricingRepository
 {
     Task<StoredProcResult<long?>> SetTpoPriceAsync(
-        long underwriterId, long vehicleClassId, long periodId, string? carryCapacity,
-        decimal? tonnage, decimal price, DateTime? effectiveFrom, long actorId);
+        long underwriterId, long vehicleClassId, long periodId, decimal? bandMin,
+        decimal? bandMax, decimal price, DateTime? effectiveFrom, long actorId);
 
     /// <summary>
     /// Shopping-comparison lookup, not scoped to one underwriter - returns

@@ -89,8 +89,8 @@ public class TpoPriceMappingItem
     public string VehicleClassName { get; set; } = string.Empty;
     public long PeriodId { get; set; }
     public string PeriodName { get; set; } = string.Empty;
-    public string? CarryCapacity { get; set; }
-    public decimal? Tonnage { get; set; }
+    public decimal? BandMin { get; set; }
+    public decimal? BandMax { get; set; }
     public decimal Price { get; set; }
     public DateTime? EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
@@ -126,8 +126,8 @@ public class SetTpoPriceFormModel
     public long VehicleClassId { get; set; }
     public long PeriodId { get; set; }
 
-    public string? CarryCapacity { get; set; }
-    public decimal? Tonnage { get; set; }
+    public decimal? BandMin { get; set; }
+    public decimal? BandMax { get; set; }
 
     public decimal Price { get; set; }
     public DateTime? EffectiveFrom { get; set; }

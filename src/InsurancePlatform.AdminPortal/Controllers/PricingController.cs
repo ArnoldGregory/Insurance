@@ -61,8 +61,8 @@ public class PricingController : Controller
             model.UnderwriterId,
             model.VehicleClassId,
             model.PeriodId,
-            model.CarryCapacity,
-            model.Tonnage,
+            model.BandMin,
+            model.BandMax,
             model.Price,
             model.EffectiveFrom
         });

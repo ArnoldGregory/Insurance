@@ -453,7 +453,7 @@ END $$
 -- usp_TpoPriceMapping_SetPrice
 -- Insert-only history pattern (matches AgentCommissionOverrides): closes
 -- out the currently active row for the same underwriter+vehicle_class+
--- period+carry_capacity+tonnage combination (if one exists), then inserts
+-- period+band_min+band_max combination (if one exists), then inserts
 -- the new price as a fresh row. Nothing is ever overwritten in place, so
 -- "what was the TPO price on date X" is always answerable.
 -- ---------------------------------------------------------------------
@@ -462,8 +462,8 @@ CREATE PROCEDURE usp_TpoPriceMapping_SetPrice (
     IN  p_underwriter_id     BIGINT UNSIGNED,
     IN  p_vehicle_class_id    BIGINT UNSIGNED,
     IN  p_period_id            BIGINT UNSIGNED,
-    IN  p_carry_capacity         VARCHAR(50),
-    IN  p_tonnage                  DECIMAL(10,2),
+    IN  p_band_min                DECIMAL(10,2),
+    IN  p_band_max                  DECIMAL(10,2),
     IN  p_price                      DECIMAL(18,2),
     IN  p_effective_from                DATE,
     IN  p_actor_id                        BIGINT UNSIGNED,   -- Agent_admin
@@ -491,6 +491,18 @@ proc_label: BEGIN
     IF p_price <= 0 THEN
         SET o_result_code = 1;
         SET o_result_message = 'price must be greater than zero.';
+        LEAVE proc_label;
+    END IF;
+
+    IF p_band_min IS NULL AND p_band_max IS NOT NULL THEN
+        SET o_result_code = 1;
+        SET o_result_message = 'band_max requires band_min.';
+        LEAVE proc_label;
+    END IF;
+
+    IF p_band_min IS NOT NULL AND p_band_max IS NOT NULL AND p_band_max < p_band_min THEN
+        SET o_result_code = 1;
+        SET o_result_message = 'band_max must be greater than or equal to band_min.';
         LEAVE proc_label;
     END IF;
 
@@ -523,8 +535,8 @@ proc_label: BEGIN
     WHERE underwriter_id = p_underwriter_id
       AND vehicle_class_id = p_vehicle_class_id
       AND period_id = p_period_id
-      AND carry_capacity <=> p_carry_capacity
-      AND tonnage <=> p_tonnage
+      AND band_min <=> p_band_min
+      AND band_max <=> p_band_max
       AND is_active = 1
     LIMIT 1
     FOR UPDATE;
@@ -535,9 +547,9 @@ proc_label: BEGIN
         WHERE tpo_price_id = v_old_id;
     END IF;
 
-    INSERT INTO TpoPriceMapping (underwriter_id, vehicle_class_id, period_id, carry_capacity, tonnage,
+    INSERT INTO TpoPriceMapping (underwriter_id, vehicle_class_id, period_id, band_min, band_max,
                                   price, effective_from, effective_to, is_active, created_by, created_on)
-    VALUES (p_underwriter_id, p_vehicle_class_id, p_period_id, p_carry_capacity, p_tonnage,
+    VALUES (p_underwriter_id, p_vehicle_class_id, p_period_id, p_band_min, p_band_max,
             p_price, p_effective_from, NULL, 1, p_actor_id, NOW());
 
     SET o_tpo_price_id = LAST_INSERT_ID();
@@ -546,7 +558,8 @@ proc_label: BEGIN
     VALUES ('USER', p_actor_id, 'CREATE', 'TpoPriceMapping', o_tpo_price_id,
             IF(v_old_id IS NOT NULL, JSON_OBJECT('superseded_tpo_price_id', v_old_id), NULL),
             JSON_OBJECT('underwriter_id', p_underwriter_id, 'vehicle_class_id', p_vehicle_class_id,
-                        'period_id', p_period_id, 'price', p_price, 'effective_from', p_effective_from),
+                        'period_id', p_period_id, 'band_min', p_band_min, 'band_max', p_band_max,
+                        'price', p_price, 'effective_from', p_effective_from),
             NOW());
 
     COMMIT;
@@ -568,9 +581,11 @@ END $$
 -- to already know an underwriter to ask for. usp_TpoPriceMapping_SetPrice,
 -- the admin-side management proc, keeps its own underwriter_id param and
 -- inline duplicate-check - unaffected by this change.)
--- Matches on carry_capacity for PSV-style classes or tonnage for
--- Commercial classes (whichever the caller passes — pass NULL for the one
--- that doesn't apply, per MotorVehicleClasses.requires_tonnage).
+-- Rates are BANDED: the class decides the rating dimension (tonnage for
+-- Commercial, seating capacity for PSV-style classes, flat otherwise) and
+-- the caller's value is matched inside the stored [band_min, band_max]
+-- (band_max NULL = open-ended). Flat rows (both band columns NULL) are
+-- returned only for classes with no rating dimension.
 -- Returns zero rows (not an error) if no underwriter currently prices
 -- this combination - same "empty list is a valid result" shape as
 -- usp_TpoPriceMapping_GetList, not a NOT_FOUND business failure.
@@ -585,10 +600,28 @@ CREATE PROCEDURE usp_TpoPriceMapping_GetOptions (
     OUT o_result_message   VARCHAR(500)
 )
 proc_label: BEGIN
+    DECLARE v_requires_tonnage TINYINT DEFAULT 0;
+    DECLARE v_class_name       VARCHAR(100) DEFAULT NULL;
+    DECLARE v_value            DECIMAL(10,2) DEFAULT NULL;
+
     IF p_vehicle_class_id IS NULL OR p_period_id IS NULL THEN
         SET o_result_code = 1;
         SET o_result_message = 'vehicle_class_id and period_id are required.';
         LEAVE proc_label;
+    END IF;
+
+    SELECT requires_tonnage, name INTO v_requires_tonnage, v_class_name
+    FROM MotorVehicleClasses
+    WHERE vehicle_class_id = p_vehicle_class_id;
+
+    -- Pick the value the class is rated on: tonnage for Commercial, seating
+    -- capacity for PSV-style classes, nothing (flat) for everything else.
+    IF v_requires_tonnage = 1 THEN
+        SET v_value = p_tonnage;
+    ELSEIF v_class_name LIKE 'PSV%' THEN
+        IF p_carry_capacity IS NOT NULL AND p_carry_capacity REGEXP '^[0-9]+([.][0-9]+)?$' THEN
+            SET v_value = CAST(p_carry_capacity AS DECIMAL(10,2));
+        END IF;
     END IF;
 
     SELECT t.tpo_price_id, t.underwriter_id, u.name AS underwriter_name, t.price
@@ -596,12 +629,18 @@ proc_label: BEGIN
     JOIN Underwriters u ON u.underwriter_id = t.underwriter_id
     WHERE t.vehicle_class_id = p_vehicle_class_id
       AND t.period_id = p_period_id
-      AND t.carry_capacity <=> p_carry_capacity
-      AND t.tonnage <=> p_tonnage
       AND t.is_active = 1
       AND u.is_active = 1
       AND t.effective_from <= CURDATE()
       AND (t.effective_to IS NULL OR t.effective_to >= CURDATE())
+      AND (
+            (v_value IS NOT NULL
+             AND t.band_min IS NOT NULL
+             AND v_value >= t.band_min
+             AND (t.band_max IS NULL OR v_value <= t.band_max))
+            OR
+            (v_value IS NULL AND t.band_min IS NULL AND t.band_max IS NULL)
+          )
     ORDER BY t.price ASC;
 
     SET o_result_code = 0;
@@ -639,7 +678,7 @@ proc_label: BEGIN
     SELECT t.tpo_price_id, t.underwriter_id, u.name AS underwriter_name,
            t.vehicle_class_id, vc.name AS vehicle_class_name,
            t.period_id, per.name AS period_name,
-           t.carry_capacity, t.tonnage, t.price, t.effective_from, t.effective_to, t.is_active
+           t.band_min, t.band_max, t.price, t.effective_from, t.effective_to, t.is_active
     FROM TpoPriceMapping t
     JOIN Underwriters u ON u.underwriter_id = t.underwriter_id
     JOIN MotorVehicleClasses vc ON vc.vehicle_class_id = t.vehicle_class_id

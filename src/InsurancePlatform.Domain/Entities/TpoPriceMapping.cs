@@ -10,8 +10,13 @@ public class TpoPriceMapping
     public string VehicleClassName { get; set; } = string.Empty;
     public long PeriodId { get; set; }
     public string PeriodName { get; set; } = string.Empty;
-    public string? CarryCapacity { get; set; }
-    public decimal? Tonnage { get; set; }
+
+    /// <summary>Rating band lower bound in the class's rating unit (seats for PSV, tonnes for Commercial); null with <see cref="BandMax"/> also null = flat-rate class.</summary>
+    public decimal? BandMin { get; set; }
+
+    /// <summary>Rating band upper bound (inclusive); null = open-ended.</summary>
+    public decimal? BandMax { get; set; }
+
     public decimal Price { get; set; }
     public DateTime EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }

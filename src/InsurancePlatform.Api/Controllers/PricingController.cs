@@ -40,8 +40,8 @@ public class PricingController : BaseApiController
     public async Task<IActionResult> SetTpoPrice([FromBody] SetTpoPriceRequest request)
     {
         var result = await _pricingRepository.SetTpoPriceAsync(
-            request.UnderwriterId, request.VehicleClassId, request.PeriodId, request.CarryCapacity,
-            request.Tonnage, request.Price, request.EffectiveFrom, CurrentUserId);
+            request.UnderwriterId, request.VehicleClassId, request.PeriodId, request.BandMin,
+            request.BandMax, request.Price, request.EffectiveFrom, CurrentUserId);
 
         if (!result.IsSuccess)
         {

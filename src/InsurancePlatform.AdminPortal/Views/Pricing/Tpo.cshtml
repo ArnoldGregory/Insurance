@@ -83,8 +83,8 @@
                         <th>Underwriter</th>
                         <th>Class</th>
                         <th>Period</th>
-                        <th>Capacity</th>
-                        <th>Tonnage</th>
+                        <th>Band from</th>
+                        <th>Band to</th>
                         <th>Price</th>
                         <th>Effective</th>
                         <th>Status</th>
@@ -98,13 +98,13 @@
                             <td><strong>@m.UnderwriterName</strong></td>
                             <td>@m.VehicleClassName</td>
                             <td>@m.PeriodName</td>
-                            <td>@(m.CarryCapacity ?? "—")</td>
-                            <td>@(m.Tonnage?.ToString("N1") ?? "—")</td>
+                            <td>@(m.BandMin?.ToString("N2") ?? "—")</td>
+                            <td>@(m.BandMax?.ToString("N2") ?? "Flat")</td>
                             <td><strong>@m.Price.ToString("N2")</strong></td>
                             <td>@(m.EffectiveFrom?.ToString("dd MMM yyyy") ?? "—")</td>
                             <td>@if (m.IsActive) { <span class="label label-success">Active</span> } else { <span class="label label-warning">Closed</span> }</td>
                             <td style="white-space:nowrap;">
-                                <button type="button" class="btn btn-default btn-xs" onclick='openPriceModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { m.UnderwriterId, m.VehicleClassId, m.PeriodId, m.CarryCapacity, m.Tonnage, m.Price, m.EffectiveFrom })))'><i class="fa fa-pencil-alt"></i> Edit</button>
+                                <button type="button" class="btn btn-default btn-xs" onclick='openPriceModal(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { m.UnderwriterId, m.VehicleClassId, m.PeriodId, m.BandMin, m.BandMax, m.Price, m.EffectiveFrom })))'><i class="fa fa-pencil-alt"></i> Edit</button>
                             </td>
                         </tr>
                     }
@@ -145,12 +145,12 @@
                         <select name="PeriodId" id="tpPeriodId" required></select>
                     </div>
                     <div class="tp-field">
-                        <label>Carry capacity</label>
-                        <input type="text" name="CarryCapacity" id="tpCapacity" />
+                        <label>Band from</label>
+                        <input type="number" name="BandMin" id="tpBandMin" step="0.01" placeholder="e.g. 14 seats / 3 tonnes" />
                     </div>
                     <div class="tp-field">
-                        <label>Tonnage</label>
-                        <input type="number" name="Tonnage" id="tpTonnage" step="0.1" />
+                        <label>Band to</label>
+                        <input type="number" name="BandMax" id="tpBandMax" step="0.01" placeholder="blank = open-ended" />
                     </div>
                     <div class="tp-field">
                         <label>Price <span class="tp-required">*</span></label>
@@ -199,13 +199,13 @@
             document.getElementById('tpUwId').value = data.UnderwriterId;
             document.getElementById('tpClassId').value = data.VehicleClassId;
             document.getElementById('tpPeriodId').value = data.PeriodId;
-            document.getElementById('tpCapacity').value = data.CarryCapacity || '';
-            document.getElementById('tpTonnage').value = data.Tonnage || '';
+            document.getElementById('tpBandMin').value = data.BandMin ?? '';
+            document.getElementById('tpBandMax').value = data.BandMax ?? '';
             document.getElementById('tpPrice').value = data.Price;
             document.getElementById('tpEffective').value = data.EffectiveFrom ? data.EffectiveFrom.substring(0, 10) : '';
         } else {
-            document.getElementById('tpCapacity').value = '';
-            document.getElementById('tpTonnage').value = '';
+            document.getElementById('tpBandMin').value = '';
+            document.getElementById('tpBandMax').value = '';
             document.getElementById('tpPrice').value = '';
             document.getElementById('tpEffective').value = '';
         }

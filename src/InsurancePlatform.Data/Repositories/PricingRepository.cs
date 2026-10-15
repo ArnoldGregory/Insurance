@@ -17,8 +17,8 @@ public class PricingRepository : IPricingRepository
     }
 
     public async Task<StoredProcResult<long?>> SetTpoPriceAsync(
-        long underwriterId, long vehicleClassId, long periodId, string? carryCapacity,
-        decimal? tonnage, decimal price, DateTime? effectiveFrom, long actorId)
+        long underwriterId, long vehicleClassId, long periodId, decimal? bandMin,
+        decimal? bandMax, decimal price, DateTime? effectiveFrom, long actorId)
     {
         var tpoPriceIdParam = new MySqlParameter("o_tpo_price_id", MySqlDbType.Int64) { Direction = ParameterDirection.Output };
 
@@ -27,8 +27,8 @@ public class PricingRepository : IPricingRepository
             new("p_underwriter_id", underwriterId),
             new("p_vehicle_class_id", vehicleClassId),
             new("p_period_id", periodId),
-            new("p_carry_capacity", (object?)carryCapacity ?? DBNull.Value),
-            new("p_tonnage", (object?)tonnage ?? DBNull.Value),
+            new("p_band_min", (object?)bandMin ?? DBNull.Value),
+            new("p_band_max", (object?)bandMax ?? DBNull.Value),
             new("p_price", price),
             new("p_effective_from", (object?)effectiveFrom ?? DBNull.Value),
             new("p_actor_id", actorId),
@@ -207,8 +207,8 @@ public class PricingRepository : IPricingRepository
             VehicleClassName = reader.GetString("vehicle_class_name"),
             PeriodId = reader.GetInt64("period_id"),
             PeriodName = reader.GetString("period_name"),
-            CarryCapacity = reader.IsDBNull(reader.GetOrdinal("carry_capacity")) ? null : reader.GetString("carry_capacity"),
-            Tonnage = reader.IsDBNull(reader.GetOrdinal("tonnage")) ? null : reader.GetDecimal("tonnage"),
+            BandMin = reader.IsDBNull(reader.GetOrdinal("band_min")) ? null : reader.GetDecimal("band_min"),
+            BandMax = reader.IsDBNull(reader.GetOrdinal("band_max")) ? null : reader.GetDecimal("band_max"),
             Price = reader.GetDecimal("price"),
             EffectiveFrom = reader.GetDateTime("effective_from"),
             EffectiveTo = reader.IsDBNull(reader.GetOrdinal("effective_to")) ? null : reader.GetDateTime("effective_to"),

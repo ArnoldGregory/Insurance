@@ -1,3 +1,11 @@
+-- =====================================================================
+-- SUPERSEDED / DO NOT RUN.
+-- usp_TpoPriceMapping_SetPrice no longer takes carry_capacity + tonnage; it
+-- now takes band_min + band_max (seats for PSV, tonnes for Commercial).
+-- Run tpo_banded_pricing_migration.sql first, then use the real rates in
+-- motor_real_rates_2026.sql / motor_rates_2026_batch2.sql. This file is kept
+-- only as a record of the original placeholder import.
+-- =====================================================================
 -- Generated import for TpoPriceMapping - placeholder price=1 per underwriter instruction.
 -- Real premiums to be set later via the same usp_TpoPriceMapping_SetPrice proc
 -- (calling it again for the same underwriter+class+period+capacity/tonnage combo

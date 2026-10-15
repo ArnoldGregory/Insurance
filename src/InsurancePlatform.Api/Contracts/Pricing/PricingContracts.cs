@@ -1,17 +1,18 @@
 namespace InsurancePlatform.Api.Contracts.Pricing;
 
-/// <summary>Sets a new active TPO price for one underwriter+vehicle-class+period+capacity combination.</summary>
-// CarryCapacity and Tonnage are both optional here for the same reason
-// they're both nullable on the table - only one applies, per
-// MotorVehicleClass.RequiresTonnage. EffectiveFrom defaults to today
-// server-side (usp_TpoPriceMapping_SetPrice) if left null.
+/// <summary>Sets a new active TPO price for one underwriter+vehicle-class+period+band combination.</summary>
+// BandMin/BandMax describe the rating band in the class's rating unit
+// (seats for PSV classes, tonnes for Commercial): both null = flat-rate
+// class (Private, Motorcycle), BandMax null with BandMin set = open-ended.
+// EffectiveFrom defaults to today server-side (usp_TpoPriceMapping_SetPrice)
+// if left null.
 public class SetTpoPriceRequest
 {
     public long UnderwriterId { get; set; }
     public long VehicleClassId { get; set; }
     public long PeriodId { get; set; }
-    public string? CarryCapacity { get; set; }
-    public decimal? Tonnage { get; set; }
+    public decimal? BandMin { get; set; }
+    public decimal? BandMax { get; set; }
     public decimal Price { get; set; }
     public DateTime? EffectiveFrom { get; set; }
 }
