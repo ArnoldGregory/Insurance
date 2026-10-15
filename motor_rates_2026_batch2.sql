@@ -132,11 +132,17 @@ WHERE NOT EXISTS (
 -- ---------------------------------------------------------------------
 -- 5) TPO — clear the underwriters we are reseeding, then insert real bands.
 --    (Their previous rows are placeholder values, not underwriter data.)
+--    These six underwriters' TPO is fully owned by this file, so we DELETE
+--    their rows and re-insert: that gives the same final state on every run
+--    (a soft-deactivate still works but piling up dead rows). No table has
+--    an FK to TpoPriceMapping, so the delete is safe.
+--    Periods are matched BY NAME, not by hardcoded id, so it is not
+--    sensitive to the id numbering of the Periods table.
 -- ---------------------------------------------------------------------
-UPDATE TpoPriceMapping t
+DELETE t
+FROM TpoPriceMapping t
 JOIN Underwriters u ON u.underwriter_id = t.underwriter_id
-SET t.is_active = 0, t.effective_to = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-WHERE u.code IN ('MONARCH','MUA','KENYA_ORIENT','OLDMUTUAL','DEFINITE','PIONEER') AND t.is_active = 1;
+WHERE u.code IN ('MONARCH','MUA','KENYA_ORIENT','OLDMUTUAL','DEFINITE','PIONEER');
 
 INSERT INTO TpoPriceMapping
     (underwriter_id, vehicle_class_id, period_id, band_min, band_max,
@@ -146,78 +152,78 @@ SELECT u.underwriter_id, vc.vehicle_class_id, p.period_id, x.band_min, x.band_ma
 FROM (VALUES
         -- ===== DEFINITE ASSURANCE (Ref DAC/MOTOR/0001/2024) =====
         -- Motor private: TPO 4,500 (annual)
-        ROW('DEFINITE','PRIVATE',5,NULL,NULL,4500),
+        ROW('DEFINITE','PRIVATE','1 Year',NULL,NULL,4500),
         -- Motor cycle non-PSV: 2,000 ; PSV: annual 3,500 / 6mo 2,000 / monthly 1,000
-        ROW('DEFINITE','MOTORCYCLE:PRIVATE',11,NULL,NULL,2000),
-        ROW('DEFINITE','MOTORCYCLE:PSV',12,NULL,NULL,3500),
-        ROW('DEFINITE','MOTORCYCLE:PSV',6,NULL,NULL,2000),
-        ROW('DEFINITE','MOTORCYCLE:PSV',3,NULL,NULL,1000),
+        ROW('DEFINITE','MOTORCYCLE:PRIVATE','1 Year',NULL,NULL,2000),
+        ROW('DEFINITE','MOTORCYCLE:PSV','1 Year',NULL,NULL,3500),
+        ROW('DEFINITE','MOTORCYCLE:PSV','6 Months',NULL,NULL,2000),
+        ROW('DEFINITE','MOTORCYCLE:PSV','1 Month',NULL,NULL,1000),
         -- Tuk Tuk PSV: annual 4,500 / monthly 1,000
-        ROW('DEFINITE','PSV-TAXI / TUK TUK',3,NULL,NULL,4500),
-        ROW('DEFINITE','PSV-TAXI / TUK TUK',5,NULL,NULL,1000),
+        ROW('DEFINITE','PSV-TAXI / TUK TUK','1 Year',NULL,NULL,4500),
+        ROW('DEFINITE','PSV-TAXI / TUK TUK','1 Month',NULL,NULL,1000),
         -- Private Hire chauffeur/Taxi: <=9 5,500 / 10-17 8,500 / 18-25 12,500 / >25 15,500
-        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber',5,0,9,5500),
-        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber',5,9.01,17,8500),
-        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber',5,17.01,25,12500),
-        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber',5,25.01,NULL,15500),
+        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber','1 Year',0,9,5500),
+        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber','1 Year',9.01,17,8500),
+        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber','1 Year',17.01,25,12500),
+        ROW('DEFINITE','PSV-PRIVATE HIRE/Uber','1 Year',25.01,NULL,15500),
         -- Own goods / general cartage hybrid: <=3t 5,500 / 3-8t 7,500 / >8t 9,500
-        ROW('DEFINITE','MOTOR COMMERCIAL:OWN GOODS',5,0,3,5500),
-        ROW('DEFINITE','MOTOR COMMERCIAL:OWN GOODS',5,3.01,8,7500),
-        ROW('DEFINITE','MOTOR COMMERCIAL:OWN GOODS',5,8.01,NULL,9500),
-        ROW('DEFINITE','MOTOR COMMERCIAL:GENERAL',5,0,3,5500),
-        ROW('DEFINITE','MOTOR COMMERCIAL:GENERAL',5,3.01,8,7500),
-        ROW('DEFINITE','MOTOR COMMERCIAL:GENERAL',5,8.01,NULL,9500),
-        ROW('DEFINITE','MOTOR COMMERCIAL:Prime Mover',5,NULL,NULL,15000),
-        ROW('DEFINITE','MOTOR COMMERCIAL:TRACTOR',5,NULL,NULL,3000),
+        ROW('DEFINITE','MOTOR COMMERCIAL:OWN GOODS','1 Year',0,3,5500),
+        ROW('DEFINITE','MOTOR COMMERCIAL:OWN GOODS','1 Year',3.01,8,7500),
+        ROW('DEFINITE','MOTOR COMMERCIAL:OWN GOODS','1 Year',8.01,NULL,9500),
+        ROW('DEFINITE','MOTOR COMMERCIAL:GENERAL','1 Year',0,3,5500),
+        ROW('DEFINITE','MOTOR COMMERCIAL:GENERAL','1 Year',3.01,8,7500),
+        ROW('DEFINITE','MOTOR COMMERCIAL:GENERAL','1 Year',8.01,NULL,9500),
+        ROW('DEFINITE','MOTOR COMMERCIAL:Prime Mover','1 Year',NULL,NULL,15000),
+        ROW('DEFINITE','MOTOR COMMERCIAL:TRACTOR','1 Year',NULL,NULL,3000),
 
         -- ===== MUA INSURANCE (May 2025) =====
-        ROW('MUA','PRIVATE',5,NULL,NULL,12500),
-        ROW('MUA','MOTOR COMMERCIAL:OWN GOODS',5,0,3,15000),
-        ROW('MUA','MOTOR COMMERCIAL:OWN GOODS',5,3.01,8,20000),
-        ROW('MUA','MOTOR COMMERCIAL:OWN GOODS',5,8.01,NULL,25000),
-        ROW('MUA','MOTOR COMMERCIAL:GENERAL',5,0,8,25000),
-        ROW('MUA','MOTOR COMMERCIAL:GENERAL',5,8.01,20,30000),
-        ROW('MUA','MOTOR COMMERCIAL:GENERAL',5,20.01,30,35000),
-        ROW('MUA','MOTOR COMMERCIAL:Prime Mover',5,NULL,NULL,30000),
+        ROW('MUA','PRIVATE','1 Year',NULL,NULL,12500),
+        ROW('MUA','MOTOR COMMERCIAL:OWN GOODS','1 Year',0,3,15000),
+        ROW('MUA','MOTOR COMMERCIAL:OWN GOODS','1 Year',3.01,8,20000),
+        ROW('MUA','MOTOR COMMERCIAL:OWN GOODS','1 Year',8.01,NULL,25000),
+        ROW('MUA','MOTOR COMMERCIAL:GENERAL','1 Year',0,8,25000),
+        ROW('MUA','MOTOR COMMERCIAL:GENERAL','1 Year',8.01,20,30000),
+        ROW('MUA','MOTOR COMMERCIAL:GENERAL','1 Year',20.01,30,35000),
+        ROW('MUA','MOTOR COMMERCIAL:Prime Mover','1 Year',NULL,NULL,30000),
 
         -- ===== KENYA ORIENT (KOIL 2024) =====
-        ROW('KENYA_ORIENT','PRIVATE',5,NULL,NULL,7574),
-        ROW('KENYA_ORIENT','MOTORCYCLE:PRIVATE',5,NULL,NULL,5000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:OWN GOODS',5,0,3,7500),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:OWN GOODS',5,3.01,8,12000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:GENERAL',5,8.01,20,20000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:GENERAL',5,20.01,30,25000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Prime Mover',5,NULL,NULL,20000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer',5,0,10,17500),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer',5,10.01,20,25000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer',5,20.01,30,30000),
-        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer',5,30.01,NULL,35000),
+        ROW('KENYA_ORIENT','PRIVATE','1 Year',NULL,NULL,7574),
+        ROW('KENYA_ORIENT','MOTORCYCLE:PRIVATE','1 Year',NULL,NULL,5000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:OWN GOODS','1 Year',0,3,7500),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:OWN GOODS','1 Year',3.01,8,12000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:GENERAL','1 Year',8.01,20,20000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:GENERAL','1 Year',20.01,30,25000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Prime Mover','1 Year',NULL,NULL,20000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer','1 Year',0,10,17500),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer','1 Year',10.01,20,25000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer','1 Year',20.01,30,30000),
+        ROW('KENYA_ORIENT','MOTOR COMMERCIAL:Tankers & Specified Trailer','1 Year',30.01,NULL,35000),
 
         -- ===== MONARCH (Motor Pricing 2025) =====
-        ROW('MONARCH','MOTORCYCLE:PRIVATE',5,NULL,NULL,2000),
-        ROW('MONARCH','MOTORCYCLE:PSV',5,NULL,NULL,3000),
-        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS',5,0,3.49,4500),
-        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS',5,3.5,8.49,5500),
-        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS',5,8.5,12.49,6500),
-        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS',5,12.5,15.49,7500),
-        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS',5,15.5,20,10000),
-        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS',5,20.01,NULL,15000),
-        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL',5,0,3.49,4500),
-        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL',5,3.5,8.49,5500),
-        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL',5,8.5,12.49,6500),
-        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL',5,12.5,15.49,7500),
-        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL',5,15.5,20,10000),
-        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL',5,20.01,NULL,15000),
-        ROW('MONARCH','MOTOR COMMERCIAL:Prime Mover',5,NULL,NULL,10000),
+        ROW('MONARCH','MOTORCYCLE:PRIVATE','1 Year',NULL,NULL,2000),
+        ROW('MONARCH','MOTORCYCLE:PSV','1 Year',NULL,NULL,3000),
+        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS','1 Year',0,3.49,4500),
+        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS','1 Year',3.5,8.49,5500),
+        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS','1 Year',8.5,12.49,6500),
+        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS','1 Year',12.5,15.49,7500),
+        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS','1 Year',15.5,20,10000),
+        ROW('MONARCH','MOTOR COMMERCIAL:OWN GOODS','1 Year',20.01,NULL,15000),
+        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL','1 Year',0,3.49,4500),
+        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL','1 Year',3.5,8.49,5500),
+        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL','1 Year',8.5,12.49,6500),
+        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL','1 Year',12.5,15.49,7500),
+        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL','1 Year',15.5,20,10000),
+        ROW('MONARCH','MOTOR COMMERCIAL:GENERAL','1 Year',20.01,NULL,15000),
+        ROW('MONARCH','MOTOR COMMERCIAL:Prime Mover','1 Year',NULL,NULL,10000),
 
         -- ===== PIONEER (Rates 2025) — School Bus TPO bands =====
-        ROW('PIONEER','PSV-BUS',5,0,14,7500),
-        ROW('PIONEER','PSV-BUS',5,14.01,25,12500),
-        ROW('PIONEER','PSV-BUS',5,25.01,NULL,18000)
-     ) AS x(uw_code, class_name, period_id, band_min, band_max, price)
+        ROW('PIONEER','PSV-BUS','1 Year',0,14,7500),
+        ROW('PIONEER','PSV-BUS','1 Year',14.01,25,12500),
+        ROW('PIONEER','PSV-BUS','1 Year',25.01,NULL,18000)
+     ) AS x(uw_code, class_name, period_name, band_min, band_max, price)
 JOIN Underwriters u ON u.code = x.uw_code
 JOIN MotorVehicleClasses vc ON vc.name = x.class_name
-JOIN Periods p ON p.period_id = x.period_id;
+JOIN Periods p ON p.name = x.period_name AND p.is_active = 1;
 
 
 -- ---------------------------------------------------------------------
@@ -238,10 +244,20 @@ JOIN Underwriters u ON u.underwriter_id = rb.underwriter_id
    SET rb.is_active = 0
  WHERE u.code IN ('HERITAGE','PACIS','KENINDIA','MONARCH');
 
+-- 6c) Fabricated TPO for the fully-retired placeholders. Their underwriter
+--     is already inactive (so the API hides them), but flip the TPO rows
+--     too so no stale active prices linger in the table.
+UPDATE TpoPriceMapping t
+JOIN Underwriters u ON u.underwriter_id = t.underwriter_id
+   SET t.is_active = 0
+ WHERE u.code IN ('HERITAGE','PACIS','KENINDIA') AND t.is_active = 1;
+
 -- To bring them back once real rates arrive:
 --   UPDATE Underwriters SET is_active = 1 WHERE code IN ('HERITAGE','PACIS','KENINDIA');
 --   UPDATE ComprehensiveRateBand rb JOIN Underwriters u ON u.underwriter_id = rb.underwriter_id
 --     SET rb.is_active = 1 WHERE u.code IN ('HERITAGE','PACIS','KENINDIA','MONARCH');
+--   UPDATE TpoPriceMapping t JOIN Underwriters u ON u.underwriter_id = t.underwriter_id
+--     SET t.is_active = 1 WHERE u.code IN ('HERITAGE','PACIS','KENINDIA');
 
 
 -- =====================================================================
