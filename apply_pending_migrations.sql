@@ -973,6 +973,81 @@ END $$
 DELIMITER ;
 
 -- =====================================================================
+-- 5b) usp_Purchase_GetById - restore the NTSA-aware definition.
+--     The master file Insurance_API_StoredProcs_PurchasesPayments.sql
+--     shipped an older GetById WITHOUT the NTSA columns; re-running it
+--     silently overwrote the D-MVIC version, so GET /api/purchases/{id}
+--     threw "The column name 'ntsa_certificate_no' does not exist".
+--     Guard the columns (idempotent), then recreate the proc body.
+-- =====================================================================
+
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'Purchases'
+      AND COLUMN_NAME = 'ntsa_certificate_no'
+);
+SET @ddl := IF(@col_exists = 0,
+    'ALTER TABLE Purchases
+        ADD COLUMN ntsa_certificate_no VARCHAR(100) NULL AFTER certificate_number,
+        ADD COLUMN ntsa_transaction_no VARCHAR(100) NULL AFTER ntsa_certificate_no,
+        ADD COLUMN ntsa_issued_on DATETIME NULL AFTER ntsa_transaction_no',
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS usp_Purchase_GetById $$
+CREATE PROCEDURE usp_Purchase_GetById (
+    IN  p_purchase_id BIGINT UNSIGNED,
+    OUT o_result_code INT,
+    OUT o_result_message VARCHAR(500)
+)
+proc_label: BEGIN
+    IF p_purchase_id IS NULL THEN
+        SET o_result_code = 1;
+        SET o_result_message = 'purchase_id is required.';
+        LEAVE proc_label;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM Purchases WHERE purchase_id = p_purchase_id) THEN
+        SET o_result_code = 2;
+        SET o_result_message = 'Purchase not found.';
+        LEAVE proc_label;
+    END IF;
+
+    SELECT pu.purchase_id, pu.product_id, pr.code AS product_code, pr.name AS product_name, pu.client_id,
+           c.full_name AS client_name, c.id_no AS client_id_no, c.phone AS client_phone, c.email AS client_email,
+           pu.purchased_by_user_id, pu.channel_service_account_id, pu.underwriter_id,
+           u.name AS underwriter_name, pu.quote_offer_id, pu.premium_amount, pu.period_id,
+           per.name AS period_name, pu.start_date, pu.end_date, pu.policy_number,
+           pu.payment_status, pu.status, pu.created_on,
+           pu.certificate_status, pu.cert_generated_on, pu.certificate_number,
+           pu.ntsa_certificate_no, pu.ntsa_transaction_no, pu.ntsa_issued_on,
+           v.reg_no AS vehicle_reg_no, v.make AS vehicle_make, v.model AS vehicle_model
+    FROM Purchases pu
+    JOIN Products pr ON pr.product_id = pu.product_id
+    JOIN Underwriters u ON u.underwriter_id = pu.underwriter_id
+    JOIN Periods per ON per.period_id = pu.period_id
+    LEFT JOIN Clients c ON c.client_id = pu.client_id
+    LEFT JOIN VehiclePurchaseSnapshot vps ON vps.purchase_id = pu.purchase_id
+    LEFT JOIN Vehicles v ON v.vehicle_id = vps.vehicle_id
+    WHERE pu.purchase_id = p_purchase_id
+    LIMIT 1;
+
+    SELECT snapshot_id, vehicle_id, vehicle_value, tonnage, licensedtocarry, antitheft, risk, amount
+    FROM VehiclePurchaseSnapshot
+    WHERE purchase_id = p_purchase_id;
+
+    SET o_result_code = 0;
+    SET o_result_message = 'Success';
+END $$
+
+DELIMITER ;
+
+-- =====================================================================
 -- 6) VERIFICATION
 -- =====================================================================
 
@@ -1008,4 +1083,12 @@ WHERE ROUTINE_SCHEMA='insurance_platform'
                        'usp_User_GetAgentCounts',
                        'usp_TpoPriceMapping_SetPrice',
                        'usp_TpoPriceMapping_GetOptions');
+
+-- 6f) usp_Purchase_GetById now exposes the NTSA certificate columns
+--     (returns a row only when the fix is in place)
+SELECT ROUTINE_NAME
+FROM information_schema.ROUTINES
+WHERE ROUTINE_SCHEMA='insurance_platform'
+  AND ROUTINE_NAME='usp_Purchase_GetById'
+  AND ROUTINE_DEFINITION LIKE '%ntsa_certificate_no%';
 
