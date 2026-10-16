@@ -1,12 +1,15 @@
 using InsurancePlatform.Api.Contracts.Common;
 using InsurancePlatform.Api.Contracts.Payments;
 using InsurancePlatform.Api.Logging;
+using InsurancePlatform.Application.Certificates;
 using InsurancePlatform.Application.Payments;
 using InsurancePlatform.Application.Repositories;
 using InsurancePlatform.Domain.Common;
 using InsurancePlatform.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace InsurancePlatform.Api.Controllers;
 
@@ -29,20 +32,29 @@ public class PaymentsController : BaseApiController
     private readonly IPaymentRepository _paymentRepository;
     private readonly IMpesaStkPushService _stkPushService;
     private readonly IMpesaC2BService _c2bService;
+    private readonly IPurchaseCertificationService _certificationService;
     private readonly ILoggerManager _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
     public PaymentsController(
         IPaymentRepository paymentRepository,
         IMpesaStkPushService stkPushService,
         IMpesaC2BService c2bService,
+        IPurchaseCertificationService certificationService,
         ILoggerManager logger,
+        IConfiguration configuration,
+        IWebHostEnvironment environment,
         CorrelationContext correlationContext)
         : base(correlationContext)
     {
         _paymentRepository = paymentRepository;
         _stkPushService = stkPushService;
         _c2bService = c2bService;
+        _certificationService = certificationService;
         _logger = logger;
+        _configuration = configuration;
+        _environment = environment;
     }
 
     /// <summary>Records a payment attempt as PENDING.</summary>
@@ -109,7 +121,35 @@ public class PaymentsController : BaseApiController
         var paymentId = paymentResult.Data.Value;
         var externalRefNumber = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
-        var pushResult = await _stkPushService.InitiatePushAsync(request.PhoneNumber, request.Amount, request.AccountReference, externalRefNumber);
+        // Development-only escape hatch. A real Daraja STK push needs the real
+        // SCAPI gateway credentials AND a publicly reachable Mpesa:CallbackUrl
+        // for Safaricom to POST the result back to - neither exists on a dev
+        // machine, so without this the push always fails locally. When BOTH
+        // this process is running in Development AND Mpesa:DevAutoConfirm is
+        // true (only ever set in the gitignored appsettings.Development.json),
+        // we skip the gateway, mint a synthetic CheckoutRequestID, and then
+        // resolve the payment as SUCCESS through the very same repository path
+        // the real callback uses (below) - so the whole purchase -> PAID ->
+        // certificate flow runs end to end locally. Production never has the
+        // flag, and IsDevelopment() is a second lock, so this can never fire live.
+        var devAutoConfirm = _environment.IsDevelopment()
+            && _configuration.GetValue<bool>("Mpesa:DevAutoConfirm");
+
+        StkPushResult pushResult;
+        if (devAutoConfirm)
+        {
+            pushResult = new StkPushResult
+            {
+                Success = true,
+                Message = "Development mode: M-Pesa STK push simulated and auto-confirmed.",
+                CheckoutRequestId = $"DEV-{externalRefNumber}"
+            };
+            _logger.LogWarn($"Mpesa:DevAutoConfirm is ON - simulating a successful STK push for payment_id={paymentId}, purchase_id={request.PurchaseId} (no gateway call was made).");
+        }
+        else
+        {
+            pushResult = await _stkPushService.InitiatePushAsync(request.PhoneNumber, request.Amount, request.AccountReference, externalRefNumber);
+        }
 
         // Either way, the Payment record was already created successfully
         // above - that's the actual "did this call succeed" outcome, so
@@ -145,9 +185,32 @@ public class PaymentsController : BaseApiController
             }
         }
 
+        // Development-only: finish the simulated flow by resolving the payment
+        // as SUCCESS through the SAME usp_Payment_ResolveByGatewayReference the
+        // real Daraja callback calls, then completing the certificate - so the
+        // end state locally is identical to a real successful STK push. Same
+        // devAutoConfirm guard; never runs in Production.
+        if (devAutoConfirm && !string.IsNullOrWhiteSpace(pushResult.CheckoutRequestId))
+        {
+            var simulatedReceipt = $"DEVSIM{externalRefNumber}";
+            var resolved = await _paymentRepository.ResolveByGatewayReferenceAsync(
+                pushResult.CheckoutRequestId, "SUCCESS", simulatedReceipt, "GATEWAY_WEBHOOK", null);
+
+            if (resolved.IsSuccess
+                && resolved.Data is { NotProcessed: false, PurchaseId: long devPurchaseId, PaymentId: long devPaymentId })
+            {
+                var completed = await _certificationService.CompleteAndIssueAsync(devPurchaseId, "GATEWAY_WEBHOOK", devPaymentId);
+                _logger.LogInfo($"Dev auto-confirm: payment_id={paymentId} resolved SUCCESS, certificate completion success={completed.IsSuccess} for purchase_id={devPurchaseId}.");
+            }
+            else
+            {
+                _logger.LogWarn($"Dev auto-confirm: could not resolve payment_id={paymentId} via gateway_reference={pushResult.CheckoutRequestId}: {resolved.ResultMessage}");
+            }
+        }
+
         _logger.LogInfo($"STK push sent: payment_id={paymentId}, purchase_id={request.PurchaseId}, merchant_request_id={pushResult.MerchantRequestId}, checkout_request_id={pushResult.CheckoutRequestId}.");
         return Success(
-            new { PaymentId = paymentId, PushSent = true, pushResult.MerchantRequestId, pushResult.CheckoutRequestId },
+            new { PaymentId = paymentId, PushSent = true, pushResult.MerchantRequestId, pushResult.CheckoutRequestId, Simulated = devAutoConfirm },
             pushResult.Message);
     }
 
