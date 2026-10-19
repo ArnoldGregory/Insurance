@@ -27,6 +27,7 @@ public class PurchasesController : BaseApiController
 {
     private readonly IPurchaseRepository _purchaseRepository;
     private readonly IPurchaseCertificationService _certificationService;
+    private readonly IDmvicCertificateService _dmvicCertificateService;
     private readonly IClientRepository _clientRepository;
     private readonly ILoggerManager _logger;
     private readonly string _paybillNumber;
@@ -34,6 +35,7 @@ public class PurchasesController : BaseApiController
     public PurchasesController(
         IPurchaseRepository purchaseRepository,
         IPurchaseCertificationService certificationService,
+        IDmvicCertificateService dmvicCertificateService,
         IClientRepository clientRepository,
         ILoggerManager logger,
         IConfiguration configuration,
@@ -42,6 +44,7 @@ public class PurchasesController : BaseApiController
     {
         _purchaseRepository = purchaseRepository;
         _certificationService = certificationService;
+        _dmvicCertificateService = dmvicCertificateService;
         _clientRepository = clientRepository;
         _logger = logger;
         // Fixed environment setting (appsettings.json Mpesa:BusinessShortCode),
@@ -155,6 +158,47 @@ public class PurchasesController : BaseApiController
         }
 
         return Success(document.Data, document.ResultMessage);
+    }
+
+    /// <summary>
+    /// Downloads the official NTSA certificate as a PDF file. Served from the
+    /// copy saved at issue time; when that is missing a fresh link is fetched
+    /// from NTSA (get_certificate) and saved first. Same ownership/role
+    /// scoping as GetById. Returns the usual ApiResponse failure (not a file)
+    /// when there is no NTSA certificate or the PDF can't be obtained.
+    /// </summary>
+    [HttpGet("{id}/ntsa-certificate/pdf")]
+    [Produces("application/pdf", "application/json")]
+    public async Task<IActionResult> DownloadNtsaCertificatePdf(long id)
+    {
+        var purchase = await _purchaseRepository.GetByIdAsync(id);
+
+        if (!purchase.IsSuccess || purchase.Data is null)
+        {
+            return BusinessFailure(purchase.ResultMessage);
+        }
+
+        if (!await CallerOwnsClientRecordAsync(purchase.Data.ClientId))
+        {
+            return BusinessFailure("Purchase not found.");
+        }
+
+        var document = await _purchaseRepository.GetVehicleCertificateDocumentAsync(id);
+        var certNo = document.Data?.CertNo;
+
+        if (string.IsNullOrWhiteSpace(certNo))
+        {
+            return BusinessFailure("No official NTSA certificate for this purchase.");
+        }
+
+        var pdf = await _dmvicCertificateService.OpenCertificatePdfAsync(id, certNo);
+        if (pdf is null)
+        {
+            _logger.LogWarn($"NTSA certificate PDF for purchase_id={id} ({certNo}) could not be obtained.");
+            return BusinessFailure("The certificate PDF isn't available yet. Please try again shortly.");
+        }
+
+        return File(pdf, "application/pdf", $"NTSA-Certificate-{certNo}.pdf");
     }
 
     /// <summary>

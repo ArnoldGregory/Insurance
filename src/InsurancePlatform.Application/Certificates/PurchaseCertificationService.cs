@@ -18,19 +18,22 @@ namespace InsurancePlatform.Application.Certificates;
 public class PurchaseCertificationService : IPurchaseCertificationService
 {
     private readonly IPurchaseRepository _purchaseRepository;
-    private readonly IDmvicCertificateService _dmvicCertificateService;
+    private readonly IUnderwriterCertificateService _underwriterCertificateService;
     private readonly DmvicOptions _options;
+    private readonly UnderwriterIntegrationOptions _integrationOptions;
     private readonly ILoggerManager _logger;
 
     public PurchaseCertificationService(
         IPurchaseRepository purchaseRepository,
-        IDmvicCertificateService dmvicCertificateService,
+        IUnderwriterCertificateService underwriterCertificateService,
         IConfiguration configuration,
         ILoggerManager logger)
     {
         _purchaseRepository = purchaseRepository;
-        _dmvicCertificateService = dmvicCertificateService;
+        _underwriterCertificateService = underwriterCertificateService;
         _options = configuration.GetSection("Dmvic").Get<DmvicOptions>() ?? new DmvicOptions();
+        _integrationOptions = configuration.GetSection(UnderwriterIntegrationOptions.SectionName).Get<UnderwriterIntegrationOptions>()
+                              ?? new UnderwriterIntegrationOptions();
         _logger = logger;
     }
 
@@ -40,14 +43,16 @@ public class PurchaseCertificationService : IPurchaseCertificationService
         //    idempotent - the three callers retry safely).
         var completed = await _purchaseRepository.CompleteCertAsync(purchaseId, actorType, actorId);
 
-        // 2. Best-effort NTSA issuance - never blocks or fails the purchase.
+        // 2. Best-effort official certificate - NTSA/DMVIC, or the insurer's own
+        //    integration (DirectLine / AMACO / Definite, see
+        //    UnderwriterIntegrations). Never blocks or fails the purchase.
         //    Any exception is caught so a SCAPI outage (workers down, etc.)
         //    cannot break the callback/retry/worker paths.
-        if (completed.IsSuccess && _options.Enabled)
+        if (completed.IsSuccess && (_options.Enabled || _integrationOptions.AnyEnabled))
         {
             try
             {
-                var issue = await _dmvicCertificateService.IssueForPurchaseAsync(purchaseId);
+                var issue = await _underwriterCertificateService.IssueForPurchaseAsync(purchaseId);
                 if (issue.Issued)
                 {
                     _logger.LogInfo(

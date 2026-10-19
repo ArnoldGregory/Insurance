@@ -55,7 +55,7 @@
                         </tr>
                         @if (!string.IsNullOrWhiteSpace(Model.NtsaCertificateNo))
                         {
-                            <tr><td class="text-muted">Official NTSA cert</td><td><a asp-action="Certificate" asp-route-id="@Model.PurchaseId" style="font-family:monospace;">@Model.NtsaCertificateNo</a> @(Model.NtsaIssuedOn?.ToString("(dd MMM yyyy)") ?? "") &middot; <a asp-action="NtsaDocument" asp-route-id="@Model.PurchaseId" target="_blank">stored response</a></td></tr>
+                            <tr><td class="text-muted">Official NTSA cert</td><td><a asp-action="Certificate" asp-route-id="@Model.PurchaseId" style="font-family:monospace;">@Model.NtsaCertificateNo</a> @(Model.NtsaIssuedOn?.ToString("(dd MMM yyyy)") ?? "") &middot; <a asp-action="NtsaCertificatePdf" asp-route-id="@Model.PurchaseId">PDF</a> &middot; <a asp-action="NtsaDocument" asp-route-id="@Model.PurchaseId" target="_blank">stored response</a></td></tr>
                         }
                         else
                         {

@@ -62,10 +62,25 @@ public sealed class MotorPurchaseClient : IMotorPurchaseClient
         return await GetAsync<List<TpoPriceOptionDto>>(path, ct);
     }
 
+    public async Task<List<TpoPriceOptionDto>?> GetTpoQuoteAsync(
+        int vehicleClassId, int periodId, string? carryCapacity, decimal? tonnage, CancellationToken ct = default)
+    {
+        var path = $"/api/pricing/tpo?vehicleClassId={vehicleClassId}&periodId={periodId}";
+        if (!string.IsNullOrWhiteSpace(carryCapacity))
+        {
+            path += $"&carryCapacity={Uri.EscapeDataString(carryCapacity.Trim())}";
+        }
+        if (tonnage is decimal t)
+        {
+            path += $"&tonnage={t.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        }
+        return await GetAsync<List<TpoPriceOptionDto>>(path, ct);
+    }
+
     public async Task<ComprehensiveQuoteResponse?> GetComprehensiveCompareAsync(
         decimal vehicleValue, CancellationToken ct = default)
     {
-        var path = $"/api/pricing/comprehensive/compare?vehicleValue={vehicleValue}";
+        var path = $"/api/pricing/comprehensive/compare?vehicleValue={vehicleValue.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
         return await GetAsync<ComprehensiveQuoteResponse>(path, ct);
     }
 

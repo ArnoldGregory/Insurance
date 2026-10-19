@@ -121,7 +121,7 @@
             </div>
             <div class="cert-item">
                 <div class="cert-label">Official document</div>
-                <div class="cert-value"><a asp-action="NtsaDocument" asp-route-id="@Model.PurchaseId" target="_blank"><i class="fa fa-external-link"></i> View stored NTSA response</a></div>
+                <div class="cert-value"><a asp-action="NtsaCertificatePdf" asp-route-id="@Model.PurchaseId"><i class="fa fa-file-pdf-o"></i> Download PDF</a> &middot; <a asp-action="NtsaDocument" asp-route-id="@Model.PurchaseId" target="_blank"><i class="fa fa-external-link"></i> View stored NTSA response</a></div>
             </div>
         </div>
         <hr class="cert-hr" />

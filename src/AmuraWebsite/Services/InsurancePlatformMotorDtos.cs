@@ -8,6 +8,9 @@ public sealed class VehicleClassDto
 {
     public int VehicleClassId { get; set; }
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>True when TPO for this class is priced by tonnage (commercial) rather than carry capacity.</summary>
+    public bool RequiresTonnage { get; set; }
 }
 
 public sealed class PeriodDto

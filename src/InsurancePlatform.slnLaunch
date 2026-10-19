@@ -1,0 +1,9 @@
+[
+  {
+    "Name": "Api + Admin Portal",
+    "Projects": [
+      { "Path": "InsurancePlatform.Api\\InsurancePlatform.Api.csproj", "Action": "Start", "DebugTarget": "http" },
+      { "Path": "InsurancePlatform.AdminPortal\\InsurancePlatform.AdminPortal.csproj", "Action": "Start", "DebugTarget": "http" }
+    ]
+  }
+]

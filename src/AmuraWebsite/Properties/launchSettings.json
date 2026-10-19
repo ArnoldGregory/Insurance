@@ -4,7 +4,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:5044",
+      "applicationUrl": "http://localhost:5067",
       "sslPort": 0
     }
   },
@@ -25,7 +25,8 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "InsurancePlatform__WebsiteGuestApiKey": "website-guest-test-key-2026"
+        "InsurancePlatform__WebsiteGuestApiKey": "website-guest-test-key-2026",
+        "InsurancePlatform__BaseUrl": "http://localhost:5044"
       }
     }
   }

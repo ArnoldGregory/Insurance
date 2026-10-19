@@ -107,6 +107,30 @@ public class PurchasesController : Controller
         return View(result.Data);
     }
 
+    /// <summary>
+    /// Proxies the official NTSA certificate PDF from GET /api/purchases/{id}/ntsa-certificate/pdf.
+    /// The API answers with a JSON ApiResponse (still HTTP 200) when no PDF is available, so
+    /// anything that isn't application/pdf is treated as "not available".
+    /// </summary>
+    [HttpGet("NtsaCertificatePdf/{id}")]
+    public async Task<IActionResult> NtsaCertificatePdf(long id)
+    {
+        var file = await _apiClient.GetStreamAsync($"/api/purchases/{id}/ntsa-certificate/pdf");
+
+        if (file is null || !string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            if (file is not null)
+            {
+                await file.Content.DisposeAsync();
+            }
+            TempData["StatusMessage"] = "The NTSA certificate PDF isn't available yet. Please try again shortly.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return File(file.Content, "application/pdf", file.FileName ?? $"NTSA-Certificate-{id}.pdf");
+    }
+
     [Authorize(Roles = RoleCodes.QuoteBackoffice)]
     [HttpPost]
     [ValidateAntiForgeryToken]

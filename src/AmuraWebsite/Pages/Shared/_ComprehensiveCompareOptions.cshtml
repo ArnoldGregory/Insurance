@@ -26,7 +26,8 @@ else if (Model.Quote is not null && Model.Quote.Options.Count > 0)
                                     ? uwBenefits.OrderBy(b => b.DisplayOrder).ToList()
                                     : new List<AmuraWebsite.Services.ComprehensiveBenefitDto>();
                                 var included = benefits.Where(b => b.IsIncludedInBase).ToList();
-                                var addons = benefits.Where(b => !b.IsIncludedInBase).ToList();
+                                // PVT is priced by the API (PvtAmount) - never offer it again as an add-on.
+                                var addons = benefits.Where(b => !b.IsIncludedInBase && !string.Equals(b.BenefitCode, "PVT", StringComparison.OrdinalIgnoreCase)).ToList();
                                 var limits = Model.Quote.LiabilityLimitsByUnderwriter.TryGetValue(key, out var uwLimits)
                                     ? uwLimits.OrderBy(l => l.DisplayOrder).ToList()
                                     : new List<AmuraWebsite.Services.ComprehensiveLiabilityLimitDto>();

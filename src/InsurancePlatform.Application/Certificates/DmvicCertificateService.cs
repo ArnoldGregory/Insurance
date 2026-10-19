@@ -29,17 +29,20 @@ public class DmvicCertificateService : IDmvicCertificateService
 
     private readonly IScapiGatewayClient _gatewayClient;
     private readonly IPurchaseRepository _purchaseRepository;
+    private readonly ICertificateFileStore _fileStore;
     private readonly DmvicOptions _options;
     private readonly ILoggerManager _logger;
 
     public DmvicCertificateService(
         IScapiGatewayClient gatewayClient,
         IPurchaseRepository purchaseRepository,
+        ICertificateFileStore fileStore,
         IConfiguration configuration,
         ILoggerManager logger)
     {
         _gatewayClient = gatewayClient;
         _purchaseRepository = purchaseRepository;
+        _fileStore = fileStore;
         _options = configuration.GetSection("Dmvic").Get<DmvicOptions>() ?? new DmvicOptions();
         _logger = logger;
     }
@@ -161,10 +164,17 @@ public class DmvicCertificateService : IDmvicCertificateService
             _logger.LogInfo(
                 $"D-MVIC purchase_id={purchaseId}: NTSA issued certificate {certNo} (transaction {transactionNo}), email {certEmail}.");
 
-            var certDataRaw = await FetchCertificateAsync(purchaseId, certNo, externalRef);
+            var (certDataRaw, certUrl) = await FetchCertificateAsync(purchaseId, certNo, externalRef);
+
+            // Keep a local copy of the PDF - NTSA's link is a short-lived
+            // signed URL (BIMADLINE downloads it straight away for the same reason).
+            if (!string.IsNullOrWhiteSpace(certUrl))
+            {
+                await _fileStore.SaveFromUrlAsync(purchaseId, certNo, certUrl);
+            }
 
             var saveResult = await _purchaseRepository.SaveDmvicResultAsync(
-                purchaseId, certNo, transactionNo, certEmail, null, certDataRaw);
+                purchaseId, certNo, transactionNo, certEmail, certUrl, certDataRaw);
 
             if (!saveResult.IsSuccess)
             {
@@ -374,7 +384,31 @@ public class DmvicCertificateService : IDmvicCertificateService
         return new DmvicIssueResult { Issued = false, Message = reason };
     }
 
-    private async Task<string?> FetchCertificateAsync(long purchaseId, string certNo, string externalRef)
+    /// <summary>
+    /// Opens the saved official certificate PDF. When it isn't on disk yet
+    /// (download failed at issue time, or the link had expired) a fresh
+    /// get_certificate call is made for a new link and the PDF is saved first.
+    /// </summary>
+    public async Task<Stream?> OpenCertificatePdfAsync(long purchaseId, string certificateNo)
+    {
+        var existing = _fileStore.Open(purchaseId, certificateNo);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var externalRef = DateTime.Now.ToString("yyyyMMddHHmmssfff");
+        var (_, url) = await FetchCertificateAsync(purchaseId, certificateNo, externalRef);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return null;
+        }
+
+        var saved = await _fileStore.SaveFromUrlAsync(purchaseId, certificateNo, url);
+        return saved is null ? null : _fileStore.Open(purchaseId, certificateNo);
+    }
+
+    private async Task<(string? Raw, string? Url)> FetchCertificateAsync(long purchaseId, string certNo, string externalRef)
     {
         try
         {
@@ -390,18 +424,27 @@ public class DmvicCertificateService : IDmvicCertificateService
             if (response is null)
             {
                 _logger.LogWarn($"D-MVIC purchase_id={purchaseId}: get_certificate returned no response for {certNo}.");
-                return null;
+                return (null, null);
             }
 
             var output = (response["error_desc"] as JsonObject)?["output"];
             var raw = output?.ToString() ?? response.ToJsonString();
             _logger.LogInfo($"D-MVIC purchase_id={purchaseId}: get_certificate for {certNo} (ref={externalRef}): {raw}");
-            return raw;
+
+            // BIMADLINE reads the PDF link from output.callbackObj.URL.
+            string? url = null;
+            if (output is JsonObject outputObj && outputObj["success"]?.ToString() is "true" or "True")
+            {
+                var callback = outputObj["callbackObj"] as JsonObject;
+                url = callback?["URL"]?.ToString() ?? callback?["Url"]?.ToString() ?? callback?["url"]?.ToString();
+            }
+
+            return (raw, string.IsNullOrWhiteSpace(url) ? null : url);
         }
         catch (Exception ex)
         {
             _logger.LogError($"D-MVIC purchase_id={purchaseId}: get_certificate fetch failed for {certNo}.", ex);
-            return null;
+            return (null, null);
         }
     }
 

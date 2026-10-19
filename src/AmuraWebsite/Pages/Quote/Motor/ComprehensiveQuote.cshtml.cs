@@ -113,7 +113,7 @@ public class ComprehensiveQuoteModel : PageModel
             {
                 var benefitId = key.Split(':')[1];
                 var benefit = benefits.FirstOrDefault(b => b.BenefitId.ToString() == benefitId);
-                if (benefit is { IsIncludedInBase: false })
+                if (benefit is { IsIncludedInBase: false } && !string.Equals(benefit.BenefitCode, "PVT", StringComparison.OrdinalIgnoreCase))
                 {
                     premium += benefit.DefaultPrice;
                 }

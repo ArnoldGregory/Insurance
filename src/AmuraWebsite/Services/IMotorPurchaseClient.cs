@@ -27,6 +27,13 @@ public interface IMotorPurchaseClient
     Task<List<TpoPriceOptionDto>?> GetTpoPricingAsync(
         int vehicleClassId, int periodId, int carryCapacity, CancellationToken ct = default);
 
+    /// <summary>
+    /// TPO prices for the premium calculator: carry capacity for flat/PSV
+    /// classes, tonnage for commercial classes (RequiresTonnage). Either may be null.
+    /// </summary>
+    Task<List<TpoPriceOptionDto>?> GetTpoQuoteAsync(
+        int vehicleClassId, int periodId, string? carryCapacity, decimal? tonnage, CancellationToken ct = default);
+
     Task<ComprehensiveQuoteResponse?> GetComprehensiveCompareAsync(
         decimal vehicleValue, CancellationToken ct = default);
 

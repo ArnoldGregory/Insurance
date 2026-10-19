@@ -1,0 +1,172 @@
+@page
+@model AmuraWebsite.Pages.CalculatorModel
+@{
+    ViewData["Title"] = "Motor Premium Calculator";
+    ViewData["Description"] = "Estimate your motor insurance premium - compare live Third Party and Comprehensive prices from Amura Insurance Agency's underwriter partners.";
+    var requiresTonnage = Model.SelectedClass?.RequiresTonnage ?? false;
+    string Kes(decimal amount) => "KES " + amount.ToString("N0");
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-8 reveal">
+                <div class="contact-card">
+                    <h3 style="font-size:1.15rem; font-weight:700; margin: 0 0 0.2rem;">Motor Premium Calculator</h3>
+                    <p class="text-muted small mb-3">Get an instant estimate. Nothing is saved and you don't need to share personal details.</p>
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+                    }
+
+                    @if (Model.IsConfigured && Model.VehicleClasses.Count > 0)
+                    {
+                        <form method="post" novalidate>
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Input.VehicleClassId" class="form-label">Vehicle class</label>
+                                    <select asp-for="Input.VehicleClassId" id="calc-class" class="form-select">
+                                        <option value="0">-- Choose --</option>
+                                        @foreach (var c in Model.VehicleClasses)
+                                        {
+                                            <option value="@c.VehicleClassId" data-requires-tonnage="@(c.RequiresTonnage ? "1" : "0")">@c.Name</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Input.VehicleClassId" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="Input.PeriodId" class="form-label">Cover period</label>
+                                    <select asp-for="Input.PeriodId" class="form-select">
+                                        <option value="0">-- Choose --</option>
+                                        @foreach (var p in Model.Periods)
+                                        {
+                                            <option value="@p.PeriodId">@p.Name</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Input.PeriodId" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6" id="calc-carry-group" style="@(requiresTonnage ? "display:none" : "")">
+                                    <label asp-for="Input.CarryCapacity" class="form-label">Licensed to carry (passengers)</label>
+                                    <input asp-for="Input.CarryCapacity" class="form-control" type="number" min="1" max="200" placeholder="e.g. 5" />
+                                    <span asp-validation-for="Input.CarryCapacity" class="text-danger small"></span>
+                                    <span class="text-muted small">Matters for PSV / matatu classes.</span>
+                                </div>
+
+                                <div class="col-md-6" id="calc-tonnage-group" style="@(requiresTonnage ? "" : "display:none")">
+                                    <label asp-for="Input.Tonnage" class="form-label">Tonnage</label>
+                                    <input asp-for="Input.Tonnage" class="form-control" type="number" min="0.1" max="200" step="0.1" placeholder="e.g. 3" />
+                                    <span asp-validation-for="Input.Tonnage" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="Input.VehicleValue" class="form-label">Vehicle value (KES) <span class="text-muted small">- optional</span></label>
+                                    <input asp-for="Input.VehicleValue" class="form-control" type="number" min="10000" step="1000" placeholder="e.g. 1500000" />
+                                    <span asp-validation-for="Input.VehicleValue" class="text-danger small"></span>
+                                    <span class="text-muted small">Enter it to also see Comprehensive prices.</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-quote btn-lg">Calculate &rarr;</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            <div class="col-lg-4 reveal">
+                <span class="eyebrow">Estimate first</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">Know your premium</h2>
+                <p class="text-muted">Prices come live from our underwriter partners. Final premiums may change after valuation, vehicle age checks and underwriter approval, and exclude stamp duty and levies.</p>
+            </div>
+        </div>
+
+        @if (Model.HasCalculated)
+        {
+            <div class="row g-4 mt-2">
+                <div class="col-lg-6">
+                    <div class="contact-card h-100">
+                        <h4 style="font-size:1.05rem; font-weight:700;">Third Party Only</h4>
+                        @if (!string.IsNullOrEmpty(Model.TpoMessage))
+                        {
+                            <p class="text-muted small mb-0">@Model.TpoMessage</p>
+                        }
+                        else if (Model.TpoOptions is not null)
+                        {
+                            <table class="table table-sm align-middle mb-3">
+                                <thead><tr><th>Underwriter</th><th class="text-end">Premium</th></tr></thead>
+                                <tbody>
+                                    @foreach (var o in Model.TpoOptions)
+                                    {
+                                        <tr><td>@o.UnderwriterName</td><td class="text-end fw-semibold">@Kes(o.Price)</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <a class="btn btn-quote" asp-page="/Quote/Motor/Details">Buy Third Party &rarr;</a>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="contact-card h-100">
+                        <h4 style="font-size:1.05rem; font-weight:700;">Comprehensive <span class="text-muted small">(private car rates)</span></h4>
+                        @if (Model.Input.VehicleValue is null)
+                        {
+                            <p class="text-muted small mb-0">Enter your vehicle's value above to compare Comprehensive prices.</p>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.ComprehensiveMessage))
+                        {
+                            <p class="text-muted small mb-0">@Model.ComprehensiveMessage</p>
+                        }
+                        else if (Model.ComprehensiveQuote is not null)
+                        {
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Underwriter</th><th class="text-end">Rate</th><th class="text-end">Premium</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var o in Model.ComprehensiveQuote.Options)
+                                    {
+                                        <tr>
+                                            <td>@o.UnderwriterName</td>
+                                            <td class="text-end">@o.RatePercent.ToString("0.##")%</td>
+                                            <td class="text-end fw-semibold">@Kes(o.TotalPremium)</td>
+                                            <td class="text-end">
+                                                <a class="small" asp-page="/Quote/Motor/Details"
+                                                   asp-route-coverType="COMPREHENSIVE"
+                                                   asp-route-vehicleValue="@Model.Input.VehicleValue"
+                                                   asp-route-underwriterId="@o.UnderwriterId"
+                                                   asp-route-premium="@o.TotalPremium">Buy</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <p class="text-muted small mt-2 mb-0">Includes basic premium and PVT. Add optional benefits on the <a asp-page="/Quote/Motor/ComprehensiveQuote">Comprehensive quote</a> page.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (function () {
+            var select = document.getElementById('calc-class');
+            var carry = document.getElementById('calc-carry-group');
+            var tonnage = document.getElementById('calc-tonnage-group');
+            if (!select || !carry || !tonnage) return;
+            function sync() {
+                var opt = select.options[select.selectedIndex];
+                var byTonnage = opt && opt.getAttribute('data-requires-tonnage') === '1';
+                carry.style.display = byTonnage ? 'none' : '';
+                tonnage.style.display = byTonnage ? '' : 'none';
+            }
+            select.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

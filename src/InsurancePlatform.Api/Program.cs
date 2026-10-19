@@ -26,7 +26,7 @@ using NLog;
 using NLog.Web;
 
 
-var nlogLogger = LogManager.Setup().LoadConfigurationFromFile("NLog.config").GetCurrentClassLogger();
+var nlogLogger = LogManager.Setup().LoadConfigurationFromFile(Path.Combine(AppContext.BaseDirectory, "NLog.config")).GetCurrentClassLogger();
 
 try
 {
@@ -212,7 +212,19 @@ try
     // (best-effort, falls back to the internal HTML certificate) stays in one
     // place.
     builder.Services.Configure<DmvicOptions>(builder.Configuration.GetSection("Dmvic"));
+    // Local copy of the official certificate PDF (NTSA / underwriter links
+    // are short-lived signed URLs) - CertificateStorage:Root in appsettings.
+    builder.Services.AddHttpClient<ICertificateFileStore, InsurancePlatform.Infrastructure.Certificates.LocalCertificateFileStore>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(60);
+    });
     builder.Services.AddScoped<IDmvicCertificateService, DmvicCertificateService>();
+    // Non-DMVIC insurers (DirectLine over SCAPI, AMACO/Definite by callback) -
+    // routed by underwriter name per UnderwriterIntegrations in appsettings;
+    // everything else still goes to DMVIC above. Callbacks land on
+    // UnderwriterCallbacksController.
+    builder.Services.AddScoped<IUnderwriterCertificateRepository, UnderwriterCertificateRepository>();
+    builder.Services.AddScoped<IUnderwriterCertificateService, UnderwriterCertificateService>();
     builder.Services.AddScoped<IPurchaseCertificationService, PurchaseCertificationService>();
 
     // Authentication module wiring - every interface here follows the same
@@ -406,10 +418,10 @@ try
 
     app.MapControllers();
 
-    // Fail fast if the database is unreachable. Without this check the API
-    // starts normally, then every request fails with a generic "unexpected
-    // error" - which is far harder to diagnose than a startup message that
-    // names the host, port and database.
+    // Check the database at startup and log the result loudly. This used to
+    // throw (stopping the API), but then the Admin Portal could only say
+    // "Unable to reach the server" with no hint why. Now the API stays up,
+    // the reason is logged here, and GET /health reports the exact MySQL error.
     var startupConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException(
             "Connection string 'DefaultConnection' is not configured in appsettings.json.");
@@ -423,11 +435,11 @@ try
     }
     catch (Exception ex)
     {
-        throw new InvalidOperationException(
+        nlogLogger.Error(
             $"Cannot reach the MySQL database at {connectionInfo.Server}:{connectionInfo.Port} " +
-            $"(database '{connectionInfo.Database}'). Is the MySQL service running? " +
-            "Check the DefaultConnection string in appsettings.json. " +
-            $"Underlying error: {ex.Message}", ex);
+            $"(database '{connectionInfo.Database}', user '{connectionInfo.UserID}'). Is the MySQL service running " +
+            "and are the user/password in DefaultConnection correct? The API will keep running, but every " +
+            $"data call will fail until this is fixed. Underlying error: {ex.Message}");
     }
 
     // Liveness/readiness probe. Used by the Admin Portal and Website at

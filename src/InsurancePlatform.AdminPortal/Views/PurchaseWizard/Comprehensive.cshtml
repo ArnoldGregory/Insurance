@@ -69,7 +69,7 @@ else
                             ? Model.LiabilityLimitsByUnderwriter[uwKey]
                             : new List<LiabilityLimitItem>();
                         var includedBenefits = benefits.Where(b => b.IsIncludedInBase).ToList();
-                        var optionalBenefits = benefits.Where(b => !b.IsIncludedInBase).ToList();
+                        var optionalBenefits = benefits.Where(b => !b.IsIncludedInBase && !string.Equals(b.BenefitCode, "PVT", StringComparison.OrdinalIgnoreCase)).ToList(); // PVT is priced by the API (PvtAmount)
 
                         <div class="wz-quote-card @(isSelected ? "wz-quote-card--selected" : "")">
                             <input type="radio" name="selectedUwRadio" class="wz-quote-radio" @(isSelected ? "checked" : "") />
