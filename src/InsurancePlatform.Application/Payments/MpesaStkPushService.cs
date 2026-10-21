@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using InsurancePlatform.Application.Integrations;
 using InsurancePlatform.Domain.Common;
 using Microsoft.Extensions.Configuration;
-
 namespace InsurancePlatform.Application.Payments;
 
 /// <summary>
@@ -20,20 +19,41 @@ public class MpesaStkPushService : IMpesaStkPushService
     private const int MaxAttempts = 3;
 
     private readonly IScapiGatewayClient _gatewayClient;
+    private readonly IDarajaStkClient _darajaClient;
     private readonly ILoggerManager _logger;
     private readonly string _businessShortCode;
     private readonly string _callbackUrl;
+    private readonly bool _useDirectDaraja;
 
-    public MpesaStkPushService(IScapiGatewayClient gatewayClient, IConfiguration configuration, ILoggerManager logger)
+    public MpesaStkPushService(
+        IScapiGatewayClient gatewayClient,
+        IDarajaStkClient darajaClient,
+        IConfiguration configuration,
+        ILoggerManager logger)
     {
         _gatewayClient = gatewayClient;
+        _darajaClient = darajaClient;
         _logger = logger;
         _businessShortCode = configuration["Mpesa:BusinessShortCode"] ?? string.Empty;
         _callbackUrl = configuration["Mpesa:CallbackUrl"] ?? string.Empty;
+
+        // "Daraja" sends the STK push straight to Safaricom, bypassing the
+        // SCAPI message gateway; anything else (default) keeps using SCAPI.
+        // The switch exists because SCAPI's own MPESA route fails on its
+        // short-code lookup and SCAPI is not ours to fix - but the Daraja
+        // credentials are ours, so the direct path is the one that can
+        // actually put a real prompt on a customer's phone today.
+        _useDirectDaraja = string.Equals(
+            configuration["Mpesa:Transport"], "Daraja", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<StkPushResult> InitiatePushAsync(string phoneNumber, decimal amount, string accountReference, string externalRefNumber)
     {
+        if (_useDirectDaraja)
+        {
+            return await PushDirectAsync(phoneNumber, amount, accountReference);
+        }
+
         var body = new JsonObject
         {
             ["business_short_code"] = _businessShortCode,
@@ -151,6 +171,35 @@ public class MpesaStkPushService : IMpesaStkPushService
             Message = message,
             MerchantRequestId = errorDesc is JsonObject failJo ? failJo["MerchantRequestID"]?.ToString() : null,
             CheckoutRequestId = errorDesc is JsonObject failCo ? failCo["CheckoutRequestID"]?.ToString() : null
+        };
+    }
+
+    /// <summary>
+    /// Sends the STK push straight to Safaricom Daraja, with no SCAPI in
+    /// the middle. Same outcome as the SCAPI path - a prompt on the
+    /// customer's phone - but the request goes to Daraja itself, so it does
+    /// not depend on the SCAPI gateway's own short-code/credential lookups
+    /// working. Daraja answers with its own ResponseCode, and the
+    /// CheckoutRequestID it returns is the reference Daraja echoes back in
+    /// the callback that resolves the payment.
+    /// </summary>
+    private async Task<StkPushResult> PushDirectAsync(string phoneNumber, decimal amount, string accountReference)
+    {
+        var result = await _darajaClient.PushAsync(new DarajaStkRequest
+        {
+            PhoneNumber = NormalizeKenyanPhoneNumber(phoneNumber),
+            Amount = amount,
+            AccountReference = accountReference,
+            TransactionDescription = "Insurance Purchase",
+            CallbackUrl = _callbackUrl
+        });
+
+        return new StkPushResult
+        {
+            Success = result.Success,
+            Message = result.Message,
+            MerchantRequestId = result.MerchantRequestId,
+            CheckoutRequestId = result.CheckoutRequestId
         };
     }
 

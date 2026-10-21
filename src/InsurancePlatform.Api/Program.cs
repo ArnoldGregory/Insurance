@@ -15,6 +15,7 @@ using InsurancePlatform.Data.Repositories;
 using InsurancePlatform.Domain.Common;
 using InsurancePlatform.Infrastructure.Auth;
 using InsurancePlatform.Infrastructure.Integrations.GovConnect;
+using InsurancePlatform.Infrastructure.Integrations.Daraja;
 using InsurancePlatform.Infrastructure.Integrations.Scapi;
 using InsurancePlatform.Infrastructure.Logging;
 using InsurancePlatform.Infrastructure.Security;
@@ -197,6 +198,12 @@ try
     // OtpNotificationSender above, different message shape. PaymentsController
     // depends on this for POST /api/payments/stk-push.
     builder.Services.AddScoped<IMpesaStkPushService, MpesaStkPushService>();
+
+    // Direct Safaricom Daraja transport - used by MpesaStkPushService when
+    // Mpesa:Transport is "Daraja". Same typed-client pattern as SCAPI and
+    // GovConnect above; the SCAPI gateway stays the default transport.
+    builder.Services.Configure<DarajaSettings>(builder.Configuration.GetSection("Daraja"));
+    builder.Services.AddHttpClient<IDarajaStkClient, DarajaStkClient>();
 
     // MpesaC2BService (Application) - same gateway client, composes the
     // DARAJA_REGISTER_URLS message used by POST /api/payments/register-c2b-urls
