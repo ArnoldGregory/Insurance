@@ -87,6 +87,11 @@ public class DarajaStkClient : IDarajaStkClient
         };
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
+        // The callback URL travels in the request body, so a stale one silently
+        // costs the customer their money with no result ever coming back.
+        _logger.LogInfo(
+            $"Daraja STK push -> short_code={shortCode} amount={amount} phone={request.PhoneNumber} account={request.AccountReference} callback={request.CallbackUrl}");
+
         string raw;
         try
         {
