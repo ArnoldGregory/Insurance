@@ -109,8 +109,24 @@ public class PaymentsController : BaseApiController
             _ => "USER"
         };
 
+        // Development-only override: when testing a REAL STK push against the
+        // live gateway we don't want to charge the full premium, so a nominal
+        // amount (e.g. 1) can be pushed instead. Applied to BOTH the recorded
+        // Payment and the gateway request so the callback resolves
+        // consistently. Same IsDevelopment() lock as DevAutoConfirm, so the
+        // real premium is always used in Production.
+        var testAmount = _environment.IsDevelopment()
+            ? _configuration.GetValue<decimal?>("Mpesa:TestAmount")
+            : null;
+        var stkAmount = testAmount is > 0 ? testAmount.Value : request.Amount;
+
+        if (stkAmount != request.Amount)
+        {
+            _logger.LogWarn($"Mpesa:TestAmount is set ({stkAmount}) - pushing a test amount instead of the {request.Amount} premium for purchase_id={request.PurchaseId} (Development only).");
+        }
+
         var paymentResult = await _paymentRepository.CreateAsync(
-            request.PurchaseId, request.Amount, "MPESA", request.PhoneNumber, null, actorType, CurrentUserId);
+            request.PurchaseId, stkAmount, "MPESA", request.PhoneNumber, null, actorType, CurrentUserId);
 
         if (!paymentResult.IsSuccess || paymentResult.Data is null)
         {
@@ -148,7 +164,7 @@ public class PaymentsController : BaseApiController
         }
         else
         {
-            pushResult = await _stkPushService.InitiatePushAsync(request.PhoneNumber, request.Amount, request.AccountReference, externalRefNumber);
+            pushResult = await _stkPushService.InitiatePushAsync(request.PhoneNumber, stkAmount, request.AccountReference, externalRefNumber);
         }
 
         // Either way, the Payment record was already created successfully
