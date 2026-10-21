@@ -468,6 +468,7 @@ public class ClientIdResult
 public class VehicleIdResult
 {
     public long VehicleId { get; set; }
+    public long ClientId { get; set; }
 }
 
 /// <summary>Mirrors InsurancePlatform.Domain.Entities.PurchaseCreateResult - POST /api/purchases's success payload.</summary>

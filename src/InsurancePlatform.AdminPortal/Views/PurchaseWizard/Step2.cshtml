@@ -68,7 +68,7 @@
                 <div class="wz-form-grid wz-form-grid--3">
                     <div class="wz-field">
                         <label class="wz-label" asp-for="ClientDob"></label>
-                        <input class="wz-input" asp-for="ClientDob" type="date" />
+                        <input class="wz-input" asp-for="ClientDob" type="date" max="@DateTime.Today.AddYears(-18).ToString("yyyy-MM-dd")" />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="ClientKraPin"></label>
@@ -100,11 +100,11 @@
                 <div class="wz-form-grid wz-form-grid--3">
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleMake"></label>
-                        <input class="wz-input" asp-for="VehicleMake" />
+                        <input class="wz-input" asp-for="VehicleMake" data-uppercase />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleModel"></label>
-                        <input class="wz-input" asp-for="VehicleModel" />
+                        <input class="wz-input" asp-for="VehicleModel" data-uppercase />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleYearOfManufacture"></label>
@@ -124,11 +124,11 @@
                 <div class="wz-form-grid wz-form-grid--3">
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleBodyType"></label>
-                        <input class="wz-input" asp-for="VehicleBodyType" />
+                        <input class="wz-input" asp-for="VehicleBodyType" data-uppercase />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleFuelType"></label>
-                        <input class="wz-input" asp-for="VehicleFuelType" />
+                        <input class="wz-input" asp-for="VehicleFuelType" data-uppercase />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleValue"></label>

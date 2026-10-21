@@ -67,12 +67,12 @@
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label asp-for="Input.Make" class="form-label">Make</label>
-                                    <input asp-for="Input.Make" class="form-control" placeholder="e.g. Toyota" />
+                                    <input asp-for="Input.Make" class="form-control" placeholder="e.g. Toyota" data-uppercase />
                                     <span asp-validation-for="Input.Make" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label asp-for="Input.Model" class="form-label">Model</label>
-                                    <input asp-for="Input.Model" class="form-control" placeholder="e.g. Vitz" />
+                                    <input asp-for="Input.Model" class="form-control" placeholder="e.g. Vitz" data-uppercase />
                                     <span asp-validation-for="Input.Model" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-4">

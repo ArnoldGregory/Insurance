@@ -205,79 +205,81 @@ public class PurchaseWizardController : Controller
         draft.StartDate = model.StartDate;
         SaveCompDraft(draft);
 
-        if (draft.ClientId is null)
+        var lookup = await _apiClient.GetAsync<ClientLookupResult>($"/api/clients/resolve/{Uri.EscapeDataString(model.ClientIdNo)}");
+
+        if (lookup.Success && lookup.Data is not null && lookup.Data.MatchStatus != "NOT_FOUND" && lookup.Data.ClientId is not null)
         {
-            var lookup = await _apiClient.GetAsync<ClientLookupResult>($"/api/clients/resolve/{Uri.EscapeDataString(model.ClientIdNo)}");
-
-            if (lookup.Success && lookup.Data is not null && lookup.Data.MatchStatus != "NOT_FOUND" && lookup.Data.ClientId is not null)
+            draft.ClientId = lookup.Data.ClientId;
+        }
+        else
+        {
+            var createClient = await _apiClient.PostAsync<ClientIdResult>("/api/clients", new
             {
-                draft.ClientId = lookup.Data.ClientId;
-            }
-            else
+                IdNo = model.ClientIdNo,
+                FullName = model.ClientFullName,
+                Dob = model.ClientDob,
+                Email = model.ClientEmail,
+                Phone = model.ClientPhone,
+                Address = model.ClientAddress,
+                KraPin = model.ClientKraPin,
+                RegistrationChannel = "PORTAL"
+            });
+
+            if (!createClient.Success || createClient.Data is null)
             {
-                var createClient = await _apiClient.PostAsync<ClientIdResult>("/api/clients", new
-                {
-                    IdNo = model.ClientIdNo,
-                    FullName = model.ClientFullName,
-                    Dob = model.ClientDob,
-                    Email = model.ClientEmail,
-                    Phone = model.ClientPhone,
-                    Address = model.ClientAddress,
-                    KraPin = model.ClientKraPin,
-                    RegistrationChannel = "PORTAL"
-                });
-
-                if (!createClient.Success || createClient.Data is null)
-                {
-                    model.ErrorMessage = $"Could not save the client: {createClient.Message}";
-                    SaveCompDraft(draft);
-                    return View("ComprehensiveStep2", model);
-                }
-
-                draft.ClientId = createClient.Data.ClientId;
+                model.ErrorMessage = $"Could not save the client: {createClient.Message}";
+                SaveCompDraft(draft);
+                return View("ComprehensiveStep2", model);
             }
 
-            SaveCompDraft(draft);
+            draft.ClientId = createClient.Data.ClientId;
         }
 
-        if (draft.VehicleId is null)
+        SaveCompDraft(draft);
+
+        draft.VehicleId = null;
+        var vehicleLookup = await _apiClient.GetAsync<VehicleIdResult>($"/api/vehicles/by-reg-no/{Uri.EscapeDataString(model.VehicleRegNo)}");
+
+        if (vehicleLookup.Success && vehicleLookup.Data is not null)
         {
-            var vehicleLookup = await _apiClient.GetAsync<VehicleIdResult>($"/api/vehicles/by-reg-no/{Uri.EscapeDataString(model.VehicleRegNo)}");
-
-            if (vehicleLookup.Success && vehicleLookup.Data is not null)
+            if (vehicleLookup.Data.ClientId != draft.ClientId)
             {
-                draft.VehicleId = vehicleLookup.Data.VehicleId;
-            }
-            else
-            {
-                var createVehicle = await _apiClient.PostAsync<VehicleIdResult>($"/api/clients/{draft.ClientId}/vehicles", new
-                {
-                    Make = model.VehicleMake,
-                    Model = model.VehicleModel,
-                    RegNo = model.VehicleRegNo,
-                    ChassisNo = model.VehicleChassisNo,
-                    EngineNo = model.VehicleEngineNo,
-                    YearOfManufacture = model.VehicleYearOfManufacture,
-                    VehicleType = draft.VehicleClassName,
-                    BodyType = model.VehicleBodyType,
-                    FuelType = model.VehicleFuelType,
-                    CubicCapacity = (string?)null,
-                    Color = (string?)null,
-                    Logbook = (string?)null
-                });
-
-                if (!createVehicle.Success || createVehicle.Data is null)
-                {
-                    model.ErrorMessage = $"Client saved (ID #{draft.ClientId}), but the vehicle could not be saved: {createVehicle.Message}";
-                    SaveCompDraft(draft);
-                    return View("ComprehensiveStep2", model);
-                }
-
-                draft.VehicleId = createVehicle.Data.VehicleId;
+                model.ErrorMessage = $"Registration {model.VehicleRegNo} is already on file for a different client. Use a different registration number or update the existing client's record.";
+                SaveCompDraft(draft);
+                return View("ComprehensiveStep2", model);
             }
 
-            SaveCompDraft(draft);
+            draft.VehicleId = vehicleLookup.Data.VehicleId;
         }
+        else
+        {
+            var createVehicle = await _apiClient.PostAsync<VehicleIdResult>($"/api/clients/{draft.ClientId}/vehicles", new
+            {
+                Make = model.VehicleMake,
+                Model = model.VehicleModel,
+                RegNo = model.VehicleRegNo,
+                ChassisNo = model.VehicleChassisNo,
+                EngineNo = model.VehicleEngineNo,
+                YearOfManufacture = model.VehicleYearOfManufacture,
+                VehicleType = draft.VehicleClassName,
+                BodyType = model.VehicleBodyType,
+                FuelType = model.VehicleFuelType,
+                CubicCapacity = (string?)null,
+                Color = (string?)null,
+                Logbook = (string?)null
+            });
+
+            if (!createVehicle.Success || createVehicle.Data is null)
+            {
+                model.ErrorMessage = $"Client saved (ID #{draft.ClientId}), but the vehicle could not be saved: {createVehicle.Message}";
+                SaveCompDraft(draft);
+                return View("ComprehensiveStep2", model);
+            }
+
+            draft.VehicleId = createVehicle.Data.VehicleId;
+        }
+
+        SaveCompDraft(draft);
 
         var productsResult = await _apiClient.GetAsync<List<ProductOption>>("/api/products");
         var motorProduct = productsResult.Success ? productsResult.Data?.FirstOrDefault(p => p.Code == "MOTOR") : null;
@@ -554,20 +556,48 @@ public class PurchaseWizardController : Controller
         draft.VehicleRegNo = model.VehicleRegNo; draft.VehicleMake = model.VehicleMake; draft.VehicleModel = model.VehicleModel; draft.VehicleChassisNo = model.VehicleChassisNo; draft.VehicleEngineNo = model.VehicleEngineNo; draft.VehicleYearOfManufacture = model.VehicleYearOfManufacture; draft.VehicleBodyType = model.VehicleBodyType; draft.VehicleFuelType = model.VehicleFuelType; draft.VehicleValue = model.VehicleValue; draft.LicensedToCarry = model.LicensedToCarry; draft.AntiTheft = model.AntiTheft; draft.Risk = model.Risk; draft.StartDate = model.StartDate;
         SaveDraft(draft);
 
-        if (draft.ClientId is null)
+        var lookup = await _apiClient.GetAsync<ClientLookupResult>($"/api/clients/resolve/{Uri.EscapeDataString(model.ClientIdNo)}");
+        if (lookup.Success && lookup.Data is not null && lookup.Data.MatchStatus != "NOT_FOUND" && lookup.Data.ClientId is not null)
         {
-            var lookup = await _apiClient.GetAsync<ClientLookupResult>($"/api/clients/resolve/{Uri.EscapeDataString(model.ClientIdNo)}");
-            if (lookup.Success && lookup.Data is not null && lookup.Data.MatchStatus != "NOT_FOUND" && lookup.Data.ClientId is not null) { draft.ClientId = lookup.Data.ClientId; }
-            else { var createClient = await _apiClient.PostAsync<ClientIdResult>("/api/clients", new { IdNo = model.ClientIdNo, FullName = model.ClientFullName, Dob = model.ClientDob, Email = model.ClientEmail, Phone = model.ClientPhone, Address = model.ClientAddress, KraPin = model.ClientKraPin, RegistrationChannel = "PORTAL" }); if (!createClient.Success || createClient.Data is null) { model.ErrorMessage = $"Could not save the client: {createClient.Message}"; SaveDraft(draft); return View("Step2", model); } draft.ClientId = createClient.Data.ClientId; }
-            SaveDraft(draft);
+            draft.ClientId = lookup.Data.ClientId;
         }
-        if (draft.VehicleId is null)
+        else
         {
-            var vehicleLookup = await _apiClient.GetAsync<VehicleIdResult>($"/api/vehicles/by-reg-no/{Uri.EscapeDataString(model.VehicleRegNo)}");
-            if (vehicleLookup.Success && vehicleLookup.Data is not null) { draft.VehicleId = vehicleLookup.Data.VehicleId; }
-            else { var createVehicle = await _apiClient.PostAsync<VehicleIdResult>($"/api/clients/{draft.ClientId}/vehicles", new { Make = model.VehicleMake, Model = model.VehicleModel, RegNo = model.VehicleRegNo, ChassisNo = model.VehicleChassisNo, EngineNo = model.VehicleEngineNo, YearOfManufacture = model.VehicleYearOfManufacture, VehicleType = draft.VehicleClassName, BodyType = model.VehicleBodyType, FuelType = model.VehicleFuelType, CubicCapacity = (string?)null, Color = (string?)null, Logbook = (string?)null }); if (!createVehicle.Success || createVehicle.Data is null) { model.ErrorMessage = $"Client saved (ID #{draft.ClientId}), but the vehicle could not be saved: {createVehicle.Message}"; SaveDraft(draft); return View("Step2", model); } draft.VehicleId = createVehicle.Data.VehicleId; }
-            SaveDraft(draft);
+            var createClient = await _apiClient.PostAsync<ClientIdResult>("/api/clients", new { IdNo = model.ClientIdNo, FullName = model.ClientFullName, Dob = model.ClientDob, Email = model.ClientEmail, Phone = model.ClientPhone, Address = model.ClientAddress, KraPin = model.ClientKraPin, RegistrationChannel = "PORTAL" });
+            if (!createClient.Success || createClient.Data is null)
+            {
+                model.ErrorMessage = $"Could not save the client: {createClient.Message}";
+                SaveDraft(draft);
+                return View("Step2", model);
+            }
+            draft.ClientId = createClient.Data.ClientId;
         }
+        SaveDraft(draft);
+
+        draft.VehicleId = null;
+        var vehicleLookup = await _apiClient.GetAsync<VehicleIdResult>($"/api/vehicles/by-reg-no/{Uri.EscapeDataString(model.VehicleRegNo)}");
+        if (vehicleLookup.Success && vehicleLookup.Data is not null)
+        {
+            if (vehicleLookup.Data.ClientId != draft.ClientId)
+            {
+                model.ErrorMessage = $"Registration {model.VehicleRegNo} is already on file for a different client. Use a different registration number or update the existing client's record.";
+                SaveDraft(draft);
+                return View("Step2", model);
+            }
+            draft.VehicleId = vehicleLookup.Data.VehicleId;
+        }
+        else
+        {
+            var createVehicle = await _apiClient.PostAsync<VehicleIdResult>($"/api/clients/{draft.ClientId}/vehicles", new { Make = model.VehicleMake, Model = model.VehicleModel, RegNo = model.VehicleRegNo, ChassisNo = model.VehicleChassisNo, EngineNo = model.VehicleEngineNo, YearOfManufacture = model.VehicleYearOfManufacture, VehicleType = draft.VehicleClassName, BodyType = model.VehicleBodyType, FuelType = model.VehicleFuelType, CubicCapacity = (string?)null, Color = (string?)null, Logbook = (string?)null });
+            if (!createVehicle.Success || createVehicle.Data is null)
+            {
+                model.ErrorMessage = $"Client saved (ID #{draft.ClientId}), but the vehicle could not be saved: {createVehicle.Message}";
+                SaveDraft(draft);
+                return View("Step2", model);
+            }
+            draft.VehicleId = createVehicle.Data.VehicleId;
+        }
+        SaveDraft(draft);
 
         var productsResult = await _apiClient.GetAsync<List<ProductOption>>("/api/products");
         var motorProduct = productsResult.Success ? productsResult.Data?.FirstOrDefault(p => p.Code == "MOTOR") : null;

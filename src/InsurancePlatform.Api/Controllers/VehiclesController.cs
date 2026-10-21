@@ -47,9 +47,9 @@ public class VehiclesController : BaseApiController
     public async Task<IActionResult> Create(long clientId, [FromBody] CreateVehicleRequest request)
     {
         var result = await _vehicleRepository.CreateAsync(
-            clientId, request.Make, request.Model, NormalizeIdentifier(request.RegNo), NormalizeIdentifier(request.ChassisNo), NormalizeIdentifier(request.EngineNo),
-            request.YearOfManufacture, request.VehicleType, request.BodyType, request.FuelType,
-            request.CubicCapacity, request.Color, request.Logbook, "USER", CurrentUserId);
+            clientId, NormalizeIdentifier(request.Make), NormalizeIdentifier(request.Model), NormalizeIdentifier(request.RegNo), NormalizeIdentifier(request.ChassisNo), NormalizeIdentifier(request.EngineNo),
+            request.YearOfManufacture, NormalizeIdentifier(request.VehicleType), NormalizeIdentifier(request.BodyType), NormalizeIdentifier(request.FuelType),
+            NormalizeIdentifier(request.CubicCapacity), NormalizeIdentifier(request.Color), request.Logbook, "USER", CurrentUserId);
 
         if (!result.IsSuccess)
         {
@@ -133,9 +133,9 @@ public class VehiclesController : BaseApiController
     public async Task<IActionResult> Update(long id, [FromBody] UpdateVehicleRequest request)
     {
         var result = await _vehicleRepository.UpdateAsync(
-            id, request.Make, request.Model, NormalizeIdentifier(request.RegNo), NormalizeIdentifier(request.ChassisNo), NormalizeIdentifier(request.EngineNo),
-            request.YearOfManufacture, request.VehicleType, request.BodyType, request.FuelType,
-            request.CubicCapacity, request.Color, request.Logbook, "USER", CurrentUserId);
+            id, NormalizeIdentifier(request.Make), NormalizeIdentifier(request.Model), NormalizeIdentifier(request.RegNo), NormalizeIdentifier(request.ChassisNo), NormalizeIdentifier(request.EngineNo),
+            request.YearOfManufacture, NormalizeIdentifier(request.VehicleType), NormalizeIdentifier(request.BodyType), NormalizeIdentifier(request.FuelType),
+            NormalizeIdentifier(request.CubicCapacity), NormalizeIdentifier(request.Color), request.Logbook, "USER", CurrentUserId);
 
         if (!result.IsSuccess)
         {
