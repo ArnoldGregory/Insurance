@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using InsurancePlatform.Application.Integrations;
+using InsurancePlatform.Domain.Common;
 using Microsoft.Extensions.Configuration;
 
 namespace InsurancePlatform.Application.Payments;
@@ -16,26 +17,23 @@ namespace InsurancePlatform.Application.Payments;
 /// </summary>
 public class MpesaStkPushService : IMpesaStkPushService
 {
+    private const int MaxAttempts = 3;
+
     private readonly IScapiGatewayClient _gatewayClient;
+    private readonly ILoggerManager _logger;
     private readonly string _businessShortCode;
     private readonly string _callbackUrl;
 
-    public MpesaStkPushService(IScapiGatewayClient gatewayClient, IConfiguration configuration)
+    public MpesaStkPushService(IScapiGatewayClient gatewayClient, IConfiguration configuration, ILoggerManager logger)
     {
         _gatewayClient = gatewayClient;
+        _logger = logger;
         _businessShortCode = configuration["Mpesa:BusinessShortCode"] ?? string.Empty;
         _callbackUrl = configuration["Mpesa:CallbackUrl"] ?? string.Empty;
     }
 
     public async Task<StkPushResult> InitiatePushAsync(string phoneNumber, decimal amount, string accountReference, string externalRefNumber)
     {
-        var route = new ScapiMessageRoute
-        {
-            Interface = "MPESA",
-            RequestType = "DARAJA_STK",
-            ExternalRefNumber = externalRefNumber
-        };
-
         var body = new JsonObject
         {
             ["business_short_code"] = _businessShortCode,
@@ -49,11 +47,48 @@ public class MpesaStkPushService : IMpesaStkPushService
             ["callback_url"] = _callbackUrl
         };
 
-        var response = await _gatewayClient.InvokeAsync(route, body);
+        JsonObject? response = null;
+        var usedRef = externalRefNumber;
+
+        // SCAPI is a message gateway: it can fail for reasons that have
+        // nothing to do with the request itself (its own worker throwing,
+        // a queue hiccup, a dropped connection). Its error 99 is literally
+        // "An unexpected error occurred. Please retry." - so retry, but with
+        // a FRESH external_ref_number each attempt: SCAPI rejects a ref it
+        // has already processed ("Reference number already processed"), so
+        // replaying the same one would fail for a different reason.
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            usedRef = attempt == 1 ? externalRefNumber : $"{externalRefNumber}-r{attempt}";
+
+            var route = new ScapiMessageRoute
+            {
+                Interface = "MPESA",
+                RequestType = "DARAJA_STK",
+                ExternalRefNumber = usedRef
+            };
+
+            response = await _gatewayClient.InvokeAsync(route, body);
+
+            if (response is not null && !IsTransientGatewayFailure(response))
+            {
+                break;
+            }
+
+            if (attempt < MaxAttempts)
+            {
+                _logger.LogWarn($"STK push attempt {attempt}/{MaxAttempts} did not get a usable answer from SCAPI (ref={usedRef}) - retrying.");
+                await Task.Delay(TimeSpan.FromSeconds(2 * attempt));
+            }
+        }
 
         if (response is null)
         {
-            return new StkPushResult { Success = false, Message = "Could not reach the payment gateway - please try again shortly." };
+            return new StkPushResult
+            {
+                Success = false,
+                Message = $"Could not reach the payment gateway after {MaxAttempts} attempts (reference {usedRef}) - please try again shortly."
+            };
         }
 
         var errorCode = response["error_code"]?.ToString();
@@ -99,13 +134,37 @@ public class MpesaStkPushService : IMpesaStkPushService
             _ => errorDesc.ToString()
         };
 
+        var detail = string.IsNullOrWhiteSpace(description) ? "Gateway rejected the request." : description;
+
+        // A gateway-level failure (SCAPI's own error_code) carries no useful
+        // text on its own - "An unexpected error occurred. Please retry." says
+        // nothing about which request failed. Prefix it with SCAPI's error
+        // code and the external reference we sent, so the SCAPI server log
+        // can be found by grepping for that reference.
+        var message = errorCode == "00"
+            ? detail
+            : $"SCAPI error {errorCode} (reference {usedRef}): {detail}";
+
         return new StkPushResult
         {
             Success = false,
-            Message = string.IsNullOrWhiteSpace(description) ? "Gateway rejected the request." : description,
+            Message = message,
             MerchantRequestId = errorDesc is JsonObject failJo ? failJo["MerchantRequestID"]?.ToString() : null,
             CheckoutRequestId = errorDesc is JsonObject failCo ? failCo["CheckoutRequestID"]?.ToString() : null
         };
+    }
+
+    /// <summary>
+    /// True when SCAPI's answer carries no verdict of its own - a null
+    /// response (token/transport failure) or its catch-all error_code 99,
+    /// which is the code its own controller returns when something inside
+    /// the gateway threw. Both are worth another attempt. A 00 (with Daraja
+    /// rejecting it) or a 01 (a real, explained rejection such as a duplicate
+    /// reference) is a final answer and must not be retried.
+    /// </summary>
+    private static bool IsTransientGatewayFailure(JsonObject response)
+    {
+        return response["error_code"]?.ToString() == "99";
     }
 
     /// <summary>
