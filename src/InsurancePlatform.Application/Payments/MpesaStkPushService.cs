@@ -143,7 +143,7 @@ public class MpesaStkPushService : IMpesaStkPushService
         // can be found by grepping for that reference.
         var message = errorCode == "00"
             ? detail
-            : $"SCAPI error {errorCode} (reference {usedRef}): {detail}";
+            : $"SCAPI error {errorCode} (reference {usedRef}, short code {_businessShortCode}): {detail}";
 
         return new StkPushResult
         {
