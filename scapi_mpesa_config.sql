@@ -8,93 +8,127 @@
 -- WHY THIS EXISTS
 -- The insurance API's M-Pesa calls do NOT talk to Daraja directly - they
 -- go through SCAPI (interface "MPESA"). SCAPI's RMPESAMANAGER broker needs
--- three rows in THIS database before an STK push or a C2B registration can
--- work:
---   1. parameter item MPESA_DARAJA_API     - Daraja base URL
+-- three things in THIS database before an STK push can work:
+--   1. parameter 'MPESA_DARAJA_API'        - Daraja base URL
 --   2. interface 'MPESA' (active)          - RabbitMQ in/out queues
---   3. mpesa_business_shortcode '4137235'  - Daraja creds + callback URL
+--   3. mpesa_business_short_codes '4137235' - Daraja creds + callback URL
 --
--- STEP 1 DISCOVERS the real table/column names in THIS database (the scapi
--- core schema is not stored in the Insurance repo). STEP 2 then configures
--- the rows. Do not skip STEP 1 - confirm the exact names first.
+-- TABLE NAMES ARE NOT GUESSES - they are the names SCAPI's own code
+-- passes to the get_records stored procedure (see RMPESAMANAGER\
+-- MPESAMaster.cs:126,137,176,182 and RAPIMVCASPCORE\Controllers\
+-- CoreController.cs:214). Always PLURAL:
+--     parameters                  (item_key / item_value)
+--     interfaces                  (id / interface_name / interface_host /
+--                                  active / request_queue / response_queue)
+--     mpesa_business_short_codes  (MpesaConsumerKey / MpesaConsumerSecret /
+--                                  MpesaPassKey / MpesaCallBackUrl / Encrypted)
+--
+-- THE 99 ERROR EXPLAINED
+-- SCAPI's get_records helper CATCHES its own exceptions and returns an
+-- EMPTY table, so a missing table or a missing row never surfaces as an
+-- error - it surfaces as `.Rows[0]` throwing "Index was out of range"
+-- inside RMPESAMANAGER, which kills the worker, which returns an empty
+-- RPC reply, which makes CoreController's JToken.Parse throw, which
+-- CoreController reports to us as:
+--     {"error_code":"99","error_desc":"An unexpected error occurred. Please retry."}
+-- The same empty-row crash in REMAILSERVICE (SMTP_HOST etc.) is why the
+-- email OTP route fails with the identical 99.
+-- So STEP 2 below - calling get_records exactly the way the app calls it
+-- - is the decisive test.
 -- =====================================================================
 
 
 -- ---------------------------------------------------------------------
 -- STEP 1 - DISCOVER (read-only; run and read the output)
 -- ---------------------------------------------------------------------
-SHOW TABLES LIKE '%interface%';
-SHOW TABLES LIKE '%parameter%';
-SHOW TABLES LIKE '%shortcode%';
+SHOW TABLES LIKE 'parameter%';
+SHOW TABLES LIKE 'interface%';
+SHOW TABLES LIKE 'mpesa_business_short%';
 
-SHOW CREATE TABLE `interface`;
-SHOW CREATE TABLE `parameter`;
-SHOW CREATE TABLE `mpesa_business_shortcode`;
-
-SELECT * FROM `interface`;
-SELECT * FROM `parameter` WHERE item_key IN ('MPESA_DARAJA_API') OR item_key LIKE '%MPESA%';
-SELECT * FROM `mpesa_business_shortcode`;
+SHOW CREATE TABLE `parameters`;
+SHOW CREATE TABLE `interfaces`;
+SHOW CREATE TABLE `mpesa_business_short_codes`;
 
 
 -- ---------------------------------------------------------------------
--- STEP 2 - CONFIGURE (adjust table/column names to match STEP 1)
+-- STEP 2 - PROBE (read-only; THE decisive test)
+-- These are the exact calls the app makes. A zero-row result - or an
+-- error - is the bug. Do not skip to STEP 3 without reading this.
+-- ---------------------------------------------------------------------
+CALL get_records('parameters', 'MPESA_DARAJA_API');
+CALL get_records('parameters', 'SMTP_HOST');
+CALL get_records('parameters', 'SMTP_PORT');
+CALL get_records('parameters', 'SMTP_FROM_EMAIL');
+CALL get_records('parameters', 'SMTP_PASSWORD');
+CALL get_records('parameters', 'EMAIL_HEADER');
+CALL get_records('mpesa_business_short_codes', '4137235');
+CALL get_records('interfaces', 'MPESA');
+
+
+-- ---------------------------------------------------------------------
+-- STEP 3 - CONFIGURE
+-- Only run the statements that STEP 2 showed as missing/empty.
 -- ---------------------------------------------------------------------
 
--- 2a. Daraja API base URL. Production = https://api.safaricom.co.ke
+-- 3a. Daraja API base URL.
+--     Production = https://api.safaricom.co.ke
 --     Sandbox    = https://sandbox.safaricom.co.ke
-INSERT INTO `parameter` (item_key, item_value, comments)
-VALUES ('MPESA_DARAJA_API', 'https://api.safaricom.co.ke', 'Daraja base URL used by RMPESAMANAGER');
--- If the row already exists, update it instead of inserting:
--- UPDATE `parameter` SET item_value = 'https://api.safaricom.co.ke'
---  WHERE item_key = 'MPESA_DARAJA_API';
+INSERT INTO `parameters` (item_key, item_value)
+VALUES ('MPESA_DARAJA_API', 'https://api.safaricom.co.ke')
+ON DUPLICATE KEY UPDATE item_value = VALUES(item_value);
 
-
--- 2b. The MPESA interface row. request_queue / response_queue MUST be the
---     exact RabbitMQ queues RMPESAMANAGER listens on. If an MPESA row
---     already exists, just make sure it is active:
-UPDATE `interface` SET active = 1 WHERE interface_name = 'MPESA';
-
--- If no MPESA row exists, copy the shape of a working row and set the real
--- queue names (replace the <...> placeholders):
--- INSERT INTO `interface`
---   (interface_name, request_queue, response_queue, dll_path, assembly, active, approved)
+-- 3b. The MPESA interface row. request_queue / response_queue MUST be the
+--     exact RabbitMQ queues RMPESAMANAGER listens on. Copy them from a
+--     working interface row - do not invent queue names.
+--     (Read the existing rows first: SELECT * FROM `interfaces`;)
+-- UPDATE `interfaces` SET active = 1 WHERE interface_name = 'MPESA';
+-- INSERT INTO `interfaces`
+--   (interface_name, interface_host, request_queue, response_queue, active)
 -- VALUES
---   ('MPESA', '<mpesa-request-queue>', '<mpesa-response-queue>', '', '', 1, 1);
+--   ('MPESA', '<host>', '<mpesa-request-queue>', '<mpesa-response-queue>', 1);
 
-
--- 2c. The short code row carrying the Daraja credentials.
---     Column name variants to expect (confirm via STEP 1):
---       business short code : mpesa_business_shortcode
---       consumer key        : mpesa_consumer_key
---       consumer secret     : mpesa_consumer_secret
---       pass key            : mpesa_pass_key
---       callback URL        : mpesa_call_back_url
+-- 3c. The short code row carrying the Daraja credentials.
+--     The key column name (the one holding '4137235') comes from
+--     SHOW CREATE TABLE `mpesa_business_short_codes` in STEP 1 - it is
+--     NOT known here. Replace <short_code_column> with it.
 --
---     mpesa_call_back_url is where Daraja posts the STK result - point it
---     at SCAPI's own handler, which then forwards the result to the
---     caller's callback_url (the insurance API's /api/mpesa/callback/stk):
-INSERT INTO `mpesa_business_shortcode`
-  (mpesa_business_shortcode, mpesa_consumer_key, mpesa_consumer_secret, mpesa_pass_key, mpesa_call_back_url, active)
+--     MpesaCallBackUrl is where Daraja posts the STK result - it must
+--     point at SCAPI's own handler, which then forwards the result to
+--     the caller's callback_url (our /api/mpesa/callback/stk).
+INSERT INTO `mpesa_business_short_codes`
+  (<short_code_column>, MpesaConsumerKey, MpesaConsumerSecret,
+   MpesaPassKey, MpesaCallBackUrl, Encrypted)
 VALUES
   ('4137235',
    '<DARAJA CONSUMER KEY>',
    '<DARAJA CONSUMER SECRET>',
    '<DARAJA PASSKEY>',
    'https://scapi.riziki.app/api/Solid/MobileMoney/MpesaDarajaCallBack',
-   1);
--- If the row already exists, update it instead:
--- UPDATE `mpesa_business_shortcode`
---    SET mpesa_consumer_key    = '<DARAJA CONSUMER KEY>',
---        mpesa_consumer_secret = '<DARAJA CONSUMER SECRET>',
---        mpesa_pass_key        = '<DARAJA PASSKEY>',
---        mpesa_call_back_url   = 'https://scapi.riziki.app/api/Solid/MobileMoney/MpesaDarajaCallBack',
---        active                = 1
---  WHERE mpesa_business_shortcode = '4137235';
+   NULL)
+ON DUPLICATE KEY UPDATE
+  MpesaConsumerKey    = VALUES(MpesaConsumerKey),
+  MpesaConsumerSecret = VALUES(MpesaConsumerSecret),
+  MpesaPassKey        = VALUES(MpesaPassKey),
+  MpesaCallBackUrl    = VALUES(MpesaCallBackUrl);
+
+-- 3d. SMTP parameters - the email OTP route reads these and crashes the
+--     same way when they are missing.
+INSERT INTO `parameters` (item_key, item_value) VALUES
+  ('SMTP_HOST',       '<smtp host>'),
+  ('SMTP_PORT',       '<smtp port>'),
+  ('SMTP_FROM_EMAIL', '<from address>'),
+  ('SMTP_PASSWORD',   '<smtp password>'),
+  ('EMAIL_HEADER',    '<email header text>')
+ON DUPLICATE KEY UPDATE item_value = VALUES(item_value);
 
 
 -- ---------------------------------------------------------------------
--- STEP 3 - VERIFY
+-- STEP 4 - VERIFY (re-run STEP 2; every call must now return a row)
 -- ---------------------------------------------------------------------
-SELECT * FROM `parameter`              WHERE item_key = 'MPESA_DARAJA_API';
-SELECT * FROM `interface`              WHERE interface_name = 'MPESA';
-SELECT * FROM `mpesa_business_shortcode` WHERE mpesa_business_shortcode = '4137235';
+CALL get_records('parameters', 'MPESA_DARAJA_API');
+CALL get_records('mpesa_business_short_codes', '4137235');
+CALL get_records('interfaces', 'MPESA');
+
+SELECT * FROM `parameters`              WHERE item_key = 'MPESA_DARAJA_API';
+SELECT * FROM `interfaces`              WHERE interface_name = 'MPESA';
+SELECT * FROM `mpesa_business_short_codes`;
