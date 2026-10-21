@@ -47,7 +47,7 @@ public class VehiclesController : BaseApiController
     public async Task<IActionResult> Create(long clientId, [FromBody] CreateVehicleRequest request)
     {
         var result = await _vehicleRepository.CreateAsync(
-            clientId, request.Make, request.Model, request.RegNo, request.ChassisNo, request.EngineNo,
+            clientId, request.Make, request.Model, NormalizeIdentifier(request.RegNo), NormalizeIdentifier(request.ChassisNo), NormalizeIdentifier(request.EngineNo),
             request.YearOfManufacture, request.VehicleType, request.BodyType, request.FuelType,
             request.CubicCapacity, request.Color, request.Logbook, "USER", CurrentUserId);
 
@@ -88,7 +88,7 @@ public class VehiclesController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<Vehicle>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByRegNo(string regNo)
     {
-        var result = await _vehicleRepository.GetByRegNoAsync(regNo);
+        var result = await _vehicleRepository.GetByRegNoAsync((regNo ?? string.Empty).Trim().ToUpperInvariant());
 
         if (!result.IsSuccess || result.Data is null)
         {
@@ -133,7 +133,7 @@ public class VehiclesController : BaseApiController
     public async Task<IActionResult> Update(long id, [FromBody] UpdateVehicleRequest request)
     {
         var result = await _vehicleRepository.UpdateAsync(
-            id, request.Make, request.Model, request.RegNo, request.ChassisNo, request.EngineNo,
+            id, request.Make, request.Model, NormalizeIdentifier(request.RegNo), NormalizeIdentifier(request.ChassisNo), NormalizeIdentifier(request.EngineNo),
             request.YearOfManufacture, request.VehicleType, request.BodyType, request.FuelType,
             request.CubicCapacity, request.Color, request.Logbook, "USER", CurrentUserId);
 
@@ -180,4 +180,7 @@ public class VehiclesController : BaseApiController
         var clientResult = await _clientRepository.GetByIdAsync(clientId);
         return clientResult.IsSuccess && clientResult.Data?.UserId == CurrentUserId;
     }
+
+    private static string? NormalizeIdentifier(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? value : value.Trim().ToUpperInvariant();
 }

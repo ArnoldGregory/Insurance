@@ -69,7 +69,7 @@
                 <div class="wz-field">
                     <label class="wz-label" asp-for="ClientIdNo"></label>
                     <div class="wz-search-row">
-                        <input class="wz-input" asp-for="ClientIdNo" placeholder="Enter ID or passport number" autocomplete="off" />
+                        <input class="wz-input" asp-for="ClientIdNo" placeholder="Enter ID or passport number" autocomplete="off" data-uppercase />
                         <button type="button" id="clientSearchBtn" class="wz-btn wz-btn--green wz-btn--sm"><i class="fa fa-search"></i> Search</button>
                     </div>
                     <span asp-validation-for="ClientIdNo" class="wz-field-error"></span>
@@ -99,7 +99,7 @@
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="ClientKraPin"></label>
-                        <input class="wz-input" asp-for="ClientKraPin" />
+                        <input class="wz-input" asp-for="ClientKraPin" data-uppercase />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="ClientAddress"></label>
@@ -121,7 +121,7 @@
             <div class="wz-card-body">
                 <div class="wz-field">
                     <label class="wz-label" asp-for="VehicleRegNo"></label>
-                    <input class="wz-input" asp-for="VehicleRegNo" />
+                    <input class="wz-input" asp-for="VehicleRegNo" data-uppercase />
                     <span asp-validation-for="VehicleRegNo" class="wz-field-error"></span>
                 </div>
                 <div class="wz-form-grid wz-form-grid--3">
@@ -141,11 +141,11 @@
                 <div class="wz-form-grid wz-form-grid--2">
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleChassisNo"></label>
-                        <input class="wz-input" asp-for="VehicleChassisNo" />
+                        <input class="wz-input" asp-for="VehicleChassisNo" data-uppercase />
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleEngineNo"></label>
-                        <input class="wz-input" asp-for="VehicleEngineNo" />
+                        <input class="wz-input" asp-for="VehicleEngineNo" data-uppercase />
                     </div>
                 </div>
                 <div class="wz-form-grid wz-form-grid--3">

@@ -67,8 +67,8 @@ public class ClientsController : BaseApiController
         // registered_by_user_id is always the caller (CurrentUserId), taken
         // from their own JWT - never accepted from the request body.
         var result = await _clientRepository.CreateAsync(
-            request.IdNo, request.FullName, request.Dob, request.Email, request.Phone,
-            request.Address, request.KraPin, CurrentUserId, request.RegistrationChannel,
+            (request.IdNo ?? string.Empty).Trim().ToUpperInvariant(), request.FullName, request.Dob, request.Email, request.Phone,
+            request.Address, NormalizeIdentifier(request.KraPin), CurrentUserId, request.RegistrationChannel,
             "USER", CurrentUserId);
 
         if (!result.IsSuccess)
@@ -159,7 +159,7 @@ public class ClientsController : BaseApiController
     {
         var result = await _clientRepository.UpdateAsync(
             id, request.FullName, request.Dob, request.Email, request.Phone,
-            request.Address, request.KraPin, "USER", CurrentUserId);
+            request.Address, NormalizeIdentifier(request.KraPin), "USER", CurrentUserId);
 
         if (!result.IsSuccess)
         {
@@ -187,4 +187,7 @@ public class ClientsController : BaseApiController
         _logger.LogInfo($"Client deleted (soft): client_id={id}, by user_id={CurrentUserId}.");
         return Success(result.ResultMessage);
     }
+
+    private static string? NormalizeIdentifier(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? value : value.Trim().ToUpperInvariant();
 }

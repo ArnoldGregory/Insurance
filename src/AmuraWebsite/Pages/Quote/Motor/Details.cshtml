@@ -35,7 +35,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label asp-for="Input.IdNo" class="form-label">National ID / Passport number</label>
-                                    <input asp-for="Input.IdNo" class="form-control" />
+                                    <input asp-for="Input.IdNo" class="form-control" data-uppercase />
                                     <span asp-validation-for="Input.IdNo" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-6">
@@ -55,7 +55,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label asp-for="Input.KraPin" class="form-label">KRA PIN (optional)</label>
-                                    <input asp-for="Input.KraPin" class="form-control" />
+                                    <input asp-for="Input.KraPin" class="form-control" data-uppercase />
                                 </div>
                                 <div class="col-12">
                                     <label asp-for="Input.Address" class="form-label">Address (optional)</label>
@@ -77,17 +77,17 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Input.RegNo" class="form-label">Registration number</label>
-                                    <input asp-for="Input.RegNo" class="form-control" placeholder="KDA 123A" />
+                                    <input asp-for="Input.RegNo" class="form-control" placeholder="KDA 123A" data-uppercase />
                                     <span asp-validation-for="Input.RegNo" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Input.ChassisNo" class="form-label">Chassis number</label>
-                                    <input asp-for="Input.ChassisNo" class="form-control" />
+                                    <input asp-for="Input.ChassisNo" class="form-control" data-uppercase />
                                     <span asp-validation-for="Input.ChassisNo" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Input.EngineNo" class="form-label">Engine number</label>
-                                    <input asp-for="Input.EngineNo" class="form-control" />
+                                    <input asp-for="Input.EngineNo" class="form-control" data-uppercase />
                                     <span asp-validation-for="Input.EngineNo" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-3">

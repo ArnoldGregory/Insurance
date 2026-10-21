@@ -20,3 +20,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     reveals.forEach(function (el) { observer.observe(el); });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    var fields = document.querySelectorAll("[data-uppercase]");
+    if (!fields.length) return;
+
+    function upper(el) {
+        var start = el.selectionStart;
+        var end = el.selectionEnd;
+        el.value = (el.value || "").toUpperCase();
+        try { el.setSelectionRange(start, end); } catch (e) { }
+    }
+
+    fields.forEach(function (el) {
+        el.addEventListener("input", function () { upper(el); });
+    });
+
+    var form = fields[0].form;
+    if (form) {
+        form.addEventListener("submit", function () {
+            fields.forEach(function (el) { el.value = (el.value || "").toUpperCase(); });
+        });
+    }
+});
