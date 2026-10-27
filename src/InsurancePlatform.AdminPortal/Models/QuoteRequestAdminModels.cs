@@ -145,6 +145,83 @@ public class QuoteRequestIndexViewModel
     public static readonly string[] StatusOptions = { "PENDING", "IN_PROGRESS", "QUOTED", "EXPIRED", "CONVERTED" };
 }
 
+public class ProductOption
+{
+    public long ProductId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string PricingMethod { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+}
+
+public class QuoteRequestCreateViewModel
+{
+    public List<ProductOption> Products { get; set; } = new();
+    public List<ClientSummaryItem> Clients { get; set; } = new();
+    public string? StatusMessage { get; set; }
+    public bool StatusIsError { get; set; }
+}
+
+public class QuoteRequestCreateMedicalIndividualViewModel
+{
+    public long? ClientId { get; set; }
+    [Required] public string IdNo { get; set; } = string.Empty;
+    [Required] public string FirstName { get; set; } = string.Empty;
+    [Required] public string LastName { get; set; } = string.Empty;
+    public string? OtherNames { get; set; }
+    [Required, EmailAddress] public string Email { get; set; } = string.Empty;
+    [Required] public string MobileNumber { get; set; } = string.Empty;
+    [Required] public decimal InpatientLimit { get; set; }
+    public bool OutpatientEnabled { get; set; }
+    public decimal? OutpatientLimit { get; set; }
+    public bool DentalEnabled { get; set; }
+    public decimal? DentalLimit { get; set; }
+    public bool Maternity { get; set; }
+    public string? FamilyMembersJson { get; set; }
+}
+
+public class QuoteRequestCreateMedicalCorporateViewModel
+{
+    public long? ClientId { get; set; }
+    [Required] public string IdNo { get; set; } = string.Empty;
+    [Required] public string CompanyName { get; set; } = string.Empty;
+    [Required] public string Phone { get; set; } = string.Empty;
+    [Required, EmailAddress] public string Email { get; set; } = string.Empty;
+}
+
+public class QuoteRequestCreatePiViewModel
+{
+    public long? ClientId { get; set; }
+    [Required] public string IdNo { get; set; } = string.Empty;
+    [Required] public string ClientOrCompanyName { get; set; } = string.Empty;
+    [Required] public string Phone { get; set; } = string.Empty;
+    [Required, EmailAddress] public string Email { get; set; } = string.Empty;
+    [Required] public string Profession { get; set; } = string.Empty;
+}
+
+public class QuoteRequestCreateTravelViewModel
+{
+    public long? ClientId { get; set; }
+    [Required] public string IdNo { get; set; } = string.Empty;
+    [Required, EmailAddress] public string Email { get; set; } = string.Empty;
+    [Required] public string ClientName { get; set; } = string.Empty;
+    [Required] public DateTime Dob { get; set; }
+    public string? KraPin { get; set; }
+    [Required] public string Destination { get; set; } = string.Empty;
+    [Required] public DateTime TravelDateFrom { get; set; }
+    [Required] public DateTime TravelDateTo { get; set; }
+    public bool? TravellingWithFamily { get; set; }
+    [Required] public string TripType { get; set; } = string.Empty;
+}
+
+public class QuoteRequestCreateDomesticViewModel
+{
+    public long? ClientId { get; set; }
+    [Required] public string IdNo { get; set; } = string.Empty;
+    [Required, EmailAddress] public string Email { get; set; } = string.Empty;
+    public string? DetailsJson { get; set; }
+}
+
 /// <summary>
 /// GET /api/quoterequests/{id}/detail returns a DIFFERENT shape per
 /// ProductCode (5 different detail tables - MedicalIndividual/

@@ -1,6 +1,10 @@
-# keep-alive.ps1 - keeps the API, Admin Portal and the M-Pesa callback tunnel running.
+# keep-alive.ps1 - keeps the API and the M-Pesa callback tunnel running.
 # Registered in the Startup folder so it is detached from any terminal.
-# Every 5s it restarts either process if it has gone away.
+# Every 5s it restarts either one if it has gone away.
+#
+# The Admin Portal is deliberately NOT managed here: it is run/debugged from
+# Visual Studio, and a background instance would hold port 5150 and make the
+# IDE start fail with "Failed to bind to address http://127.0.0.1:5150".
 $ErrorActionPreference = 'SilentlyContinue'
 
 $log = Join-Path $env:TEMP 'insurance-keepalive.log'
@@ -18,8 +22,7 @@ try {
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $state = @{
-    'InsurancePlatform.Api'         = @{ Dir = (Join-Path $root 'InsurancePlatform.Api');         Proc = $null; At = $null }
-    'InsurancePlatform.AdminPortal' = @{ Dir = (Join-Path $root 'InsurancePlatform.AdminPortal'); Proc = $null; At = $null }
+    'InsurancePlatform.Api' = @{ Dir = (Join-Path $root 'InsurancePlatform.Api'); Proc = $null; At = $null }
 }
 
 function Ensure($name) {
@@ -89,8 +92,30 @@ function Set-ConfigCallbackUrl([string]$url) {
     }
 }
 
+# A quick tunnel can outlive its usefulness: the process is still running, but
+# Cloudflare has forgotten the tunnel ("Unauthorized: Tunnel not found") and
+# keeps retrying forever. Because Get-Process still sees it, Ensure-Tunnel
+# would never restart it - so the M-Pesa callback URL quietly stops working.
+# Treat a log whose recent tail has that error (and no successful registration
+# after it) as dead and let the normal start path replace it.
+function Tunnel-IsStale {
+    if (-not (Test-Path $tunnelLog)) { return $false }
+    $tail = Get-Content $tunnelLog -Tail 40 -ErrorAction SilentlyContinue
+    if (-not $tail) { return $false }
+    $text = $tail -join "`n"
+    if ($text -notmatch 'Tunnel not found|Unauthorized') { return $false }
+    return ($text -notmatch 'Registered tunnel connection')
+}
+
 function Ensure-Tunnel {
     $proc = Get-Process -Name 'cloudflared' -ErrorAction SilentlyContinue
+    if ($proc -and (Tunnel-IsStale)) {
+        Log 'callback tunnel is stale (Tunnel not found); restarting it'
+        try { $proc | ForEach-Object { $_.Kill() } } catch {}
+        $script:tunnelUrl = $null
+        if (Test-Path $tunnelLog) { Remove-Item $tunnelLog -Force -ErrorAction SilentlyContinue }
+        return
+    }
     if (-not $proc) {
         if (-not (Test-Path $tunnelExe)) {
             $fallback = Join-Path $env:TEMP 'cloudflared.exe'
@@ -122,8 +147,15 @@ function Ensure-Tunnel {
 
 Log 'keep-alive started'
 while ($true) {
-    Ensure 'InsurancePlatform.Api'
-    Ensure 'InsurancePlatform.AdminPortal'
-    Ensure-Tunnel
+    try {
+        Ensure 'InsurancePlatform.Api'
+        Ensure-Tunnel
+    } catch {
+        # One unexpected exception must never kill the watchdog - otherwise
+        # the API/portal are left unsupervised and the portal starts showing
+        # "Unable to reach the server" until someone notices. Log it and
+        # carry on; the next pass retries whatever failed.
+        Log "keep-alive loop error: $($_.Exception.Message)"
+    }
     Start-Sleep -Seconds 5
 }

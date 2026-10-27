@@ -38,8 +38,8 @@ public class ScapiGatewayClient : IScapiGatewayClient
             
             MessageValidation = new ScapiCredentials
             {
-                ApiUser = "-",
-                ApiPassword = "-",
+                ApiUser = _settings.ApiUser,
+                ApiPassword = _settings.ApiPassword,
                 Token = encodedToken
             },
             MessageRoute = route,

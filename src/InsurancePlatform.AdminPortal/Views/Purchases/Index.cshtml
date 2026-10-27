@@ -15,6 +15,23 @@
 </h1>
 <!-- end page-header -->
 
+<div class="m-b-15">
+    @if (User.IsInRole("SA") || User.IsInRole("AA") || User.IsInRole("AG") || User.IsInRole("SP"))
+    {
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fa fa-plus"></i> New Purchase <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a asp-controller="PurchaseWizard" asp-action="Step1"><i class="fa fa-car"></i> Motor Policy (TPO/Comprehensive)</a></li>
+                <li role="separator" class="divider"></li>
+                <li><a asp-controller="QuoteRequests" asp-action="Create"><i class="fa fa-file-signature"></i> Quote Request (Medical / PI / Travel / Domestic)</a></li>
+                <li><a asp-controller="QuoteRequests" asp-action="Index"><i class="fa fa-list"></i> Manage Quote Requests &amp; Add Offers</a></li>
+            </ul>
+        </div>
+    }
+</div>
+
 @if (!string.IsNullOrEmpty(Model.StatusMessage))
 {
     <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>

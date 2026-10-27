@@ -31,6 +31,183 @@ public class QuoteRequestsController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> Create()
+    {
+        var productsResult = await _apiClient.GetAsync<List<ProductOption>>("/api/products");
+        var products = productsResult.Success && productsResult.Data != null
+            ? productsResult.Data.Where(p => p.IsActive && p.Code != "MOTOR").ToList()
+            : new List<ProductOption>();
+
+        var clientsResult = await _apiClient.GetAsync<ClientListPage>("/api/clients?pageNumber=1&pageSize=500");
+        var clients = clientsResult.Success && clientsResult.Data != null ? clientsResult.Data.Items : new List<ClientSummaryItem>();
+
+        var vm = new QuoteRequestCreateViewModel
+        {
+            Products = products,
+            Clients = clients,
+            StatusMessage = TempData["StatusMessage"] as string,
+            StatusIsError = TempData["StatusIsError"] is true
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateMedicalIndividual(QuoteRequestCreateMedicalIndividualViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["StatusMessage"] = "Please fill in all required fields.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Create));
+        }
+
+        var body = new
+        {
+            clientId = model.ClientId,
+            idNo = model.IdNo,
+            firstName = model.FirstName,
+            lastName = model.LastName,
+            otherNames = model.OtherNames,
+            email = model.Email,
+            mobileNumber = model.MobileNumber,
+            inpatientLimit = model.InpatientLimit,
+            optionalBenefits = new
+            {
+                outpatient = model.OutpatientEnabled ? new { enabled = true, limit = model.OutpatientLimit } : (object?)null,
+                dental = model.DentalEnabled ? new { enabled = true, limit = model.DentalLimit } : (object?)null,
+                maternity = model.Maternity
+            },
+            familyMembers = string.IsNullOrWhiteSpace(model.FamilyMembersJson) ? null : System.Text.Json.JsonSerializer.Deserialize<object>(model.FamilyMembersJson)
+        };
+
+        var result = await _apiClient.PostAsync<object>("/api/quoterequests/medical-individual", body);
+        TempData["StatusMessage"] = result.Success ? "Medical Individual quote request created." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+        if (result.Success) return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Create));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateMedicalCorporate(QuoteRequestCreateMedicalCorporateViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["StatusMessage"] = "Please fill in all required fields.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Create));
+        }
+
+        var body = new
+        {
+            clientId = model.ClientId,
+            channel = "PORTAL",
+            idNo = model.IdNo,
+            companyName = model.CompanyName,
+            phone = model.Phone,
+            email = model.Email
+        };
+
+        var result = await _apiClient.PostAsync<object>("/api/quoterequests/medical-corporate", body);
+        TempData["StatusMessage"] = result.Success ? "Medical Corporate quote request created." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+        if (result.Success) return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Create));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateProfessionalIndemnity(QuoteRequestCreatePiViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["StatusMessage"] = "Please fill in all required fields.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Create));
+        }
+
+        var body = new
+        {
+            clientId = model.ClientId,
+            channel = "PORTAL",
+            idNo = model.IdNo,
+            clientOrCompanyName = model.ClientOrCompanyName,
+            phone = model.Phone,
+            email = model.Email,
+            profession = model.Profession
+        };
+
+        var result = await _apiClient.PostAsync<object>("/api/quoterequests/professional-indemnity", body);
+        TempData["StatusMessage"] = result.Success ? "Professional Indemnity quote request created." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+        if (result.Success) return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Create));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateTravel(QuoteRequestCreateTravelViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["StatusMessage"] = "Please fill in all required fields.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Create));
+        }
+
+        var body = new
+        {
+            clientId = model.ClientId,
+            channel = "PORTAL",
+            idNo = model.IdNo,
+            email = model.Email,
+            clientName = model.ClientName,
+            dob = model.Dob,
+            kraPin = model.KraPin,
+            destination = model.Destination,
+            travelDateFrom = model.TravelDateFrom,
+            travelDateTo = model.TravelDateTo,
+            travellingWithFamily = model.TravellingWithFamily,
+            tripType = model.TripType
+        };
+
+        var result = await _apiClient.PostAsync<object>("/api/quoterequests/travel", body);
+        TempData["StatusMessage"] = result.Success ? "Travel quote request created." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+        if (result.Success) return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Create));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateDomestic(QuoteRequestCreateDomesticViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["StatusMessage"] = "Please fill in all required fields.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Create));
+        }
+
+        var body = new
+        {
+            clientId = model.ClientId,
+            channel = "PORTAL",
+            idNo = model.IdNo,
+            email = model.Email,
+            detailsJson = model.DetailsJson
+        };
+
+        var result = await _apiClient.PostAsync<object>("/api/quoterequests/domestic", body);
+        TempData["StatusMessage"] = result.Success ? "Domestic quote request created." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+        if (result.Success) return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Create));
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Index(string? status, long? productId, bool mine = false)
     {
         const int pageNumber = 1;

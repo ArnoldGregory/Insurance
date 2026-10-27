@@ -53,14 +53,18 @@
                                 <span class="label @(Model.CertificateStatus == "GENERATED" ? "label-success" : "label-warning")">@(Model.CertificateStatus == "GENERATED" ? "GENERATED" : "NOT GENERATED")</span>
                             </td>
                         </tr>
-                        @if (!string.IsNullOrWhiteSpace(Model.NtsaCertificateNo))
+                        @if (string.Equals(Model.ProductCode, "MOTOR", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(Model.NtsaCertificateNo))
                         {
                             <tr><td class="text-muted">Official NTSA cert</td><td><a asp-action="Certificate" asp-route-id="@Model.PurchaseId" style="font-family:monospace;">@Model.NtsaCertificateNo</a> @(Model.NtsaIssuedOn?.ToString("(dd MMM yyyy)") ?? "") &middot; <a asp-action="NtsaCertificatePdf" asp-route-id="@Model.PurchaseId">PDF</a> &middot; <a asp-action="NtsaDocument" asp-route-id="@Model.PurchaseId" target="_blank">stored response</a></td></tr>
                         }
-                        else
-                        {
-                            <tr><td class="text-muted">Official NTSA cert</td><td class="text-muted">— (internal fallback certificate)</td></tr>
-                        }
+                    else if (string.Equals(Model.ProductCode, "MOTOR", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <tr><td class="text-muted">Official NTSA cert</td><td class="text-muted">- (internal certificate shown if generated)</td></tr>
+                    }
+                    else
+                    {
+                        <tr><td class="text-muted">Certificate</td><td class="text-muted">-</td></tr>
+                    }
                         <tr><td class="text-muted">Purchased by</td><td>@(Model.PurchasedByUserId?.ToString() ?? (Model.ChannelServiceAccountId is not null ? "Channel service" : "—"))</td></tr>
                         <tr><td class="text-muted">Created</td><td>@Model.CreatedOn.ToString("dd MMM yyyy, HH:mm")</td></tr>
                     </tbody>
@@ -69,7 +73,7 @@
         </div>
     </div>
 
-    @if (Model.VehicleSnapshot is not null)
+    @if (Model.VehicleSnapshot is not null && string.Equals(Model.ProductCode, "MOTOR", StringComparison.OrdinalIgnoreCase))
     {
         <div class="col-md-6">
             <div class="panel panel-inverse">
@@ -118,7 +122,7 @@
     }
 </div>
 
-@if (Model.VehicleSnapshot is not null && canChangeStatus)
+@if (Model.VehicleSnapshot is not null && string.Equals(Model.ProductCode, "MOTOR", StringComparison.OrdinalIgnoreCase) && canChangeStatus)
 {
     <div class="panel panel-inverse" style="max-width:420px;">
         <div class="panel-heading">

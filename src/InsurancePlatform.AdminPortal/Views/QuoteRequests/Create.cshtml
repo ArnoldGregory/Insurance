@@ -1,0 +1,172 @@
+﻿@model QuoteRequestCreateViewModel
+@{
+    ViewData["Title"] = "New Quote Request";
+}
+@section PageStyles {
+    <link href="~/assets/static/plugins/select2/dist/css/select2.min.css" rel="stylesheet" />
+}
+
+<h1 class="page-header"><i class="fas fa-file-signature"></i> New Quote Request <small>Create a quote request for non-motor products</small></h1>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert @(Model.StatusIsError ? "alert-danger" : "alert-success")">@Model.StatusMessage</div>
+}
+
+<div class="panel panel-inverse">
+    <div class="panel-heading"><h4 class="panel-title">Select Product</h4></div>
+    <div class="panel-body">
+        <div class="form-group">
+            <label>Product</label>
+            <select id="productSelect" class="form-control select2" style="width:100%;">
+                <option value="">-- Select Product --</option>
+                @foreach (var p in Model.Products)
+                {
+                    <option value="@p.Code">@p.Name (@p.Code)</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Link to Client (optional)</label>
+            <select id="clientSelect" class="form-control select2" style="width:100%;">
+                <option value="">-- No client linked --</option>
+                @foreach (var c in Model.Clients)
+                {
+                    <option value="@c.ClientId">@c.FullName - @c.IdNo - @c.Phone</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+<div id="formMED_IND" class="panel panel-inverse" style="display:none;">
+    <div class="panel-heading"><h4 class="panel-title">Medical Individual / Family</h4></div>
+    <div class="panel-body">
+        <form asp-action="CreateMedicalIndividual" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClientId" class="clientIdHidden" />
+            <div class="row">
+                <div class="col-md-4"><div class="form-group"><label>ID No *</label><input name="IdNo" class="form-control" required /></div></div>
+                <div class="col-md-4"><div class="form-group"><label>First Name *</label><input name="FirstName" class="form-control" required /></div></div>
+                <div class="col-md-4"><div class="form-group"><label>Last Name *</label><input name="LastName" class="form-control" required /></div></div>
+            </div>
+            <div class="row">
+                <div class="col-md-4"><div class="form-group"><label>Other Names</label><input name="OtherNames" class="form-control" /></div></div>
+                <div class="col-md-4"><div class="form-group"><label>Email *</label><input name="Email" type="email" class="form-control" required /></div></div>
+                <div class="col-md-4"><div class="form-group"><label>Mobile Number *</label><input name="MobileNumber" class="form-control" required /></div></div>
+            </div>
+            <div class="row">
+                <div class="col-md-4"><div class="form-group"><label>Inpatient Limit *</label><input name="InpatientLimit" type="number" step="0.01" class="form-control" required /></div></div>
+                <div class="col-md-4"><div class="checkbox m-t-25"><label><input type="checkbox" name="Maternity" value="true" /> Maternity</label></div></div>
+            </div>
+            <div class="row">
+                <div class="col-md-6"><div class="checkbox"><label><input type="checkbox" name="OutpatientEnabled" value="true" id="outChk" /> Outpatient</label></div><div class="form-group" id="outGrp" style="display:none;"><label>Outpatient Limit</label><input name="OutpatientLimit" type="number" step="0.01" class="form-control" /></div></div>
+                <div class="col-md-6"><div class="checkbox"><label><input type="checkbox" name="DentalEnabled" value="true" id="dentChk" /> Dental</label></div><div class="form-group" id="dentGrp" style="display:none;"><label>Dental Limit</label><input name="DentalLimit" type="number" step="0.01" class="form-control" /></div></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Create Quote Request</button>
+            <a asp-action="Index" class="btn btn-default">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<div id="formMED_CORP" class="panel panel-inverse" style="display:none;">
+    <div class="panel-heading"><h4 class="panel-title">Medical Corporate</h4></div>
+    <div class="panel-body">
+        <form asp-action="CreateMedicalCorporate" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClientId" class="clientIdHidden" />
+            <div class="row">
+                <div class="col-md-3"><div class="form-group"><label>Requester's ID No *</label><input name="IdNo" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Company Name *</label><input name="CompanyName" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Phone *</label><input name="Phone" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Email *</label><input name="Email" type="email" class="form-control" required /></div></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Create Quote Request</button>
+            <a asp-action="Index" class="btn btn-default">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<div id="formPI" class="panel panel-inverse" style="display:none;">
+    <div class="panel-heading"><h4 class="panel-title">Professional Indemnity</h4></div>
+    <div class="panel-body">
+        <form asp-action="CreateProfessionalIndemnity" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClientId" class="clientIdHidden" />
+            <div class="row">
+                <div class="col-md-3"><div class="form-group"><label>Requester's ID No *</label><input name="IdNo" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Client/Company Name *</label><input name="ClientOrCompanyName" class="form-control" required /></div></div>
+                <div class="col-md-2"><div class="form-group"><label>Phone *</label><input name="Phone" class="form-control" required /></div></div>
+                <div class="col-md-2"><div class="form-group"><label>Email *</label><input name="Email" type="email" class="form-control" required /></div></div>
+                <div class="col-md-2"><div class="form-group"><label>Profession *</label><input name="Profession" class="form-control" required /></div></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Create Quote Request</button>
+            <a asp-action="Index" class="btn btn-default">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<div id="formTRAVEL" class="panel panel-inverse" style="display:none;">
+    <div class="panel-heading"><h4 class="panel-title">Travel Insurance</h4></div>
+    <div class="panel-body">
+        <form asp-action="CreateTravel" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClientId" class="clientIdHidden" />
+            <div class="row">
+                <div class="col-md-3"><div class="form-group"><label>ID No *</label><input name="IdNo" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Full Name *</label><input name="ClientName" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>DOB *</label><input name="Dob" type="date" class="form-control" required /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Email *</label><input name="Email" type="email" class="form-control" required /></div></div>
+            </div>
+            <div class="row">
+                <div class="col-md-3"><div class="form-group"><label>KRA PIN</label><input name="KraPin" class="form-control" /></div></div>
+                <div class="col-md-3"><div class="form-group"><label>Destination *</label><input name="Destination" class="form-control" required /></div></div>
+                <div class="col-md-2"><div class="form-group"><label>Travel From *</label><input name="TravelDateFrom" type="date" class="form-control" required /></div></div>
+                <div class="col-md-2"><div class="form-group"><label>Travel To *</label><input name="TravelDateTo" type="date" class="form-control" required /></div></div>
+                <div class="col-md-2"><div class="form-group"><label>Trip Type *</label><select name="TripType" class="form-control" required><option value="VACATION">VACATION</option><option value="BUSINESS">BUSINESS</option><option value="SPORTS">SPORTS</option></select></div></div>
+            </div>
+            <div class="checkbox"><label><input type="checkbox" name="TravellingWithFamily" value="true" /> Travelling With Family</label></div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Create Quote Request</button>
+            <a asp-action="Index" class="btn btn-default">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<div id="formDOMESTIC" class="panel panel-inverse" style="display:none;">
+    <div class="panel-heading"><h4 class="panel-title">Domestic Insurance</h4></div>
+    <div class="panel-body">
+        <form asp-action="CreateDomestic" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ClientId" class="clientIdHidden" />
+            <div class="row">
+                <div class="col-md-4"><div class="form-group"><label>ID No *</label><input name="IdNo" class="form-control" required /></div></div>
+                <div class="col-md-4"><div class="form-group"><label>Email *</label><input name="Email" type="email" class="form-control" required /></div></div>
+                <div class="col-md-4"><div class="form-group"><label>Details JSON</label><textarea name="DetailsJson" class="form-control" rows="3"></textarea></div></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Create Quote Request</button>
+            <a asp-action="Index" class="btn btn-default">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section PageScripts {
+    <script src="~/assets/static/plugins/select2/dist/js/select2.min.js"></script>
+    <script>
+        $(function(){
+            $('.select2').select2();
+            function syncClient(){ var v = $('#clientSelect').val(); $('.clientIdHidden').val(v); }
+            $('#clientSelect').on('change', syncClient); syncClient();
+            $('#productSelect').on('change', function(){
+                var v = $(this).val();
+                $('#formMED_IND,#formMED_CORP,#formPI,#formTRAVEL,#formDOMESTIC').hide();
+                if(v=='MED_IND') $('#formMED_IND').show();
+                if(v=='MED_CORP') $('#formMED_CORP').show();
+                if(v=='PI') $('#formPI').show();
+                if(v=='TRAVEL') $('#formTRAVEL').show();
+                if(v=='DOMESTIC') $('#formDOMESTIC').show();
+            });
+            $('#outChk').on('change', function(){ $('#outGrp').toggle(this.checked); });
+            $('#dentChk').on('change', function(){ $('#dentGrp').toggle(this.checked); });
+        });
+    </script>
+}
