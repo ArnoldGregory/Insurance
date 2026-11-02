@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using InsurancePlatform.AdminPortal.Models;
 using InsurancePlatform.AdminPortal.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -39,7 +39,7 @@ public class QuoteRequestsController : Controller
             : new List<ProductOption>();
 
         var clientsResult = await _apiClient.GetAsync<ClientListPage>("/api/clients?pageNumber=1&pageSize=500");
-        var clients = clientsResult.Success && clientsResult.Data != null ? clientsResult.Data.Items : new List<ClientSummaryItem>();
+        var clients = clientsResult.Success && clientsResult.Data != null ? clientsResult.Data.Items : new List<ClientSummary>();
 
         var vm = new QuoteRequestCreateViewModel
         {
@@ -205,6 +205,85 @@ public class QuoteRequestsController : Controller
         TempData["StatusIsError"] = !result.Success;
         if (result.Success) return RedirectToAction(nameof(Index));
         return RedirectToAction(nameof(Create));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SelectOffer(long quoteOfferId, long quoteRequestId)
+    {
+        var result = await _apiClient.PutAsync<object>($"/api/quote-offers/{quoteOfferId}/select", new { });
+        TempData["StatusMessage"] = result.Success ? "Offer selected. You can now convert it to a purchase." : result.Message;
+        TempData["StatusIsError"] = !result.Success;
+        return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConvertToPurchase(long quoteOfferId, long quoteRequestId)
+    {
+        var requestResult = await _apiClient.GetAsync<QuoteRequestItem>($"/api/quoterequests/{quoteRequestId}");
+        if (!requestResult.Success || requestResult.Data == null)
+        {
+            TempData["StatusMessage"] = requestResult.Message ?? "Quote request not found.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+        }
+
+        var offerResult = await _apiClient.GetAsync<QuoteOfferItem>($"/api/quoterequests/{quoteRequestId}/offers/{quoteOfferId}");
+        var offersResult = await _apiClient.GetAsync<List<QuoteOfferItem>>($"/api/quoterequests/{quoteRequestId}/offers");
+        QuoteOfferItem? offer = offerResult.Success ? offerResult.Data : (offersResult.Success && offersResult.Data != null ? offersResult.Data.FirstOrDefault(o => o.QuoteOfferId == quoteOfferId) : null);
+
+        if (offer == null)
+        {
+            TempData["StatusMessage"] = "Offer not found.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+        }
+
+        var clientsResult = await _apiClient.GetAsync<ClientListPage>("/api/clients?pageNumber=1&pageSize=500");
+        var periodsResult = await _apiClient.GetAsync<List<PeriodOption>>("/api/pricing/periods");
+        var client = clientsResult.Success && clientsResult.Data != null && requestResult.Data.ClientId.HasValue
+            ? clientsResult.Data.Items.FirstOrDefault(c => c.ClientId == requestResult.Data.ClientId.Value)
+            : null;
+
+        if (client == null || !requestResult.Data.ClientId.HasValue)
+        {
+            TempData["StatusMessage"] = "Link a client to this quote request before converting to purchase.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+        }
+
+        var period = periodsResult.Success && periodsResult.Data != null ? periodsResult.Data.FirstOrDefault() : null;
+        if (period == null)
+        {
+            TempData["StatusMessage"] = "No periods configured.";
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+        }
+
+        var startDate = DateTime.Today;
+        var body = new
+        {
+            productId = requestResult.Data.ProductId,
+            clientId = requestResult.Data.ClientId.Value,
+            underwriterId = offer.UnderwriterId,
+            quoteOfferId = offer.QuoteOfferId,
+            premiumAmount = offer.PremiumAmount,
+            periodId = period.PeriodId,
+            startDate = startDate.ToString("yyyy-MM-dd")
+        };
+
+        var purchaseResult = await _apiClient.PostAsync<object>("/api/purchases", body);
+        if (!purchaseResult.Success)
+        {
+            TempData["StatusMessage"] = purchaseResult.Message;
+            TempData["StatusIsError"] = true;
+            return RedirectToAction(nameof(Details), new { id = quoteRequestId });
+        }
+
+        TempData["StatusMessage"] = "Quote converted to purchase successfully. Check Purchases for payment.";
+        TempData["StatusIsError"] = false;
+        return RedirectToAction("Index", "Purchases");
     }
 
     [HttpGet]

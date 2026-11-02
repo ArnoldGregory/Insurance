@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 
@@ -145,19 +145,10 @@ public class QuoteRequestIndexViewModel
     public static readonly string[] StatusOptions = { "PENDING", "IN_PROGRESS", "QUOTED", "EXPIRED", "CONVERTED" };
 }
 
-public class ProductOption
-{
-    public long ProductId { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
-    public string PricingMethod { get; set; } = string.Empty;
-    public bool IsActive { get; set; }
-}
-
 public class QuoteRequestCreateViewModel
 {
     public List<ProductOption> Products { get; set; } = new();
-    public List<ClientSummaryItem> Clients { get; set; } = new();
+    public List<ClientSummary> Clients { get; set; } = new();
     public string? StatusMessage { get; set; }
     public bool StatusIsError { get; set; }
 }

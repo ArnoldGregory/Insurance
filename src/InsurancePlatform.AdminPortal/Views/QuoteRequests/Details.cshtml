@@ -322,7 +322,22 @@
                                             <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />
                                             <button type="submit" class="btn btn-danger btn-xs"><i class="fa fa-hourglass-end"></i> Expire</button>
                                         </form>
+                                        <form asp-action="SelectOffer" method="post" style="margin:0;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="quoteOfferId" value="@offer.QuoteOfferId" />
+                                            <input type="hidden" name="quoteRequestId" value="@offer.QuoteRequestId" />
+                                            <button type="submit" class="btn btn-primary btn-xs"><i class="fa fa-check"></i> Select</button>
+                                        </form>
                                     </div>
+                                }
+                                else if (offer.Status == "SELECTED" && Model.Request.ClientId.HasValue && Model.Request.ProductCode != "MOTOR")
+                                {
+                                    <form asp-action="ConvertToPurchase" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="quoteOfferId" value="@offer.QuoteOfferId" />
+                                        <input type="hidden" name="quoteRequestId" value="@Model.Request.QuoteRequestId" />
+                                        <button type="submit" class="btn btn-success btn-xs"><i class="fa fa-shopping-cart"></i> Convert to Purchase</button>
+                                    </form>
                                 }
                             </td>
                         </tr>
