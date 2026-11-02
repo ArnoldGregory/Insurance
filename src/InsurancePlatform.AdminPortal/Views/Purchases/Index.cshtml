@@ -1,4 +1,4 @@
-@model PurchaseIndexViewModel
+﻿@model PurchaseIndexViewModel
 @{
     ViewData["Title"] = "Purchases";
 }
@@ -18,16 +18,14 @@
 <div class="m-b-15">
     @if (User.IsInRole("SA") || User.IsInRole("AA") || User.IsInRole("AG") || User.IsInRole("SP"))
     {
+        <div class="btn-group m-r-5">
+            <a asp-controller="PurchaseWizard" asp-action="Step1" class="btn btn-primary"><i class="fa fa-car"></i> New Motor Policy</a>
+        </div>
+        <div class="btn-group m-r-5">
+            <a asp-controller="QuoteRequests" asp-action="Create" class="btn btn-success"><i class="fa fa-file-signature"></i> New Non-Motor Quote Request</a>
+        </div>
         <div class="btn-group">
-            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fa fa-plus"></i> New Purchase <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
-                <li><a asp-controller="PurchaseWizard" asp-action="Step1"><i class="fa fa-car"></i> Motor Policy (TPO/Comprehensive)</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a asp-controller="QuoteRequests" asp-action="Create"><i class="fa fa-file-signature"></i> Quote Request (Medical / PI / Travel / Domestic)</a></li>
-                <li><a asp-controller="QuoteRequests" asp-action="Index"><i class="fa fa-list"></i> Manage Quote Requests &amp; Add Offers</a></li>
-            </ul>
+            <a asp-controller="QuoteRequests" asp-action="Index" class="btn btn-info"><i class="fa fa-clipboard-list"></i> Quote Requests Queue</a>
         </div>
     }
 </div>
@@ -118,38 +116,25 @@
 {
     <div style="display:flex;justify-content:space-between;align-items:center;">
         <span class="text-muted">Page @Model.PageNumber of @Model.TotalPages &middot; @Model.TotalCount total</span>
-        <div>
-            @if (Model.PageNumber > 1)
+        <ul class="pagination" style="margin:0;">
+            <li class="@(Model.PageNumber == 1 ? "disabled" : "")"><a href="@Url.Action("Index", new { status = Model.Status, paymentStatus = Model.PaymentStatus, page = Model.PageNumber - 1 })">«</a></li>
+            @for (var p = Math.Max(1, Model.PageNumber - 2); p <= Math.Min(Model.TotalPages, Model.PageNumber + 2); p++)
             {
-                <a class="btn btn-default btn-sm" asp-action="Index" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-pageNumber="@(Model.PageNumber - 1)" asp-route-pageSize="@Model.PageSize"><i class="fa fa-arrow-left"></i> Previous</a>
+                <li class="@(p == Model.PageNumber ? "active" : "")"><a href="@Url.Action("Index", new { status = Model.Status, paymentStatus = Model.PaymentStatus, page = p })">@p</a></li>
             }
-            @if (Model.PageNumber < Model.TotalPages)
-            {
-                <a class="btn btn-default btn-sm" asp-action="Index" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-pageNumber="@(Model.PageNumber + 1)" asp-route-pageSize="@Model.PageSize">Next <i class="fa fa-arrow-right"></i></a>
-            }
-        </div>
+            <li class="@(Model.PageNumber == Model.TotalPages ? "disabled" : "")"><a href="@Url.Action("Index", new { status = Model.Status, paymentStatus = Model.PaymentStatus, page = Model.PageNumber + 1 })">»</a></li>
+        </ul>
     </div>
 }
-
 @section PageScripts {
     <script src="~/assets/static/plugins/select2/dist/js/select2.min.js"></script>
     <script src="~/assets/static/plugins/DataTables/media/js/jquery.dataTables.js"></script>
     <script src="~/assets/static/plugins/DataTables/media/js/dataTables.bootstrap.min.js"></script>
     <script src="~/assets/static/plugins/DataTables/extensions/Responsive/js/dataTables.responsive.min.js"></script>
     <script>
-        $(function () {
-            // Same treatment as Clients/Index and QuoteRequests/Index: real
-            // status/paymentStatus filtering + pageNumber/pageSize stay
-            // server-side via the form and query string; DataTables only
-            // adds client-side sort/instant-search chrome on top of the one
-            // page of rows already rendered.
-            $('#purchasesTable').DataTable({
-                responsive: true,
-                order: [],
-                pageLength: @Model.PageSize,
-                language: { search: "Search:", emptyTable: "No purchases match these filters." }
-            });
-            $('.select2').select2();
+        $(document).ready(function () {
+            $("#purchasesTable").DataTable({ responsive: true, pageLength: 25, order: [[0, "desc"]] });
+            $(".select2").select2();
         });
     </script>
 }
