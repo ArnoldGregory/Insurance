@@ -1,4 +1,4 @@
-@model QuoteRequestIndexViewModel
+﻿@model QuoteRequestIndexViewModel
 @{
     ViewData["Title"] = "Quote Requests";
 }
@@ -9,7 +9,7 @@
     <link href="~/assets/static/plugins/bootstrap-sweetalert2/sweetalert2.min.css" rel="stylesheet" />
 }
 <!-- begin page-header -->
-<h1 class="page-header"><i class="fas fa-tasks"></i> Quote Requests <small>Medical, Professional Indemnity, Travel &amp; Domestic - Motor is priced directly and never appears here</small></h1>
+<h1 class="page-header"><i class="fas fa-tasks"></i> Quote Requests <small>General Insurance - Medical, Professional Indemnity, Travel & Domestic. Motor is handled separately via the Motor Policy flow</small></h1>
 <!-- end page-header -->
 
 @if (!string.IsNullOrEmpty(Model.StatusMessage))
