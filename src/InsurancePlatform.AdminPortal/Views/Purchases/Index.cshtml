@@ -95,7 +95,7 @@
                     <tr>
                         <td>#@p.PurchaseId</td>
                         <td>@p.ClientName</td>
-                        <td>@p.ProductCode</td>
+                        <td>@(p.ProductCode == "MOTOR" ? "Motor" : "General Insurance")</td>
                         <td>@p.UnderwriterName</td>
                         <td>@p.PremiumAmount.ToString("N2")</td>
                         <td>@(p.PolicyNumber ?? "—")</td>

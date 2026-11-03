@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @model QuoteRequestDetailViewModel
 @{
     ViewData["Title"] = $"Quote Request {Model.Request.RefNo ?? $"#{Model.Request.QuoteRequestId}"}";
@@ -330,7 +330,7 @@
                                         </form>
                                     </div>
                                 }
-                                else if (offer.Status == "SELECTED" && Model.Request.ClientId.HasValue && Model.Request.ProductCode != "MOTOR")
+                                else if (offer.Status == "SELECTED" && Model.Request.ClientId.HasValue && Model.Request.ProductCode != "MOTOR" && Model.Request.Status != "CONVERTED")
                                 {
                                     <form asp-action="ConvertToPurchase" method="post" style="display:inline;">
                                         @Html.AntiForgeryToken()
