@@ -1,4 +1,4 @@
-@model WizardStep2ViewModel
+﻿@model WizardStep2ViewModel
 @{
     ViewData["Title"] = "New Purchase - TPO";
     ViewData["FullWidth"] = true;
@@ -124,11 +124,11 @@
                 <div class="wz-form-grid wz-form-grid--3">
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleBodyType"></label>
-                        <input class="wz-input" asp-for="VehicleBodyType" data-uppercase />
+                        <select class="wz-input" asp-for="VehicleBodyType"><option value=`>Select body type</option><option value="SEDAN">Sedan</option><option value="HATCHBACK">Hatchback</option><option value="SUV">SUV</option><option value="STATION WAGON">Station Wagon</option><option value="PICKUP">Pickup</option><option value="VAN">Van</option><option value="BUS">Bus</option><option value="TRUCK">Truck</option><option value="MINIBUS">Minibus</option><option value="OTHER">Other</option></select>
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleFuelType"></label>
-                        <input class="wz-input" asp-for="VehicleFuelType" data-uppercase />
+                        <select class="wz-input" asp-for="VehicleFuelType"><option value=`>Select fuel type</option><option value="PETROL">Petrol</option><option value="DIESEL">Diesel</option><option value="ELECTRIC">Electric</option><option value="HYBRID">Hybrid</option><option value="LPG">LPG</option></select>
                     </div>
                     <div class="wz-field">
                         <label class="wz-label" asp-for="VehicleValue"></label>
