@@ -1,4 +1,4 @@
-@using System.Security.Claims
+﻿@using System.Security.Claims
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var fullName = User.FindFirst("full_name")?.Value ?? "Staff";
@@ -196,5 +196,20 @@
     @RenderSection("PageScripts", required: false)
     @RenderSection("Scripts", required: false)
     <!-- ================== END PAGE LEVEL JS ================== -->
+    <!-- Flatpickr for better date picking -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        if (window.flatpickr) {
+          document.querySelectorAll('input[type=date]').forEach(function(el){
+            if (el.dataset.fpInit) return; el.dataset.fpInit='1';
+            var min = el.getAttribute('min');
+            var max = el.getAttribute('max');
+            flatpickr(el, { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', allowInput: true, minDate: min || '2000-01-01', maxDate: max || null, disableMobile: true });
+          });
+        }
+      });
+    </script>
 </body>
 </html>

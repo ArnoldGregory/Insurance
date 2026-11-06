@@ -1,4 +1,4 @@
-@model TpoPriceMappingViewModel
+﻿@model TpoPriceMappingViewModel
 @{
     ViewData["Title"] = "TPO Price Mapping";
 }
@@ -158,7 +158,7 @@
                     </div>
                     <div class="tp-field">
                         <label>Effective from</label>
-                        <input type="date" name="EffectiveFrom" id="tpEffective" />
+                        <input type="date" min="2000-01-01" name="EffectiveFrom" id="tpEffective" />
                     </div>
                 </div>
             </div>

@@ -1,4 +1,4 @@
-@model ClientCreateViewModel
+﻿@model ClientCreateViewModel
 @{
     ViewData["Title"] = "Register client";
 }
@@ -40,7 +40,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label class="form-control-label" asp-for="Dob"></label>
-                        <input class="form-control" asp-for="Dob" type="date" />
+                        <input class="form-control" asp-for="Dob" type="date" min="2000-01-01" />
                     </div>
                 </div>
                 <div class="col-md-6">
