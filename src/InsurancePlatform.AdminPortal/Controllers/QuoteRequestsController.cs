@@ -191,13 +191,19 @@ public class QuoteRequestsController : Controller
             return RedirectToAction(nameof(Create));
         }
 
+        var details = new Dictionary<string, object?>();
+        if (!string.IsNullOrWhiteSpace(model.DomesticItems)) details["items"] = model.DomesticItems.Trim();
+        if (!string.IsNullOrWhiteSpace(model.DomesticValue) && decimal.TryParse(model.DomesticValue, out var dv)) details["value"] = dv;
+        if (!string.IsNullOrWhiteSpace(model.DomesticSecurity)) details["security"] = model.DomesticSecurity.Trim();
+        var detailsJson = details.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(details) : model.DetailsJson;
+
         var body = new
         {
             clientId = model.ClientId,
             channel = "PORTAL",
             idNo = model.IdNo,
             email = model.Email,
-            detailsJson = model.DetailsJson
+            detailsJson
         };
 
         var result = await _apiClient.PostAsync<object>("/api/quoterequests/domestic", body);

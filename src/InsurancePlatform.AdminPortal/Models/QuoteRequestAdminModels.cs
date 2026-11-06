@@ -211,6 +211,9 @@ public class QuoteRequestCreateDomesticViewModel
     [Required] public string IdNo { get; set; } = string.Empty;
     [Required, EmailAddress] public string Email { get; set; } = string.Empty;
     public string? DetailsJson { get; set; }
+    public string? DomesticItems { get; set; }
+    public string? DomesticValue { get; set; }
+    public string? DomesticSecurity { get; set; }
 }
 
 /// <summary>
