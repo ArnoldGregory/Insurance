@@ -124,10 +124,13 @@ public class ClientsController : Controller
             return RedirectToAction(nameof(Details), new { id = lookup.ClientId });
         }
 
+        var (firstName, middleName, lastName) = SplitFullName(lookup.FullName);
         var details = new ClientCreateViewModel
         {
             IdNo = model.IdNo,
-            FullName = lookup.FullName ?? string.Empty,
+            FirstName = firstName,
+            MiddleName = middleName,
+            LastName = lastName,
             Email = lookup.Email,
             Phone = lookup.Phone ?? string.Empty,
             KraPin = lookup.KraPin,
@@ -147,10 +150,11 @@ public class ClientsController : Controller
             return View("CreateDetails", model);
         }
 
+        var fullName = model.ComposeFullName();
         var result = await _apiClient.PostAsync<CreateClientResultData>("/api/clients", new
         {
             IdNo = model.IdNo,
-            FullName = model.FullName,
+            FullName = fullName,
             Dob = model.Dob,
             Email = model.Email,
             Phone = model.Phone,
@@ -165,7 +169,7 @@ public class ClientsController : Controller
             return View("CreateDetails", model);
         }
 
-        TempData["StatusMessage"] = $"\"{model.FullName}\" was registered.";
+        TempData["StatusMessage"] = $"\"{fullName}\" was registered.";
         return RedirectToAction(nameof(Details), new { id = result.Data?.ClientId });
     }
 
@@ -185,11 +189,14 @@ public class ClientsController : Controller
         }
 
         var client = result.Data;
+        var (firstName, middleName, lastName) = SplitFullName(client.FullName);
         var model = new ClientEditViewModel
         {
             ClientId = client.ClientId,
             IdNo = client.IdNo,
-            FullName = client.FullName,
+            FirstName = firstName,
+            MiddleName = middleName,
+            LastName = lastName,
             Dob = client.Dob,
             Email = client.Email,
             Phone = client.Phone,
@@ -210,9 +217,10 @@ public class ClientsController : Controller
             return View(model);
         }
 
+        var fullName = model.ComposeFullName();
         var result = await _apiClient.PutAsync<object>($"/api/clients/{model.ClientId}", new
         {
-            FullName = model.FullName,
+            FullName = fullName,
             Dob = model.Dob,
             Email = model.Email,
             Phone = model.Phone,
@@ -226,7 +234,7 @@ public class ClientsController : Controller
             return View(model);
         }
 
-        TempData["StatusMessage"] = $"\"{model.FullName}\" was updated.";
+        TempData["StatusMessage"] = $"\"{fullName}\" was updated.";
         return RedirectToAction(nameof(Details), new { id = model.ClientId });
     }
 
@@ -241,6 +249,27 @@ public class ClientsController : Controller
         TempData["StatusIsError"] = !result.Success;
 
         return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
+    /// Splits the single FullName string the API stores back into First/Middle/Last
+    /// for display. First word = first name, last word = last name, anything in
+    /// between = middle name. A single word becomes the first name only.
+    /// </summary>
+    private static (string First, string? Middle, string? Last) SplitFullName(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return (string.Empty, null, null);
+        }
+
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            1 => (parts[0], null, null),
+            2 => (parts[0], null, parts[1]),
+            _ => (parts[0], string.Join(" ", parts[1..^1]), parts[^1])
+        };
     }
 
     /// <summary>POST /api/clients's success payload shape - just the new id.</summary>

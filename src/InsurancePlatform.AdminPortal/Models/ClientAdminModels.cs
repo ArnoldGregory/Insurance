@@ -94,9 +94,26 @@ public class ClientCreateViewModel
     [Required]
     public string IdNo { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Full name is required.")]
-    [Display(Name = "Full name")]
-    public string FullName { get; set; } = string.Empty;
+    [Required(ErrorMessage = "First name is required.")]
+    [Display(Name = "First name")]
+    [StringLength(60)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Display(Name = "Middle name (optional)")]
+    [StringLength(60)]
+    public string? MiddleName { get; set; }
+
+    [Display(Name = "Last name (optional)")]
+    [StringLength(60)]
+    public string? LastName { get; set; }
+
+    /// <summary>The single string the API stores, composed from the split name fields exactly as on the ID.</summary>
+    public string ComposeFullName() => JoinName(FirstName, MiddleName, LastName);
+
+    internal static string JoinName(string? first, string? middle, string? last) =>
+        string.Join(" ", new[] { first, middle, last }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim()));
 
     [Display(Name = "Date of birth")]
     [DataType(DataType.Date)]
@@ -127,9 +144,20 @@ public class ClientEditViewModel
     /// <summary>Display-only - ID numbers aren't editable once a client is created.</summary>
     public string IdNo { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Full name is required.")]
-    [Display(Name = "Full name")]
-    public string FullName { get; set; } = string.Empty;
+    [Required(ErrorMessage = "First name is required.")]
+    [Display(Name = "First name")]
+    [StringLength(60)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Display(Name = "Middle name (optional)")]
+    [StringLength(60)]
+    public string? MiddleName { get; set; }
+
+    [Display(Name = "Last name (optional)")]
+    [StringLength(60)]
+    public string? LastName { get; set; }
+
+    public string ComposeFullName() => ClientCreateViewModel.JoinName(FirstName, MiddleName, LastName);
 
     [Display(Name = "Date of birth")]
     [DataType(DataType.Date)]

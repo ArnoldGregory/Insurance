@@ -1,0 +1,82 @@
+@page
+@model AmuraWebsite.Pages.Quote.WibaModel
+@{
+    ViewData["Title"] = "WIBA Insurance Quote";
+    ViewData["Description"] = "Get a WIBA (Work Injury Benefits Act) employer cover quote from Amura Insurance Agency.";
+}
+
+<section class="section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-lg-7 reveal">
+                <div class="contact-card">
+
+                    @if (Model.Submitted)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Thanks — your WIBA quote request has been received@(string.IsNullOrEmpty(Model.ReferenceNumber) ? "." : $" (ref. {Model.ReferenceNumber}).") We'll be in touch shortly.
+                        </div>
+                    }
+
+                    <form method="post" novalidate>
+                        <input type="hidden" asp-for="FormToken" />
+                        <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
+                            <label for="Input_Website">Leave this field blank</label>
+                            <input asp-for="Input.Website" tabindex="-1" autocomplete="off" />
+                        </div>
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.CompanyName" class="form-label"></label>
+                                <input asp-for="Input.CompanyName" class="form-control" placeholder="e.g. Acme Ltd" />
+                                <span asp-validation-for="Input.CompanyName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.ContactPerson" class="form-label"></label>
+                                <input asp-for="Input.ContactPerson" class="form-control" placeholder="Jane Wanjiku" />
+                                <span asp-validation-for="Input.ContactPerson" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Email" class="form-label">Email</label>
+                                <input asp-for="Input.Email" class="form-control" placeholder="jane@example.com" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Phone" class="form-label">Phone</label>
+                                <input asp-for="Input.Phone" class="form-control" placeholder="07xx xxx xxx" />
+                                <span asp-validation-for="Input.Phone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Industry" class="form-label"></label>
+                                <input asp-for="Input.Industry" class="form-control" placeholder="e.g. Manufacturing, Construction" />
+                                <span asp-validation-for="Input.Industry" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.EmployeeCount" class="form-label"></label>
+                                <input asp-for="Input.EmployeeCount" class="form-control" type="number" min="1" />
+                                <span asp-validation-for="Input.EmployeeCount" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.AnnualPayroll" class="form-label"></label>
+                                <input asp-for="Input.AnnualPayroll" class="form-control" placeholder="e.g. KES 12,000,000" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.CoverStartDate" class="form-label"></label>
+                                <input asp-for="Input.CoverStartDate" class="form-control" type="date" />
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-quote btn-lg mt-4">Get my quote</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-5 reveal">
+                <span class="eyebrow">What's covered</span>
+                <h2 class="mt-3 mb-4" style="font-size:1.5rem; font-weight:600;">WIBA employer cover</h2>
+                <p class="text-muted">Statutory cover for your employees against work-related injury, illness or death, as required under the Work Injury Benefits Act.</p>
+            </div>
+        </div>
+    </div>
+</section>

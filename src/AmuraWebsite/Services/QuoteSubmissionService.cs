@@ -162,8 +162,11 @@ public sealed class QuoteSubmissionService : IQuoteSubmissionService
             SubmissionType.MedicalCorporate => "COR",
             SubmissionType.ProfessionalIndemnity => "PIN",
             SubmissionType.Travel => "TRV",
+            SubmissionType.StudentTravel => "STU",
             SubmissionType.Domestic => "DOM",
             SubmissionType.Motor => "MOT",
+            SubmissionType.Wiba => "WIB",
+            SubmissionType.Pension => "PEN",
             _ => "MSG"
         };
 

@@ -2,7 +2,7 @@
 @model AmuraWebsite.Pages.ServicesModel
 @{
     ViewData["Title"] = "Products";
-    ViewData["Description"] = "Medical, Motor, Professional Indemnity, Travel and Domestic insurance from Amura Insurance Agency.";
+    ViewData["Description"] = "Medical, Motor, Professional Indemnity, Travel, Student Travel, Domestic, WIBA, Pension and Business insurance from Amura Insurance Agency.";
 }
 
 <!-- ============================ PRODUCTS ============================ -->
@@ -47,6 +47,34 @@
                     <h3>Travel Insurance</h3>
                     <p>Medical emergencies, trip cancellation, lost luggage and delays covered for single trips or frequent travel.</p>
                     <a asp-page="/Quote/Travel">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <img src="~/images/travel-card.jpg" alt="" class="product-card-image" />
+                    <div class="product-icon">S</div>
+                    <h3>Student Travel</h3>
+                    <p>Travel cover built for students — study trips, exchanges and school travel abroad, including medical, baggage and delays.</p>
+                    <a asp-page="/Quote/StudentTravel">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <div class="product-icon">W</div>
+                    <h3>WIBA — Employer Cover</h3>
+                    <p>Statutory cover for your employees against work-related injury, illness or death under the Work Injury Benefits Act.</p>
+                    <a asp-page="/Quote/Wiba">Get a quote &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="product-card">
+                    <div class="product-icon">N</div>
+                    <h3>Pension Plans</h3>
+                    <p>Personal and employer pension plans that build a retirement fund around your income and preferred retirement age.</p>
+                    <a asp-page="/Quote/Pension">Get a quote &rarr;</a>
                 </div>
             </div>
 

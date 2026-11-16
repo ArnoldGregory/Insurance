@@ -8,14 +8,20 @@ namespace AmuraWebsite.Pages.Quote;
 public class ProfessionalIndemnityModel : PageModel
 {
     private readonly IQuoteSubmissionService _submissions;
+    private readonly IWebHostEnvironment _env;
 
-    public ProfessionalIndemnityModel(IQuoteSubmissionService submissions)
+    public ProfessionalIndemnityModel(IQuoteSubmissionService submissions, IWebHostEnvironment env)
     {
         _submissions = submissions;
+        _env = env;
     }
 
     [BindProperty]
     public FormInput Input { get; set; } = new();
+
+    /// <summary>Optional completed proposal form (Excel/CSV/PDF) the customer downloads, fills and re-uploads.</summary>
+    [BindProperty]
+    public IFormFile? ProposalFile { get; set; }
 
     [BindProperty]
     public string FormToken { get; set; } = string.Empty;
@@ -50,6 +56,20 @@ public class ProfessionalIndemnityModel : PageModel
                 ["YearsInPractice"] = Input.YearsInPractice.ToString()
             }
         };
+
+        if (ProposalFile is { Length: > 0 })
+        {
+            var uploads = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", "professional-indemnity");
+            Directory.CreateDirectory(uploads);
+            var safeName = Path.GetFileName(ProposalFile.FileName);
+            var storedPath = Path.Combine(uploads, $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{safeName}");
+            await using (var stream = System.IO.File.Create(storedPath))
+            {
+                await ProposalFile.CopyToAsync(stream);
+            }
+            submission.Details["ProposalFileName"] = safeName;
+            submission.Details["ProposalStoredPath"] = storedPath;
+        }
 
         var reference = await _submissions.SubmitAsync(submission);
 

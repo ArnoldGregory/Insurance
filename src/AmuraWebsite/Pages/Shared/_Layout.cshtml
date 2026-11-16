@@ -1,18 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
 @{
     var instaUrl = "https://www.instagram.com/amurainsuranceagency";
     var tiktokUrl = "https://www.tiktok.com/@amurainsuranceagency";
     // PENDING: replace with Amura's real X / Twitter handle when supplied.
     var xUrl = "#";
+
+    var pageTitle = $"{ViewData["Title"] ?? "Insurance"} - Amura Insurance Agency";
+    var metaDescription = ViewData["Description"] as string
+        ?? "Amura Insurance Agency — trusted cover for individuals, families and businesses across Kenya.";
+    var canonical = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.PathBase}{Context.Request.Path}";
+    var ogImage = $"{Context.Request.Scheme}://{Context.Request.Host}/images/logo-icon-nav.png";
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] - Amura Insurance Agency</title>
-    <meta name="description" content="@(ViewData["Description"] ?? "Amura Insurance Agency — trusted cover for individuals, families and businesses across Kenya.")" />
+    <title>@pageTitle</title>
+    <meta name="description" content="@metaDescription" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="@canonical" />
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Amura Insurance Agency" />
+    <meta property="og:title" content="@pageTitle" />
+    <meta property="og:description" content="@metaDescription" />
+    <meta property="og:url" content="@canonical" />
+    <meta property="og:image" content="@ogImage" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@pageTitle" />
+    <meta name="twitter:description" content="@metaDescription" />
+
+    <!-- Structured data: local insurance agency -->
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "InsuranceAgency",
+        "name": "Amura Insurance Agency",
+        "url": "@($"{Context.Request.Scheme}://{Context.Request.Host}")",
+        "telephone": "+254723242389",
+        "email": "info@amurainsurance.com",
+        "address": {
+            "@@type": "PostalAddress",
+            "streetAddress": "Jubilee Exchange House, 1st Floor, Mama Ngina Street",
+            "addressLocality": "Nairobi",
+            "addressCountry": "KE"
+        },
+        "sameAs": [
+            "@instaUrl",
+            "@tiktokUrl"
+        ]
+    }
+    </script>
 
     <!-- Favicon -->
     <link rel="icon" href="~/images/favicon.ico" sizes="any" />
@@ -74,12 +113,16 @@
                                     <li><a class="dropdown-item" asp-page="/Quote/MedicalCorporate">Medical &mdash; Corporate</a></li>
                                     <li><a class="dropdown-item" asp-page="/Quote/ProfessionalIndemnity">Professional Indemnity</a></li>
                                     <li><a class="dropdown-item" asp-page="/Quote/Travel">Travel Insurance</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Quote/StudentTravel">Student Travel Insurance</a></li>
                                     <li><a class="dropdown-item" asp-page="/Quote/Domestic">Domestic Insurance</a></li>
                                     <li><a class="dropdown-item" asp-page="/Quote/Motor">Motor Insurance</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Quote/Wiba">WIBA &mdash; Employer Cover</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Quote/Pension">Pension Plans</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item"><a class="nav-link" asp-page="/Calculator">Calculator</a></li>
                             <li class="nav-item"><a class="nav-link" asp-page="/About">About</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-page="/Partners">Partners</a></li>
                             <li class="nav-item"><a class="nav-link" asp-page="/Careers">Careers</a></li>
                             <li class="nav-item"><a class="nav-link" asp-page="/Contact">Contact</a></li>
                         </ul>
@@ -127,6 +170,7 @@
                     <h6 class="footer-heading">Company</h6>
                     <ul class="footer-links">
                         <li><a asp-page="/About">About</a></li>
+                        <li><a asp-page="/Partners">Partners</a></li>
                         <li><a asp-page="/Careers">Careers</a></li>
                         <li><a asp-page="/Contact">Contact</a></li>
                     </ul>

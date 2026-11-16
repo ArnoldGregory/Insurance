@@ -8,14 +8,20 @@ namespace AmuraWebsite.Pages.Quote;
 public class DomesticModel : PageModel
 {
     private readonly IQuoteSubmissionService _submissions;
+    private readonly IWebHostEnvironment _env;
 
-    public DomesticModel(IQuoteSubmissionService submissions)
+    public DomesticModel(IQuoteSubmissionService submissions, IWebHostEnvironment env)
     {
         _submissions = submissions;
+        _env = env;
     }
 
     [BindProperty]
     public FormInput Input { get; set; } = new();
+
+    /// <summary>Optional completed proposal form (Excel/CSV/PDF) the customer downloads, fills and re-uploads.</summary>
+    [BindProperty]
+    public IFormFile? ProposalFile { get; set; }
 
     public bool Submitted { get; set; }
     public string? ReferenceNumber { get; set; }
@@ -45,6 +51,20 @@ public class DomesticModel : PageModel
                 ["EstimatedValue"] = Input.EstimatedValue
             }
         };
+
+        if (ProposalFile is { Length: > 0 })
+        {
+            var uploads = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", "domestic");
+            Directory.CreateDirectory(uploads);
+            var safeName = Path.GetFileName(ProposalFile.FileName);
+            var storedPath = Path.Combine(uploads, $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{safeName}");
+            await using (var stream = System.IO.File.Create(storedPath))
+            {
+                await ProposalFile.CopyToAsync(stream);
+            }
+            submission.Details["ProposalFileName"] = safeName;
+            submission.Details["ProposalStoredPath"] = storedPath;
+        }
 
         ReferenceNumber = await _submissions.SubmitAsync(submission);
         Submitted = true;

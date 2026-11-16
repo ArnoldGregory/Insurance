@@ -1,3 +1,4 @@
+using System.Text;
 using AmuraWebsite.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -131,5 +132,52 @@ app.UseSession();
 app.UseAuthorization();
 
 app.MapRazorPages();
+
+// SEO: sitemap + robots, generated from the request host so the same build
+// works on localhost, staging and the live domain without edits.
+app.MapGet("/sitemap.xml", (HttpRequest request) =>
+{
+    var baseUrl = $"{request.Scheme}://{request.Host}";
+    (string Path, string Priority, string ChangeFreq)[] pages =
+    {
+        ("/", "1.0", "weekly"),
+        ("/Services", "0.9", "weekly"),
+        ("/About", "0.6", "monthly"),
+        ("/Careers", "0.5", "monthly"),
+        ("/Contact", "0.7", "monthly"),
+        ("/Calculator", "0.6", "monthly"),
+        ("/Partners", "0.5", "monthly"),
+        ("/Quote/MedicalIndividual", "0.8", "monthly"),
+        ("/Quote/MedicalCorporate", "0.8", "monthly"),
+        ("/Quote/ProfessionalIndemnity", "0.7", "monthly"),
+        ("/Quote/Travel", "0.8", "monthly"),
+        ("/Quote/StudentTravel", "0.8", "monthly"),
+        ("/Quote/Domestic", "0.8", "monthly"),
+        ("/Quote/Motor", "0.8", "monthly"),
+        ("/Quote/Wiba", "0.7", "monthly"),
+        ("/Quote/Pension", "0.7", "monthly")
+    };
+
+    var sb = new StringBuilder();
+    sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    sb.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+    foreach (var (path, priority, changeFreq) in pages)
+    {
+        sb.AppendLine("  <url>");
+        sb.AppendLine($"    <loc>{baseUrl}{path}</loc>");
+        sb.AppendLine($"    <changefreq>{changeFreq}</changefreq>");
+        sb.AppendLine($"    <priority>{priority}</priority>");
+        sb.AppendLine("  </url>");
+    }
+    sb.AppendLine("</urlset>");
+
+    return Results.Text(sb.ToString(), "application/xml", Encoding.UTF8);
+});
+
+app.MapGet("/robots.txt", (HttpRequest request) =>
+    Results.Text(
+        "User-agent: *\nAllow: /\n\n" +
+        $"Sitemap: {request.Scheme}://{request.Host}/sitemap.xml\n",
+        "text/plain", Encoding.UTF8));
 
 app.Run();

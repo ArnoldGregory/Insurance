@@ -38,9 +38,11 @@ public class MedicalIndividualModel : PageModel
             ModelState.AddModelError(string.Empty, "Only one spouse can be listed per quote.");
         }
 
-        if (Input.DateOfBirth.HasValue && Input.DateOfBirth > DateTime.Today.AddYears(-18))
+        // Junior (children-only) cover is the one case where the main insured
+        // is under 18, so the adult age gate only applies to the other types.
+        if (Input.CoverType != "Junior" && Input.DateOfBirth.HasValue && Input.DateOfBirth > DateTime.Today.AddYears(-18))
         {
-            ModelState.AddModelError(nameof(Input.DateOfBirth), "Medical insurance is available to people aged 18 and above only.");
+            ModelState.AddModelError(nameof(Input.DateOfBirth), "Medical insurance is available to people aged 18 and above only. Choose Junior cover for children.");
         }
 
         if (!ModelState.IsValid)
@@ -73,6 +75,7 @@ public class MedicalIndividualModel : PageModel
             ContactPhone = Input.MobileNumber,
             Details = new()
             {
+                ["CoverType"] = Input.CoverType,
                 ["FirstName"] = Input.FirstName,
                 ["LastName"] = Input.LastName,
                 ["OtherNames"] = Input.OtherNames ?? string.Empty,
@@ -110,6 +113,10 @@ public class MedicalIndividualModel : PageModel
     // extras are local-only, see the comment in OnPostAsync above.
     public class FormInput
     {
+        [Required]
+        [Display(Name = "Who is this cover for?")]
+        public string CoverType { get; set; } = "Individual";
+
         [Required, StringLength(60)]
         public string FirstName { get; set; } = string.Empty;
 

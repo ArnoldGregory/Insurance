@@ -8,7 +8,10 @@ public enum SubmissionType
     ProfessionalIndemnity,
     Travel,
     Domestic,
-    Motor
+    Motor,
+    Wiba,
+    Pension,
+    StudentTravel
 }
 
 /// <summary>

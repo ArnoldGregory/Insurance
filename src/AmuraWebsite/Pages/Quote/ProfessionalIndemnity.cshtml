@@ -10,7 +10,7 @@
         <div class="row g-5">
             <div class="col-lg-7 reveal">
                 <div class="contact-card">
-                    <form method="post" novalidate>
+                    <form method="post" novalidate enctype="multipart/form-data">
                         <input type="hidden" asp-for="FormToken" />
                         <div style="position:absolute; left:-9999px; opacity:0;" aria-hidden="true">
                             <label for="Input_Website">Leave this field blank</label>
@@ -49,6 +49,17 @@
                                 <input asp-for="Input.YearsInPractice" class="form-control" type="number" min="0" max="60" />
                                 <span asp-validation-for="Input.YearsInPractice" class="text-danger small"></span>
                             </div>
+                        </div>
+
+                        <hr class="my-4" />
+                        <p class="text-muted small mb-2">
+                            Prefer to fill the full proposal? <a href="~/templates/professional-indemnity-proposal.csv" download>Download the proposal template</a>,
+                            fill it in, then upload it below.
+                        </p>
+                        <div class="form-group">
+                            <label asp-for="ProposalFile" class="form-label">Upload completed proposal (optional)</label>
+                            <input asp-for="ProposalFile" class="form-control" type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx" />
+                            <span asp-validation-for="ProposalFile" class="text-danger small"></span>
                         </div>
 
                         <button type="submit" class="btn btn-quote btn-lg mt-4">Continue to proposal form &rarr;</button>

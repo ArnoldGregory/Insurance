@@ -25,10 +25,27 @@
             <input type="hidden" asp-for="IdNo" />
             <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
 
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-control-label" asp-for="FirstName"></label>
+                        <input class="form-control" asp-for="FirstName" autofocus />
+                        <span asp-validation-for="FirstName" class="field-error"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-control-label" asp-for="MiddleName"></label>
+                        <input class="form-control" asp-for="MiddleName" />
+                        <span asp-validation-for="MiddleName" class="field-error"></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-group">
-                <label class="form-control-label" asp-for="FullName"></label>
-                <input class="form-control" asp-for="FullName" autofocus />
-                <span asp-validation-for="FullName" class="field-error"></span>
+                <label class="form-control-label" asp-for="LastName"></label>
+                <input class="form-control" asp-for="LastName" />
+                <span asp-validation-for="LastName" class="field-error"></span>
             </div>
 
             <div class="row">

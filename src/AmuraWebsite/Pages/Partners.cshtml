@@ -1,0 +1,51 @@
+@page
+@model AmuraWebsite.Pages.PartnersModel
+@{
+    ViewData["Title"] = "Our Insurance Partners";
+    ViewData["Description"] = "Amura Insurance Agency arranges cover from Kenya's leading licensed insurers so you get the right protection at the right price.";
+}
+
+<!-- ============================ PARTNERS ============================ -->
+<section class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 reveal">
+                <span class="eyebrow">Our partners</span>
+                <h1 class="mt-3 mb-3" style="font-size:clamp(1.8rem,3.5vw,2.6rem); font-weight:700;">Cover from Kenya's trusted insurers</h1>
+                <p class="text-muted">We work with a panel of licensed underwriters, which lets us compare options and arrange the cover that genuinely fits you — not just what one insurer happens to sell.</p>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-2">
+            @foreach (var partner in Model.Partners)
+            {
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="partner-card" style="display:flex; align-items:center; justify-content:center; min-height:110px; padding:1.25rem; border:1px solid rgba(11,11,12,0.08); border-radius:14px; background:#fff; text-align:center; box-shadow:0 1px 2px rgba(11,11,12,0.04);">
+                        <span style="font-family:'Fraunces',serif; font-size:1.05rem; font-weight:600; color:#0b0b0c;">@partner</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <p class="text-muted small mt-4">
+            PENDING: replace each name placeholder with the insurer's official logo (high-resolution PNG/SVG) once supplied.
+        </p>
+    </div>
+</section>
+
+<!-- ============================= CTA ============================= -->
+<section class="section">
+    <div class="container">
+        <div class="cta-band reveal">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);">Want us to compare cover for you?</h2>
+                    <p class="mb-0" style="color:rgba(11,11,12,0.75);">Tell us what you need to cover and we'll shortlist the best options from our panel.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a asp-page="/Contact" class="btn btn-dark-pill btn-lg">Talk to us</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
