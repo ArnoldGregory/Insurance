@@ -543,6 +543,33 @@ public class PurchaseWizardController : Controller
         return Json(new { found = true, clientId = c.ClientId, fullName = c.FullName, phone = c.Phone, email = c.Email, kraPin = c.KraPin });
     }
 
+    /// <summary>Plate -> D-MVIC/NTSA lookup so staff don't have to type chassis/engine details.</summary>
+    [HttpGet]
+    public async Task<IActionResult> LookupVehicle(string regNo)
+    {
+        if (string.IsNullOrWhiteSpace(regNo)) return Json(new { found = false });
+        var result = await _apiClient.GetAsync<VehicleRegistryLookupResult>($"/api/vehicles/lookup/{Uri.EscapeDataString(regNo)}");
+        if (!result.Success || result.Data is null)
+        {
+            return Json(new { found = false, message = result.Message ?? "No vehicle found — fill in the details manually." });
+        }
+
+        var v = result.Data;
+        return Json(new
+        {
+            found = true,
+            regNo = v.RegistrationNumber,
+            make = v.Make,
+            model = v.Model,
+            year = v.YearOfManufacture,
+            chassis = v.ChassisNumber,
+            engine = v.EngineNumber,
+            bodyType = v.BodyType,
+            color = v.Color,
+            cubicCapacity = v.CubicCapacity
+        });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Step2Next(WizardStep2ViewModel model)

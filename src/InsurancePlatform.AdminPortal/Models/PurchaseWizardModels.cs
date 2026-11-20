@@ -471,6 +471,21 @@ public class VehicleIdResult
     public long ClientId { get; set; }
 }
 
+/// <summary>Mirrors GET /api/vehicles/lookup/{regNo} - the D-MVIC vehicle registry result.</summary>
+public class VehicleRegistryLookupResult
+{
+    public string RegistrationNumber { get; set; } = string.Empty;
+    public string ChassisNumber { get; set; } = string.Empty;
+    public string EngineNumber { get; set; } = string.Empty;
+    public string Make { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public int? YearOfManufacture { get; set; }
+    public string BodyType { get; set; } = string.Empty;
+    public string Color { get; set; } = string.Empty;
+    public string? PassengerCapacity { get; set; }
+    public string? CubicCapacity { get; set; }
+}
+
 /// <summary>Mirrors InsurancePlatform.Domain.Entities.PurchaseCreateResult - POST /api/purchases's success payload.</summary>
 public class PurchaseCreateResultData
 {

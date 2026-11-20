@@ -121,7 +121,11 @@
             <div class="wz-card-body">
                 <div class="wz-field">
                     <label class="wz-label" asp-for="VehicleRegNo"></label>
-                    <input class="wz-input" asp-for="VehicleRegNo" data-uppercase />
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input class="wz-input" asp-for="VehicleRegNo" data-uppercase style="flex:1;" />
+                        <button type="button" class="wz-btn wz-btn--ghost" id="vehicleLookupBtn">Look up</button>
+                    </div>
+                    <span id="vehicleLookupHint" class="wz-hint"></span>
                     <span asp-validation-for="VehicleRegNo" class="wz-field-error"></span>
                 </div>
                 <div class="wz-form-grid wz-form-grid--3">
@@ -234,5 +238,63 @@
                 btn.disabled = false;
             });
     });
+
+    function fillVehicleField(id, value) {
+        var el = document.getElementById(id);
+        if (el && value !== null && value !== undefined && value !== '') {
+            el.value = value;
+            el.dispatchEvent(new Event('change'));
+        }
+    }
+
+    var vehicleLookupBtn = document.getElementById('vehicleLookupBtn');
+    if (vehicleLookupBtn) {
+        vehicleLookupBtn.addEventListener('click', function () {
+            var regNo = document.getElementById('VehicleRegNo').value.trim();
+            var hint = document.getElementById('vehicleLookupHint');
+            var btn = this;
+
+            if (!regNo) {
+                hint.textContent = 'Enter a registration number first.';
+                hint.className = 'wz-hint wz-hint--error';
+                return;
+            }
+
+            btn.disabled = true;
+            showPageLoader('Looking up vehicle at D-MVIC...');
+
+            fetch('@Url.Action("LookupVehicle", "PurchaseWizard")?regNo=' + encodeURIComponent(regNo))
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.found) {
+                        fillVehicleField('VehicleRegNo', data.regNo);
+                        fillVehicleField('VehicleMake', data.make);
+                        fillVehicleField('VehicleModel', data.model);
+                        fillVehicleField('VehicleYearOfManufacture', data.year);
+                        fillVehicleField('VehicleChassisNo', data.chassis);
+                        fillVehicleField('VehicleEngineNo', data.engine);
+                        var body = document.getElementById('VehicleBodyType');
+                        if (body && data.bodyType) {
+                            var wanted = data.bodyType.toUpperCase();
+                            var match = Array.from(body.options).find(function (o) { return o.value.toUpperCase() === wanted; });
+                            if (match) { body.value = match.value; }
+                        }
+                        hint.textContent = 'Vehicle details filled from D-MVIC — please check before continuing.';
+                        hint.className = 'wz-hint wz-hint--success';
+                    } else {
+                        hint.textContent = data.message || 'No vehicle found — fill in the details manually.';
+                        hint.className = 'wz-hint wz-hint--error';
+                    }
+                })
+                .catch(function () {
+                    hint.textContent = 'Lookup unavailable — fill in the details manually.';
+                    hint.className = 'wz-hint wz-hint--error';
+                })
+                .finally(function () {
+                    hidePageLoader();
+                    btn.disabled = false;
+                });
+        });
+    }
 </script>
 }
