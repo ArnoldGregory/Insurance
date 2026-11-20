@@ -1,6 +1,7 @@
 using InsurancePlatform.Api.Contracts.Common;
 using InsurancePlatform.Api.Contracts.Vehicles;
 using InsurancePlatform.Api.Logging;
+using InsurancePlatform.Application.Integrations;
 using InsurancePlatform.Application.Repositories;
 using InsurancePlatform.Domain.Common;
 using InsurancePlatform.Domain.Entities;
@@ -25,17 +26,20 @@ public class VehiclesController : BaseApiController
 {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IClientRepository _clientRepository;
+    private readonly IVehicleLookupClient _vehicleLookupClient;
     private readonly ILoggerManager _logger;
 
     public VehiclesController(
         IVehicleRepository vehicleRepository,
         IClientRepository clientRepository,
+        IVehicleLookupClient vehicleLookupClient,
         ILoggerManager logger,
         CorrelationContext correlationContext)
         : base(correlationContext)
     {
         _vehicleRepository = vehicleRepository;
         _clientRepository = clientRepository;
+        _vehicleLookupClient = vehicleLookupClient;
         _logger = logger;
     }
 
@@ -101,6 +105,27 @@ public class VehiclesController : BaseApiController
         }
 
         return Success(result.Data, result.ResultMessage);
+    }
+
+    /// <summary>Looks up a registration number at D-MVIC/NTSA to prefill the vehicle form.</summary>
+    /// <response code="200">Always 200 - check Success in the body; a failed lookup returns Success=false.</response>
+    [HttpGet("lookup/{regNo}")]
+    [ProducesResponseType(typeof(ApiResponse<VehicleLookupResult>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Lookup(string regNo)
+    {
+        if (string.IsNullOrWhiteSpace(regNo))
+        {
+            return BusinessFailure("Registration number is required.");
+        }
+
+        var vehicle = await _vehicleLookupClient.LookupAsync(regNo);
+        if (vehicle is null)
+        {
+            return BusinessFailure("We couldn't find this vehicle at D-MVIC. Please enter the details manually.");
+        }
+
+        _logger.LogInfo($"D-MVIC lookup reg_no={regNo}: make={vehicle.Make}, model={vehicle.Model}.");
+        return Success(vehicle, "Vehicle found.");
     }
 
     /// <summary>Lists all vehicles under one client.</summary>

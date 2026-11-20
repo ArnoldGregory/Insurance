@@ -89,6 +89,11 @@ public sealed class MotorPurchaseClient : IMotorPurchaseClient
         return await GetAsync<ResolveClientResponseData>($"/api/clients/resolve/{Uri.EscapeDataString(idNo)}", ct);
     }
 
+    public async Task<VehicleLookupDto?> LookupVehicleAsync(string regNo, CancellationToken ct = default)
+    {
+        return await GetAsync<VehicleLookupDto>($"/api/vehicles/lookup/{Uri.EscapeDataString(regNo)}", ct);
+    }
+
     public async Task<int?> CreateClientAsync(
         string idNo, string fullName, DateTime dob, string email, string phone,
         string? address, string? kraPin, CancellationToken ct = default)

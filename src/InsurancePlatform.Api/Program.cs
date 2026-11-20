@@ -226,6 +226,10 @@ try
         client.Timeout = TimeSpan.FromSeconds(60);
     });
     builder.Services.AddScoped<IDmvicCertificateService, DmvicCertificateService>();
+    // Plate -> vehicle prefill for the website/staff forms. Uses the same
+    // DMVICINTERMEDIARY SCAPI interface (request_type=vehicle_search) that
+    // Bima uses, so no new vendor credentials or docs are required.
+    builder.Services.AddScoped<IVehicleLookupClient, DmvicVehicleLookupClient>();
     // Non-DMVIC insurers (DirectLine over SCAPI, AMACO/Definite by callback) -
     // routed by underwriter name per UnderwriterIntegrations in appsettings;
     // everything else still goes to DMVIC above. Callbacks land on

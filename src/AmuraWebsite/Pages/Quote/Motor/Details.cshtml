@@ -77,7 +77,11 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Input.RegNo" class="form-label">Registration number</label>
-                                    <input asp-for="Input.RegNo" class="form-control" placeholder="KDA 123A" data-uppercase />
+                                    <div class="input-group">
+                                        <input asp-for="Input.RegNo" class="form-control" placeholder="KDA 123A" data-uppercase />
+                                        <button type="button" class="btn btn-outline-secondary" id="plateLookupBtn">Look up</button>
+                                    </div>
+                                    <span id="plateLookupStatus" class="text-muted small" role="status"></span>
                                     <span asp-validation-for="Input.RegNo" class="text-danger small"></span>
                                 </div>
                                 <div class="col-md-4">
@@ -219,6 +223,63 @@
                                     sync();
                                 })();
                             </script>
+
+                        <script>
+                            (function () {
+                                var btn = document.getElementById('plateLookupBtn');
+                                var reg = document.getElementById('Input_RegNo');
+                                var status = document.getElementById('plateLookupStatus');
+                                if (!btn || !reg) return;
+
+                                function set(id, value) {
+                                    var el = document.getElementById(id);
+                                    if (el && value) {
+                                        el.value = value;
+                                        el.dispatchEvent(new Event('change'));
+                                    }
+                                }
+
+                                btn.addEventListener('click', async function () {
+                                    var plate = reg.value.trim();
+                                    if (!plate) {
+                                        status.textContent = 'Enter a registration number first.';
+                                        return;
+                                    }
+
+                                    btn.disabled = true;
+                                    status.textContent = 'Looking up D-MVIC…';
+                                    try {
+                                        var url = '@Url.Page("Details", new { handler = "Lookup" })' + '?regNo=' + encodeURIComponent(plate);
+                                        var response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                                        var result = await response.json();
+                                        if (!result.success) {
+                                            status.textContent = result.message || 'Lookup failed. Please enter the details manually.';
+                                            return;
+                                        }
+
+                                        var v = result.data;
+                                        set('Input_RegNo', v.registrationNumber);
+                                        set('Input_Make', v.make);
+                                        set('Input_Model', v.model);
+                                        set('Input_ChassisNo', v.chassisNumber);
+                                        set('Input_EngineNo', v.engineNumber);
+                                        set('Input_YearOfManufacture', v.yearOfManufacture);
+                                        set('Input_CubicCapacity', v.cubicCapacity);
+                                        set('Input_Color', v.color);
+                                        var body = document.getElementById('Input_BodyType');
+                                        if (body && v.bodyType) {
+                                            var match = Array.from(body.options).find(function (o) { return o.value === v.bodyType.toUpperCase(); });
+                                            if (match) { body.value = match.value; }
+                                        }
+                                        status.textContent = 'Vehicle details filled from D-MVIC. Please check them before continuing.';
+                                    } catch (e) {
+                                        status.textContent = 'Lookup unavailable. Please enter the details manually.';
+                                    } finally {
+                                        btn.disabled = false;
+                                    }
+                                });
+                            })();
+                        </script>
                     }
                 </div>
             </div>

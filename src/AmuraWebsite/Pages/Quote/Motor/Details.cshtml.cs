@@ -58,6 +58,23 @@ public class DetailsModel : PageModel
         return Page();
     }
 
+    /// <summary>AJAX endpoint used by the "Look up" button next to the plate field.</summary>
+    public async Task<IActionResult> OnGetLookupAsync(string? regNo)
+    {
+        if (string.IsNullOrWhiteSpace(regNo))
+        {
+            return new JsonResult(new { success = false, message = "Enter a registration number first." });
+        }
+
+        var vehicle = await _client.LookupVehicleAsync(regNo);
+        if (vehicle is null)
+        {
+            return new JsonResult(new { success = false, message = "We couldn't find that vehicle at D-MVIC. Please enter the details manually." });
+        }
+
+        return new JsonResult(new { success = true, data = vehicle });
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         await LoadCatalogAsync();

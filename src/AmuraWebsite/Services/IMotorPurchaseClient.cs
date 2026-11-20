@@ -39,6 +39,9 @@ public interface IMotorPurchaseClient
 
     Task<ResolveClientResponseData?> ResolveClientAsync(string idNo, CancellationToken ct = default);
 
+    /// <summary>D-MVIC/NTSA vehicle lookup by plate - null means not found or unavailable.</summary>
+    Task<VehicleLookupDto?> LookupVehicleAsync(string regNo, CancellationToken ct = default);
+
     Task<int?> CreateClientAsync(
         string idNo, string fullName, DateTime dob, string email, string phone,
         string? address, string? kraPin, CancellationToken ct = default);
