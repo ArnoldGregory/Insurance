@@ -19,6 +19,7 @@ appsettings.*.local.json
 # --- Runtime output ---
 logs/
 *.log
+*.log.err
 *.pid
 
 # --- Publish / deploy artifacts ---
